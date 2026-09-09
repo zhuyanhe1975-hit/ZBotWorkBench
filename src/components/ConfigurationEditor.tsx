@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { ZbotConfiguration, ZbotModule } from '../types/zbot';
 import { PRESET_CONFIGURATIONS } from '../data/presets';
+import { SEVEN_DOF_PRESETS } from '../data/sevenDofPresets';
 import { parseConfiguration, validateConfiguration, withSerialModules } from '../utils/configuration';
 import { Plus, Trash2, Copy, ArrowUp, ArrowDown, Code2, UploadCloud } from 'lucide-react';
 
@@ -55,7 +56,7 @@ export const ConfigurationEditor: React.FC<ConfigurationEditorProps> = ({ curren
   };
   return <section className="flex flex-col h-full min-h-0 bg-slate-900 text-slate-200" aria-label="构型编辑器">
     <div className="flex border-b border-slate-800 px-2 pt-2 shrink-0">
-      {([['presets', '六类构型库'], ['modules', '串联编辑'], ['environment', '基座与保存']] as const).map(([key, title]) => <button key={key} onClick={() => setTab(key)} className={`px-3 py-2 text-xs border-b-2 ${tab === key ? 'text-blue-300 border-blue-500' : 'text-slate-400 border-transparent'}`}>{title}</button>)}
+      {([['presets', '构型库'], ['modules', '串联编辑'], ['environment', '基座与保存']] as const).map(([key, title]) => <button key={key} onClick={() => setTab(key)} className={`px-3 py-2 text-xs border-b-2 ${tab === key ? 'text-blue-300 border-blue-500' : 'text-slate-400 border-transparent'}`}>{title}</button>)}
     </div>
     {message && <div role="status" className="m-3 p-2 border border-amber-700 text-amber-200 rounded text-xs break-words">{message}</div>}
     <div className="flex-1 overflow-auto p-3 space-y-3">
@@ -66,6 +67,12 @@ export const ConfigurationEditor: React.FC<ConfigurationEditorProps> = ({ curren
           <span className="block text-[11px] text-slate-400 mt-1 leading-relaxed">{p.hypothesis}</span>
           <span className="block font-mono text-[11px] text-blue-300 mt-2">σ = [{p.modules.slice(1).map(m => m.dockAngle).join(', ')}]°</span>
           <span className="block font-mono text-[11px] text-slate-300">q = [{p.modules.map(m => m.initialAngle).join(', ')}]°</span>
+        </button>)}
+        <h3 className="text-sm font-semibold text-cyan-200 pt-3 border-t border-slate-700">七自由度 · 等包络对照</h3>
+        <p className="text-xs text-slate-400">统一7模块、Ø100 × 106 mm圆柱包络。默认±90°；在“基座与保存”切换±180°。三个预设从相同末端目标开始。</p>
+        {SEVEN_DOF_PRESETS.map(p => <button key={p.id} onClick={() => apply(p, false)} className={`w-full text-left p-3 rounded-lg border transition-colors ${config.id === p.id ? 'border-cyan-500 bg-cyan-950/50' : 'border-slate-700 bg-slate-800/60 hover:border-cyan-600'}`}>
+          <span className="block text-xs font-semibold">{p.name}</span><span className="block text-[11px] text-slate-400 mt-1 leading-relaxed">{p.hypothesis}</span>
+          <span className="block text-[11px] text-cyan-300 mt-2">7 DOF · 固定基座 · 圆柱包络</span>
         </button>)}
         <p className="text-[11px] text-amber-200/80 leading-relaxed">前四类按轴系排列，后两类按任务组织，分类可交叉。所有功能仍为待验证假设。</p>
       </>}
@@ -87,6 +94,16 @@ export const ConfigurationEditor: React.FC<ConfigurationEditorProps> = ({ curren
         <p className="text-[11px] text-slate-500">增删与排序自动重接单链；q 随模块身份保留。σ 是安装方位，不等于相邻关节轴夹角。</p>
       </>}
       {tab === 'environment' && <>
+        {config.geometryMode === 'envelope' && <div className="rounded-lg border border-cyan-800 p-3 space-y-2">
+          <p className="text-xs text-cyan-200">统一圆柱包络 · Ø100 × 106 mm</p>
+          <label className="block text-xs text-slate-300">统一关节限位<select aria-label="统一关节限位" className={`${field} mt-1`} value={config.modules.every(m=>m.jointRange[0]===-90 && m.jointRange[1]===90) ? '90' : config.modules.every(m=>m.jointRange[0]===-180 && m.jointRange[1]===180) ? '180' : 'custom'} onChange={e=>{
+            const limit=Number(e.target.value); if(!Number.isFinite(limit))return;
+            const clamp=(v:number)=>Math.max(-limit,Math.min(limit,v));
+            apply({...config, modules:config.modules.map(m=>({...m,jointRange:[-limit,limit],initialAngle:clamp(m.initialAngle??0)})), defaultGait:{...config.defaultGait,manualAngles:Object.fromEntries(config.modules.map((m,i)=>[`joint_${i}`,clamp(config.defaultGait.manualAngles[`joint_${i}`]??m.initialAngle??0)]))}});
+          }}><option value="90">±90° · 共同基础条件</option><option value="180">±180° · 大转角对照</option><option value="custom" disabled>自定义限位</option></select></label>
+          <p className="text-[11px] text-slate-400">切换会暂停并重建；超出新范围的初始角会截断。每模块标称1 kg用于对照，不是实物质量；YuMi风格不代表ABB原机。</p>
+        </div>}
+
         <label className="block text-xs text-slate-400">构型名称<input className={`${field} mt-1`} value={config.name} onChange={e => apply({ ...config, name: e.target.value })}/></label>
         <label className="block text-xs text-slate-400">基座模式<select className={`${field} mt-1`} value={config.baseMode ?? 'free'} onChange={e => apply({ ...config, baseMode: e.target.value as 'fixed' | 'free' })}><option value="fixed">固定基座 · 姿态与操作实验</option><option value="free">自由基座 · 接触与运动实验</option></select></label>
         {(['rootPos', 'rootEuler'] as const).map(key => <div key={key} className="text-xs text-slate-400">{key === 'rootPos' ? '基座位置 X / Y / Z（m）' : '基座姿态 Roll / Pitch / Yaw（°）'}<div className="grid grid-cols-3 gap-2 mt-1">{config[key].map((v, i) => <input key={i} className={field} aria-label={`${key} ${'XYZ'[i]}`} type="number" step={key === 'rootPos' ? .01 : 5} value={v} onChange={e => { const vec = [...config[key]] as [number, number, number]; vec[i] = e.target.valueAsNumber; apply({ ...config, [key]: vec }); }}/>)}</div></div>)}

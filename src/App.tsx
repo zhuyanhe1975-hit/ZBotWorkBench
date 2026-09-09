@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { PRESET_CONFIGURATIONS } from './data/presets';
+import { SEVEN_DOF_PRESETS } from './data/sevenDofPresets';
 import { ZbotConfiguration, GaitConfig, SimMetrics } from './types/zbot';
 import { generateMujocoXML } from './utils/xmlGenerator';
 import { mujocoEngine } from './mujoco/MujocoEngine';
@@ -12,7 +13,7 @@ import { MeshUploadModal } from './components/MeshUploadModal';
 import { TelemetryDrawer } from './components/TelemetryDrawer';
 import { ResearchPanel } from './components/ResearchPanel';
 import { ArmControlPanel, ArmControlMode, ArmSolveStatus } from './components/ArmControlPanel';
-import { EndEffectorTarget, getEndEffectorPose, isOrthogonalArm, solveInverseKinematics } from './utils/inverseKinematics';
+import { EndEffectorTarget, getEndEffectorPose, supportsEndEffectorControl, solveInverseKinematics } from './utils/inverseKinematics';
 import { Bot, Code2, UploadCloud, AlertCircle, HelpCircle, X } from 'lucide-react';
 
 export default function App() {
@@ -34,9 +35,10 @@ export default function App() {
   const [customXmlOverride, setCustomXmlOverride] = useState<string | null>(null);
   const [panel, setPanel] = useState<'create' | 'research'>('create');
   const [armTarget, setArmTarget] = useState<EndEffectorTarget | null>(null);
+  const [positionOnly, setPositionOnly] = useState(true);
   const [armMode, setArmMode] = useState<ArmControlMode>('translate');
   const [armStatus, setArmStatus] = useState<ArmSolveStatus | null>(null);
-  const armSupported = isOrthogonalArm(config) && !customXmlOverride;
+  const armSupported = supportsEndEffectorControl(config) && !customXmlOverride;
   const runningRef = useRef(false);
   const gaitRef = useRef(gait);
   const speedRef = useRef(speedMultiplier);
@@ -114,6 +116,7 @@ export default function App() {
   const handleConfigChange = (next: ZbotConfiguration) => {
     setArmTarget(null); setArmStatus(null);
     runningRef.current = false; setIsRunning(false);
+    if (next.geometryMode === 'envelope' && SEVEN_DOF_PRESETS.some(p => p.id === next.id)) setSelfCollision(true);
     setConfig(structuredClone(next));
     setGait(structuredClone(next.defaultGait));
     setCustomXmlOverride(null);
@@ -152,7 +155,7 @@ export default function App() {
   const changeArmTarget = (target: EndEffectorTarget) => {
     if (disabled || !armSupported || !armTarget) return;
     const seed = config.modules.map((m,i) => gaitRef.current.manualAngles[`joint_${i}`] ?? m.initialAngle ?? 0);
-    const result = solveInverseKinematics(config, target, seed);
+    const result = solveInverseKinematics(config, target, seed, positionOnly);
     setArmTarget(target); setArmStatus(result);
     if (!result.converged) return;
     const next = { ...gaitRef.current, type: 'manual' as const, manualAngles: Object.fromEntries(result.angles.map((v,i) => [`joint_${i}`,v])) };
@@ -165,11 +168,12 @@ export default function App() {
       <header className="bg-slate-900 border-b border-slate-800 px-4 py-3 flex flex-wrap gap-3 items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center"><Bot className="w-5 h-5" /></div>
-          <div><h1 className="font-bold text-sm">ZBot 六类构型实验台</h1><p className="text-[11px] text-slate-400">连接序列 σ → 关节轴拓扑 → 运动与接触 → 功能验证</p></div>
+          <div><h1 className="font-bold text-sm">ZBot 构型与机械臂实验台</h1><p className="text-[11px] text-slate-400">连接序列 σ → 关节轴拓扑 → 运动与接触 → 功能验证</p></div>
         </div>
         <nav aria-label="六类构型" className="flex gap-1 flex-wrap">
           {PRESET_CONFIGURATIONS.map((preset, i) => <button key={preset.id} onClick={() => handleConfigChange(preset)} className={`px-2 py-1.5 rounded text-xs ${config.id === preset.id ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>{String(i + 1).padStart(2, '0')} {['平面','正交','同手螺旋','异手均衡','单腿链','功能分区'][i]}</button>)}
         </nav>
+        <nav aria-label="七自由度对照" className="flex flex-wrap items-center gap-1"><span className="text-xs text-cyan-300 mr-1">7DOF 对照</span>{SEVEN_DOF_PRESETS.map((preset,i) => <button key={preset.id} onClick={() => handleConfigChange(preset)} className={`px-2 py-1.5 rounded text-xs transition-colors ${config.id === preset.id ? 'bg-cyan-700 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>{['7DOF ZBot','7DOF 蛇形','7DOF YuMi风格'][i]}</button>)}</nav>
         <div className="flex gap-2">
           <button title="CAD资产" onClick={() => setIsMeshModalOpen(true)} className="p-2 bg-slate-800 rounded"><UploadCloud size={16} /></button>
           <button title="MuJoCo XML" onClick={() => setIsXmlModalOpen(true)} className="p-2 bg-slate-800 rounded"><Code2 size={16} /></button>
@@ -179,14 +183,14 @@ export default function App() {
       <div className="px-4 py-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] border-b border-slate-800 text-slate-400">
         <span className={errorMessage ? 'text-rose-400' : isMujocoReady ? 'text-emerald-400' : 'text-amber-400'}>{errorMessage ? '模型异常 · 已暂停' : !isMujocoReady ? '物理引擎加载中…' : isRunning ? '动力学运行中' : simMetrics.time === 0 ? '构型预览 · 可编辑初始姿态' : '动力学已暂停'}</span>
         <span>{config.baseMode === 'fixed' ? '固定基座' : '自由基座'} · {config.modules.length} 模块</span>
-        <span>{meshManager.hasCadMeshA() && meshManager.hasCadMeshB() ? 'OBJ 网格已载入' : '使用程序网格 / 等待资产'}</span>
+        <span>{config.geometryMode === 'envelope' ? '圆柱包络 · Ø100 × 106 mm · 标称1 kg/模块' : meshManager.hasCadMeshA() && meshManager.hasCadMeshB() ? 'OBJ 网格已载入' : '使用程序网格 / 等待资产'}</span>
         <label className="flex gap-1.5 items-center"><input type="checkbox" checked={selfCollision} disabled={!!customXmlOverride} onChange={e => setSelfCollision(e.target.checked)} />启用非相邻自碰撞</label>
-        <span>{customXmlOverride ? '自定义 XML 模式：物理参数以 XML 为准' : '候选构型 · 接触采用凸包近似 · 功能需实验验证'}</span>
+        <span>{customXmlOverride ? '自定义 XML 模式：物理参数以 XML 为准' : config.geometryMode === 'envelope' ? '等包络轴系抽象 · 非实物承载模型' : '候选构型 · 接触采用凸包近似 · 功能需实验验证'}</span>
       </div>
       {errorMessage && <div role="alert" className="bg-rose-950 px-4 py-2 text-xs text-rose-200 flex gap-2"><AlertCircle size={16} /><span>{errorMessage}</span><button className="underline ml-auto" onClick={() => handleConfigChange(PRESET_CONFIGURATIONS[0])}>恢复平面预设</button></div>}
       <main className="flex-1 flex flex-col xl:flex-row overflow-y-auto xl:overflow-hidden min-h-0">
-        <section className="flex-1 flex flex-col min-w-0 xl:min-h-0">
-          <div className="flex-1 min-h-[360px] relative p-2"><SimulationViewport config={config} simMetrics={simMetrics} armTarget={armSupported && !disabled ? armTarget : null} armMode={armMode} armValid={armStatus?.converged ?? true} onArmTargetChange={changeArmTarget} onApplyImpulse={(x,y,z) => { if (!disabled) mujocoEngine.applyImpulse(x,y,z); }} /></div>
+        <section className="flex-1 flex flex-col min-w-0 xl:min-h-0 xl:overflow-y-auto">
+          <div className="flex-1 min-h-[440px] relative p-2"><SimulationViewport config={config} simMetrics={simMetrics} armTarget={armSupported && !disabled ? armTarget : null} armMode={armMode} armValid={armStatus?.converged ?? true} onArmTargetChange={changeArmTarget} onApplyImpulse={(x,y,z) => { if (!disabled) mujocoEngine.applyImpulse(x,y,z); }} /></div>
           <TelemetryDrawer metrics={simMetrics} isOpen={isTelemetryOpen} onToggle={() => setIsTelemetryOpen(!isTelemetryOpen)} />
           <fieldset disabled={disabled} className="shrink-0 disabled:opacity-50">
             <GaitControlPanel isRunning={isRunning} onTogglePlay={() => setIsRunning(v => !v)} onStep={handleStep} onReset={handleReset}
@@ -195,7 +199,8 @@ export default function App() {
           </fieldset>
         </section>
         <aside className="w-full xl:w-[390px] shrink-0 flex flex-col min-h-[500px] xl:min-h-0 border-l border-slate-800">
-          {armSupported && <ArmControlPanel target={armTarget} mode={armMode} status={armStatus} disabled={disabled} onEnable={enableArm} onDisable={() => { setArmTarget(null); setArmStatus(null); }} onModeChange={setArmMode} onTargetChange={changeArmTarget} />}
+          {!armSupported && <p className="p-3 text-xs text-slate-400">末端控制适用于所有串联构型；请使用固定基座和自动生成模型。</p>}
+          {armSupported && <ArmControlPanel target={armTarget} mode={armMode} positionOnly={positionOnly} onPositionOnlyChange={value => { setPositionOnly(value); setArmMode('translate'); if (armTarget) enableArm(); }} status={armStatus} disabled={disabled} onEnable={enableArm} onDisable={() => { setArmTarget(null); setArmStatus(null); }} onModeChange={setArmMode} onTargetChange={changeArmTarget} />}
           <div className="grid grid-cols-2 p-2 gap-2 bg-slate-900 border-b border-slate-800 text-xs">
             <button onClick={() => setPanel('create')} className={`py-2 rounded ${panel === 'create' ? 'bg-blue-600' : 'bg-slate-800'}`}>构型创建</button>
             <button onClick={() => setPanel('research')} className={`py-2 rounded ${panel === 'research' ? 'bg-blue-600' : 'bg-slate-800'}`}>分析与实验记录</button>

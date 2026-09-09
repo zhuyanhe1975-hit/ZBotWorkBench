@@ -28,6 +28,8 @@ export interface ZbotConfiguration {
   name: string;
   category: 'planar' | 'orthogonal' | 'helical' | 'alternating' | 'leg' | 'zoned' | 'snake' | 'loop' | 'walker' | 'arm' | 'custom';
   baseMode?: 'fixed' | 'free';
+  /** Missing means original OBJ geometry; envelope uses matched 100 x 106 mm half-cylinders. */
+  geometryMode?: 'cad' | 'envelope';
   hypothesis?: string;
   description: string;
   modules: ZbotModule[];

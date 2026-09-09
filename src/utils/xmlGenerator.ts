@@ -1,5 +1,5 @@
 import { ZbotConfiguration, ZbotModule } from '../types/zbot';
-import { Euler, Quaternion } from 'three';
+import { Euler, Quaternion, Vector3 } from 'three';
 import { validateConfiguration } from './configuration';
 
 export interface XmlGeneratorOptions {
@@ -16,20 +16,20 @@ export interface XmlGeneratorOptions {
  * Generates canonical, high-stability MuJoCo MJCF XML string from a ZbotConfiguration.
  * Follows the authentic 6-DOF Zbot kinematic definition:
  *  - Base body ("base"):
- *      <geom class="visual_a" pos="0 0 0"/>
- *      <geom class="coliision_a" pos="0 0 0"/>
+ *      <geom class="visual_a" pos="0 0 ${envelope ? .0265 : 0}"/>
+ *      <geom class="coliision_a" pos="0 0 ${envelope ? .0265 : 0}"/>
  *      <body name="body_0" pos="0 0 0.0">
  *        <joint name="joint_0" type="hinge" pos="0 0 0.053" axis="0 -1 1" />
- *        <geom class="visual_b" pos="0 0 0"/>
- *        <geom class="coliision_b" pos="0 0 0"/>
+ *        <geom class="visual_b" pos="0 0 ${envelope ? .0795 : 0}"/>
+ *        <geom class="coliision_b" pos="0 0 ${envelope ? .0795 : 0}"/>
  *  - Each subsequent module i connected to parent module p at docking face z = 0.106:
  *      Inside body_p:
- *        <geom name="visual_a_${childIdx}" class="visual_a" pos="0 0 0.106" euler="0 0 ${dockAngle}"/>
- *        <geom class="coliision_a" pos="0 0 0.106" euler="0 0 ${dockAngle}"/>
+ *        <geom name="visual_a_${childIdx}" class="visual_a" pos="${childAPos}" euler="0 0 ${dockAngle}"/>
+ *        <geom class="coliision_a" pos="${childAPos}" euler="0 0 ${dockAngle}"/>
  *        <body name="body_i" pos="0 0 0.106" euler="0 0 ${dockAngle}">
  *          <joint name="joint_i" type="hinge" pos="0 0 0.053" axis="${axis}" />
- *          <geom class="visual_b" pos="0 0 0"/>
- *          <geom class="coliision_b" pos="0 0 0"/>
+ *          <geom class="visual_b" pos="0 0 ${envelope ? .0795 : 0}"/>
+ *          <geom class="coliision_b" pos="0 0 ${envelope ? .0795 : 0}"/>
  *        </body>
  *  - Robot collision geoms have contype="1" conaffinity="0", floor has contype="1" conaffinity="1".
  *    This completely eliminates internal self-collision instability while ensuring realistic ground contact.
@@ -40,6 +40,7 @@ export function generateMujocoXML(
 ): string {
   const errors = validateConfiguration(config);
   if (errors.length) throw new Error(errors.join('；'));
+  const envelope = config.geometryMode === 'envelope';
   const kp = options.kp ?? 80;
   const kv = options.kv ?? 8;
   const friction = options.friction ?? 1.2;
@@ -54,29 +55,29 @@ export function generateMujocoXML(
   lines.push(``);
   lines.push(`  <default>`);
   lines.push(`    <default class="coliision">`);
-  lines.push(`      <geom contype="1" conaffinity="${options.selfCollision ? 1 : 0}" group="4" type="mesh" mesh="mb" density="1200" condim="3" friction="${friction} 0.05 0.001" margin="0.0005"/>`);
+  lines.push(`      <geom contype="1" conaffinity="${options.selfCollision ? 1 : 0}" group="4" ${envelope ? 'type="cylinder" size="0.05 0.0265" mass="0.5"' : 'type="mesh" mesh="mb" density="1200"'} condim="3" friction="${friction} 0.05 0.001" margin="0.0005"/>`);
   lines.push(`      <default class="coliision_a">`);
-  lines.push(`        <geom mesh="ma"/>`);
+  lines.push(`        <geom ${envelope ? '' : 'mesh="ma"'}/>`);
   lines.push(`      </default>`);
   lines.push(`      <default class="coliision_b">`);
-  lines.push(`        <geom mesh="mb"/>`);
+  lines.push(`        <geom ${envelope ? '' : 'mesh="mb"'}/>`);
   lines.push(`      </default>`);
   lines.push(`    </default>`);
   lines.push(`    <default class="visual">`);
-  lines.push(`      <geom contype="0" conaffinity="0" group="1" mass="0" type="mesh" mesh="mb"/>`);
+  lines.push(`      <geom contype="0" conaffinity="0" group="1" mass="0" ${envelope ? 'type="cylinder" size="0.05 0.0265"' : 'type="mesh" mesh="mb"'}/>`);
   lines.push(`      <default class="visual_a">`);
-  lines.push(`        <geom mesh="ma"/>`);
+  lines.push(`        <geom ${envelope ? '' : 'mesh="ma"'}/>`);
   lines.push(`      </default>`);
   lines.push(`      <default class="visual_b">`);
-  lines.push(`        <geom mesh="mb"/>`);
+  lines.push(`        <geom ${envelope ? '' : 'mesh="mb"'}/>`);
   lines.push(`      </default>`);
   lines.push(`    </default>`);
   lines.push(`    <joint range="-180 180" limited="true" damping="${damping}" armature="0.01"/>`);
   lines.push(`  </default>`);
   lines.push(``);
   lines.push(`  <asset>`);
-  lines.push(`    <mesh name="ma" file="ma.obj"/>`);
-  lines.push(`    <mesh name="mb" file="mb.obj"/>`);
+  if (!envelope) lines.push(`    <mesh name="ma" file="ma.obj"/>`);
+  if (!envelope) lines.push(`    <mesh name="mb" file="mb.obj"/>`);
   lines.push(`    <texture name="plane_tex" type="2d" builtin="checker" rgb1=".22 .26 .32" rgb2=".14 .17 .22" width="512" height="512" mark="cross" markrgb=".7 .7 .7"/>`);
   lines.push(`    <material name="plane_mat" reflectance="0.15" texture="plane_tex" texrepeat="10 10" texuniform="true"/>`);
   lines.push(`  </asset>`);
@@ -125,16 +126,17 @@ export function generateMujocoXML(
       const childRange = child.jointRange || [-180, 180];
       const childEuler = child.customEuler || [0, 0, child.dockAngle || 0];
       const childEulerStr = `${childEuler[0]} ${childEuler[1]} ${childEuler[2]}`;
+      const childAPos = envelope ? new Vector3(0,0,.0265).applyEuler(new Euler(...childEuler.map(v=>v*Math.PI/180) as [number,number,number], 'XYZ')).add(new Vector3(0,0,.106)).toArray().join(' ') : '0 0 0.106';
 
       lines.push(`${indent}<!-- Module ${childIdx}: Part A fixed to parent docking port at z=0.106 with euler="${childEulerStr}" -->`);
-      lines.push(`${indent}<geom name="visual_a_${childIdx}" class="visual_a" pos="0 0 0.106" euler="${childEulerStr}"/>`);
-      lines.push(`${indent}<geom class="coliision_a" pos="0 0 0.106" euler="${childEulerStr}"/>`);
+      lines.push(`${indent}<geom name="visual_a_${childIdx}" class="visual_a" pos="${childAPos}" euler="${childEulerStr}"/>`);
+      lines.push(`${indent}<geom class="coliision_a" pos="${childAPos}" euler="${childEulerStr}"/>`);
 
       lines.push(`${indent}<!-- Module ${childIdx}: Body & Joint ${childJointName} -->`);
       lines.push(`${indent}<body name="body_${childIdx}" pos="0 0 0.106" euler="${childEulerStr}">`);
       lines.push(`${indent}  <joint name="${childJointName}" type="hinge" pos="0 0 0.053" axis="${childAxisStr}" range="${childRange[0]} ${childRange[1]}"/>`);
-      lines.push(`${indent}  <geom name="visual_b_${childIdx}" class="visual_b" pos="0 0 0"/>`);
-      lines.push(`${indent}  <geom class="coliision_b" pos="0 0 0"/>`);
+      lines.push(`${indent}  <geom name="visual_b_${childIdx}" class="visual_b" pos="0 0 ${envelope ? .0795 : 0}"/>`);
+      lines.push(`${indent}  <geom class="coliision_b" pos="0 0 ${envelope ? .0795 : 0}"/>`);
 
       if (!childrenMap.has(child.id)) lines.push(`${indent}  <site name="tip_${childIdx}" pos="0 0 0.106" size="0.008" rgba="0.2 0.9 0.7 1"/>`);
       // Recurse for deeper children
@@ -158,14 +160,14 @@ export function generateMujocoXML(
     lines.push(`      <freejoint/>`);
   }
   lines.push(`      <!-- Root Module ${rootModIdx} Part A (Base Half) -->`);
-  lines.push(`      <geom name="visual_a_${rootModIdx}" class="visual_a" pos="0 0 0"/>`);
-  lines.push(`      <geom class="coliision_a" pos="0 0 0"/>`);
+  lines.push(`      <geom name="visual_a_${rootModIdx}" class="visual_a" pos="0 0 ${envelope ? .0265 : 0}"/>`);
+  lines.push(`      <geom class="coliision_a" pos="0 0 ${envelope ? .0265 : 0}"/>`);
   lines.push(``);
   lines.push(`      <!-- Root Module ${rootModIdx} Part B with ${rootJointName} -->`);
   lines.push(`      <body name="body_${rootModIdx}" pos="0 0 0.0">`);
   lines.push(`        <joint name="${rootJointName}" type="hinge" pos="0 0 0.053" axis="${rootAxisStr}" range="${rootRange[0]} ${rootRange[1]}"/>`);
-  lines.push(`        <geom name="visual_b_${rootModIdx}" class="visual_b" pos="0 0 0"/>`);
-  lines.push(`        <geom class="coliision_b" pos="0 0 0"/>`);
+  lines.push(`        <geom name="visual_b_${rootModIdx}" class="visual_b" pos="0 0 ${envelope ? .0795 : 0}"/>`);
+  lines.push(`        <geom class="coliision_b" pos="0 0 ${envelope ? .0795 : 0}"/>`);
 
   if (!childrenMap.has(rootModule.id)) lines.push(`        <site name="tip_${rootModIdx}" pos="0 0 0.106" size="0.008"/>`);
   buildModuleChildren(rootModule, '        ');

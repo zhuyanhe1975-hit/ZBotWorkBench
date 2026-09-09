@@ -1,0 +1,144 @@
+{
+  "id": "design_6_12312",
+  "name": "6模块候选 90/180/270/90/180",
+  "category": "custom",
+  "hypothesis": "固定基座通用空间操作候选，不代表综合性能已最优。",
+  "description": "离散构型搜索候选；接口角度、负载、刚度及连续无碰撞路径尚需实物验证。",
+  "rootPos": [
+    0,
+    0,
+    0.35
+  ],
+  "rootEuler": [
+    0,
+    0,
+    0
+  ],
+  "baseMode": "fixed",
+  "defaultGait": {
+    "type": "manual",
+    "frequency": 0.7,
+    "amplitude": 35,
+    "phaseLag": 60,
+    "steering": 0,
+    "speed": 1,
+    "manualAngles": {
+      "joint_0": 14.310405370215259,
+      "joint_1": -137.80360045763405,
+      "joint_2": 26.27535934394192,
+      "joint_3": -124.81487899675155,
+      "joint_4": 157.66873817992618,
+      "joint_5": 173.9536349917639
+    }
+  },
+  "modules": [
+    {
+      "id": "mod_0",
+      "name": "模块 1",
+      "parentId": null,
+      "dockAngle": 0,
+      "initialAngle": 14.310405370215259,
+      "jointAxis": [
+        0,
+        -1,
+        1
+      ],
+      "jointRange": [
+        -180,
+        180
+      ],
+      "colorA": "#3687b4",
+      "colorB": "#57ab98"
+    },
+    {
+      "id": "mod_1",
+      "name": "模块 2",
+      "parentId": "mod_0",
+      "dockAngle": 90,
+      "initialAngle": -137.80360045763405,
+      "jointAxis": [
+        0,
+        -1,
+        1
+      ],
+      "jointRange": [
+        -180,
+        180
+      ],
+      "colorA": "#3687b4",
+      "colorB": "#57ab98"
+    },
+    {
+      "id": "mod_2",
+      "name": "模块 3",
+      "parentId": "mod_1",
+      "dockAngle": 180,
+      "initialAngle": 26.27535934394192,
+      "jointAxis": [
+        0,
+        -1,
+        1
+      ],
+      "jointRange": [
+        -180,
+        180
+      ],
+      "colorA": "#3687b4",
+      "colorB": "#57ab98"
+    },
+    {
+      "id": "mod_3",
+      "name": "模块 4",
+      "parentId": "mod_2",
+      "dockAngle": 270,
+      "initialAngle": -124.81487899675155,
+      "jointAxis": [
+        0,
+        -1,
+        1
+      ],
+      "jointRange": [
+        -180,
+        180
+      ],
+      "colorA": "#3687b4",
+      "colorB": "#57ab98"
+    },
+    {
+      "id": "mod_4",
+      "name": "模块 5",
+      "parentId": "mod_3",
+      "dockAngle": 90,
+      "initialAngle": 157.66873817992618,
+      "jointAxis": [
+        0,
+        -1,
+        1
+      ],
+      "jointRange": [
+        -180,
+        180
+      ],
+      "colorA": "#3687b4",
+      "colorB": "#57ab98"
+    },
+    {
+      "id": "mod_5",
+      "name": "模块 6",
+      "parentId": "mod_4",
+      "dockAngle": 180,
+      "initialAngle": 173.9536349917639,
+      "jointAxis": [
+        0,
+        -1,
+        1
+      ],
+      "jointRange": [
+        -180,
+        180
+      ],
+      "colorA": "#3687b4",
+      "colorB": "#57ab98"
+    }
+  ]
+}

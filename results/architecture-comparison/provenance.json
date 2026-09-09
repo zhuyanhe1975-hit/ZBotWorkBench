@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-09-09T13:01:13.052Z",
+  "node": "v24.14.0",
+  "sha256": {
+    "src/utils/architectureBenchmark.ts": "8330dfb3d218ea15dd8e64732ce351800181a3bd3f6fb945deddb6a4d4d042a4",
+    "src/utils/inverseKinematics.ts": "423d2ab0c718a6eccf5b4bb303925dc092d6d2919c509e055958aa374418f0fc",
+    "src/utils/designAnalysis.ts": "82b87a625adbbf845733c23b2ceb66fce16144a52133e9c8f883f43b9a55e129",
+    "scripts/compare-architectures.ts": "f0e5a2cfe52243401ba9fc2a48b2ce153636bf61dcd309f5cb732bdbd7465e92",
+    "results/architecture-comparison/details-initial.json": "1b46b33a3302caefa9a0870353e621625f893ade0cbaed59f475d83506545aa8",
+    "package-lock.json": "4596e1cbdcf4138a416a2abbc4aa05d08676bd9ee33f7cf0fc92219281f54b3c"
+  }
+}

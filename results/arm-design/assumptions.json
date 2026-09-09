@@ -1,0 +1,189 @@
+{
+  "version": 1,
+  "sampleSequence": "Halton primes 2,3,5,7,11,13,17; q=360*h-180 degrees",
+  "screeningSamples": 256,
+  "screeningDexteritySamples": 32,
+  "detailedSamples": 4096,
+  "rootPos": [
+    0,
+    0,
+    0.35
+  ],
+  "rootEuler": [
+    0,
+    0,
+    0
+  ],
+  "jointLimits": [
+    -180,
+    180
+  ],
+  "modulePitchM": 0.106,
+  "characteristicLengthM": 0.3,
+  "voxelWidthsM": [
+    0.03,
+    0.05,
+    0.08
+  ],
+  "positions": [
+    [
+      0.10000000000000003,
+      -0.17320508075688773,
+      0.2
+    ],
+    [
+      0.10000000000000003,
+      -0.17320508075688773,
+      0.35
+    ],
+    [
+      0.10000000000000003,
+      -0.17320508075688773,
+      0.5
+    ],
+    [
+      0.2,
+      0,
+      0.2
+    ],
+    [
+      0.2,
+      0,
+      0.35
+    ],
+    [
+      0.2,
+      0,
+      0.5
+    ],
+    [
+      0.10000000000000003,
+      0.17320508075688773,
+      0.2
+    ],
+    [
+      0.10000000000000003,
+      0.17320508075688773,
+      0.35
+    ],
+    [
+      0.10000000000000003,
+      0.17320508075688773,
+      0.5
+    ],
+    [
+      0.17500000000000002,
+      -0.3031088913245535,
+      0.2
+    ],
+    [
+      0.17500000000000002,
+      -0.3031088913245535,
+      0.35
+    ],
+    [
+      0.17500000000000002,
+      -0.3031088913245535,
+      0.5
+    ],
+    [
+      0.35,
+      0,
+      0.2
+    ],
+    [
+      0.35,
+      0,
+      0.35
+    ],
+    [
+      0.35,
+      0,
+      0.5
+    ],
+    [
+      0.17500000000000002,
+      0.3031088913245535,
+      0.2
+    ],
+    [
+      0.17500000000000002,
+      0.3031088913245535,
+      0.35
+    ],
+    [
+      0.17500000000000002,
+      0.3031088913245535,
+      0.5
+    ],
+    [
+      0.25000000000000006,
+      -0.4330127018922193,
+      0.2
+    ],
+    [
+      0.25000000000000006,
+      -0.4330127018922193,
+      0.35
+    ],
+    [
+      0.25000000000000006,
+      -0.4330127018922193,
+      0.5
+    ],
+    [
+      0.5,
+      0,
+      0.2
+    ],
+    [
+      0.5,
+      0,
+      0.35
+    ],
+    [
+      0.5,
+      0,
+      0.5
+    ],
+    [
+      0.25000000000000006,
+      0.4330127018922193,
+      0.2
+    ],
+    [
+      0.25000000000000006,
+      0.4330127018922193,
+      0.35
+    ],
+    [
+      0.25000000000000006,
+      0.4330127018922193,
+      0.5
+    ]
+  ],
+  "orientations": [
+    [
+      0,
+      0,
+      0,
+      1
+    ],
+    [
+      0,
+      0.7071067811865475,
+      0,
+      0.7071067811865476
+    ],
+    [
+      1,
+      0,
+      0,
+      6.123233995736766e-17
+    ]
+  ],
+  "screening": "All 5120 connection sequences; no collision filtering in coarse screening. Shortlist top 4 voxel coverage and top 4 dexterity per length plus six presets and four regular seven-module baselines. Shortlist is heuristic, not guaranteed to retain global optimum.",
+  "collision": "Real CAD OBJ convex hulls, existing adjacent-body exclusions, ncon===0, includes ground and 0.5mm margin. No gripper, cable, mount or environment geometry; static pose only.",
+  "payload": "Additional signed joint torque per kg at last docking face under world gravity [0,0,-9.81]. No self-weight, tool COM offset, actuator or stiffness rating. Not a payload capacity.",
+  "limitations": "Provisional generic targets, 3 orientations only, local IK with 3 nearest sampled seeds. Failure is not proof of unreachability. No continuous path verification. Uncalibrated dynamics not used for load ranking."
+}

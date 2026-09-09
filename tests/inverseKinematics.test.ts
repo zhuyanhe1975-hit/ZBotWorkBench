@@ -3,18 +3,18 @@ import assert from 'node:assert/strict';
 import { Quaternion, Vector3 } from 'three';
 import type { ZbotConfiguration } from '../src/types/zbot';
 import { PRESET_CONFIGURATIONS } from '../src/data/presets';
-import { getEndEffectorPose, isOrthogonalArm, solveInverseKinematics } from '../src/utils/inverseKinematics';
+import { getEndEffectorPose, supportsEndEffectorControl, solveInverseKinematics } from '../src/utils/inverseKinematics';
 
 const arm = (): ZbotConfiguration => ({ ...structuredClone(PRESET_CONFIGURATIONS[1]), baseMode: 'fixed' });
 const initial = [0, 55, -55, -55, 55, 0];
 
-test('orthogonal arm recognition checks fixed serial geometry rather than labels', () => {
-  const c = arm(); assert.ok(isOrthogonalArm(c));
-  c.category = 'custom'; assert.ok(isOrthogonalArm(c));
-  c.modules[2].customEuler = [0, 0, -180]; assert.ok(isOrthogonalArm(c));
-  c.modules[2].customEuler = [15, 0, 180]; assert.equal(isOrthogonalArm(c), false);
+test('end effector control accepts custom fixed serial geometry rather than labels', () => {
+  const c = arm(); assert.ok(supportsEndEffectorControl(c));
+  c.category = 'custom'; assert.ok(supportsEndEffectorControl(c));
+  c.modules[2].customEuler = [0, 0, -180]; assert.ok(supportsEndEffectorControl(c));
+  c.modules[2].customEuler = [15, 0, 180]; assert.ok(supportsEndEffectorControl(c));
   delete c.modules[2].customEuler;
-  c.baseMode = 'free'; assert.equal(isOrthogonalArm(c), false);
+  c.baseMode = 'free'; assert.equal(supportsEndEffectorControl(c), false);
 });
 
 test('independent world translations and rotations reach target while holding the other pose component', () => {
@@ -73,4 +73,36 @@ test('extreme finite positions cannot stall the bounded line search', () => {
   assert.equal(result.converged, false);
   assert.ok(result.iterations <= 100);
   assert.ok(result.angles.every(Number.isFinite));
+});
+
+for (const preset of PRESET_CONFIGURATIONS) {
+  test(`pose and position IK for ${preset.id}`, () => {
+    const c = structuredClone(preset);
+    c.baseMode = 'fixed';
+    assert.ok(supportsEndEffectorControl(c));
+    const seed = c.modules.map(m => m.initialAngle ?? 0);
+    const goal = seed.map((v, i) => v + (i % 2 ? -3 : 3));
+    for (const positionOnly of [false, true]) {
+      const target = getEndEffectorPose(c, goal);
+      if (positionOnly) target.quaternion = [1, 0, 0, 0];
+      const result = solveInverseKinematics(c, target, seed, positionOnly);
+      assert.ok(result.converged, JSON.stringify(result));
+      assert.ok(result.positionError <= .0005);
+    }
+    const unreachable = solveInverseKinematics(c, { position: [5, 5, 5], quaternion: [0, 0, 0, 1] }, seed, true);
+    assert.equal(unreachable.converged, false);
+    assert.ok(unreachable.angles.every((q, i) => Number.isFinite(q) && q >= c.modules[i].jointRange[0] && q <= c.modules[i].jointRange[1]));
+  });
+}
+
+test('IK supports short chains and custom axes and docking rotations', () => {
+  for (const count of [1, 3, 6]) {
+    const c = arm(); c.modules = c.modules.slice(0, count);
+    c.modules.forEach((m, i) => { m.jointAxis = [1, 0, 0]; if (i) m.customEuler = [20, 30, 45]; });
+    c.defaultGait.manualAngles = Object.fromEntries(c.modules.map((m, i) => [`joint_${i}`, 0]));
+    const seed = c.modules.map(() => 0);
+    const result = solveInverseKinematics(c, getEndEffectorPose(c, seed.map(() => 4)), seed);
+    assert.ok(result.converged, JSON.stringify(result));
+    assert.equal(result.angles.length, count);
+  }
 });

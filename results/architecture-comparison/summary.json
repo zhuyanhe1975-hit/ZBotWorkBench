@@ -1,0 +1,321 @@
+{
+  "assumptions": {
+    "packageLength": 0.106,
+    "packageDiameter": 0.1,
+    "collision": "Common two half-cylinders per module, central hinge, zero-pose envelope only. Adjacent rigid-body contacts excluded, floor and nonadjacent bodies tested. Not manufacturability validation or commercial product geometry.",
+    "mass": "Each half-cylinder has a nominal .5 kg. Self-gravity coefficients correspond to 1 kg/module, not measured mass. No gripper or payload offset.",
+    "stiffness": "Identical uncoupled joint torsional stiffness, rigid links: vertical compliance=sum(Jz^2)/K. Does not measure actual accuracy.",
+    "targets": "128 deterministic cylinder-sector positions r=.12-.5m, azimuth +/-90deg, world z=.15-.65m, uniform SO(3) orientation; identical for all models and limit settings.",
+    "solver": "32 nearest clear Halton seeds; at least 4096 clear seed poses sought with at most 131072 extra samples beyond initial 16384. Highest minimum singular value solution retained. Initial checkpoint and narrow-limit solutions inherited. Task failure is not proof of unreachable geometry.",
+    "dexterity": "Linear Jacobian scaled by fixed .3m characteristic length; use only common successful full-pose tasks for comparative torque/dexterity."
+  },
+  "rows": [
+    {
+      "id": "zbot",
+      "label": "ZBot orthogonal",
+      "limit": 90,
+      "count": 7,
+      "clearSamples": 16348,
+      "totalSamples": 16384,
+      "ikSeedPoolSize": 8171,
+      "extraSeedSamples": 0,
+      "sampleDexterityP25": 0.09266143781498774,
+      "sampleMaxReachM": 0.7354095331871597,
+      "checkpoints": [
+        {
+          "samples": 4096,
+          "clear": 4088,
+          "cells": 2350
+        },
+        {
+          "samples": 8192,
+          "clear": 8174,
+          "cells": 3391
+        },
+        {
+          "samples": 16384,
+          "clear": 16348,
+          "cells": 4486
+        }
+      ],
+      "positionSolved": 121,
+      "poseSolved": 24
+    },
+    {
+      "id": "snake",
+      "label": "Alternating snake",
+      "limit": 90,
+      "count": 7,
+      "clearSamples": 16321,
+      "totalSamples": 16384,
+      "ikSeedPoolSize": 8160,
+      "extraSeedSamples": 0,
+      "sampleDexterityP25": 0.15178081396990306,
+      "sampleMaxReachM": 0.7196950793492226,
+      "checkpoints": [
+        {
+          "samples": 4096,
+          "clear": 4076,
+          "cells": 2797
+        },
+        {
+          "samples": 8192,
+          "clear": 8160,
+          "cells": 4241
+        },
+        {
+          "samples": 16384,
+          "clear": 16321,
+          "cells": 5581
+        }
+      ],
+      "positionSolved": 128,
+      "poseSolved": 42
+    },
+    {
+      "id": "yumi_style",
+      "label": "YuMi-inspired 7R",
+      "limit": 90,
+      "count": 7,
+      "clearSamples": 16384,
+      "totalSamples": 16384,
+      "ikSeedPoolSize": 8192,
+      "extraSeedSamples": 0,
+      "sampleDexterityP25": 0.060477244604217675,
+      "sampleMaxReachM": 0.7415073645508379,
+      "checkpoints": [
+        {
+          "samples": 4096,
+          "clear": 4096,
+          "cells": 2295
+        },
+        {
+          "samples": 8192,
+          "clear": 8192,
+          "cells": 3254
+        },
+        {
+          "samples": 16384,
+          "clear": 16384,
+          "cells": 4131
+        }
+      ],
+      "positionSolved": 109,
+      "poseSolved": 13
+    },
+    {
+      "id": "zbot",
+      "label": "ZBot orthogonal",
+      "limit": 180,
+      "count": 7,
+      "clearSamples": 13164,
+      "totalSamples": 16384,
+      "ikSeedPoolSize": 6581,
+      "extraSeedSamples": 0,
+      "sampleDexterityP25": 0.11463089185205678,
+      "sampleMaxReachM": 0.714726940940821,
+      "checkpoints": [
+        {
+          "samples": 4096,
+          "clear": 3300,
+          "cells": 2312
+        },
+        {
+          "samples": 8192,
+          "clear": 6588,
+          "cells": 3509
+        },
+        {
+          "samples": 16384,
+          "clear": 13164,
+          "cells": 4675
+        }
+      ],
+      "positionSolved": 127,
+      "poseSolved": 99
+    },
+    {
+      "id": "snake",
+      "label": "Alternating snake",
+      "limit": 180,
+      "count": 7,
+      "clearSamples": 708,
+      "totalSamples": 16384,
+      "ikSeedPoolSize": 4096,
+      "extraSeedSamples": 85914,
+      "sampleDexterityP25": 0.176489388925291,
+      "sampleMaxReachM": 0.6571975585420711,
+      "checkpoints": [
+        {
+          "samples": 4096,
+          "clear": 191,
+          "cells": 182
+        },
+        {
+          "samples": 8192,
+          "clear": 363,
+          "cells": 346
+        },
+        {
+          "samples": 16384,
+          "clear": 708,
+          "cells": 643
+        }
+      ],
+      "positionSolved": 128,
+      "poseSolved": 85
+    },
+    {
+      "id": "yumi_style",
+      "label": "YuMi-inspired 7R",
+      "limit": 180,
+      "count": 7,
+      "clearSamples": 5940,
+      "totalSamples": 16384,
+      "ikSeedPoolSize": 4096,
+      "extraSeedSamples": 3117,
+      "sampleDexterityP25": 0.09276151253551508,
+      "sampleMaxReachM": 0.7402044945606991,
+      "checkpoints": [
+        {
+          "samples": 4096,
+          "clear": 1484,
+          "cells": 1283
+        },
+        {
+          "samples": 8192,
+          "clear": 2967,
+          "cells": 2270
+        },
+        {
+          "samples": 16384,
+          "clear": 5940,
+          "cells": 3625
+        }
+      ],
+      "positionSolved": 127,
+      "poseSolved": 60
+    }
+  ],
+  "common": [
+    {
+      "limit": 90,
+      "indices": [
+        8,
+        28,
+        58,
+        61,
+        98,
+        106,
+        117
+      ],
+      "rows": [
+        {
+          "id": "zbot",
+          "count": 7,
+          "dexterityP25": 0.2041958506170657,
+          "payloadTorqueP95": 3.097131709028104,
+          "selfGravityTorqueP95": 10.310399222636395,
+          "stiffnessCoefficientP95": 0.21843176257071517
+        },
+        {
+          "id": "snake",
+          "count": 7,
+          "dexterityP25": 0.29012307751120675,
+          "payloadTorqueP95": 3.7094285622607868,
+          "selfGravityTorqueP95": 11.977842148076551,
+          "stiffnessCoefficientP95": 0.2806918778715297
+        },
+        {
+          "id": "yumi_style",
+          "count": 7,
+          "dexterityP25": 0.18527143641272995,
+          "payloadTorqueP95": 4.157297000003083,
+          "selfGravityTorqueP95": 12.389546559119882,
+          "stiffnessCoefficientP95": 0.2634600036881303
+        }
+      ]
+    },
+    {
+      "limit": 180,
+      "indices": [
+        3,
+        8,
+        11,
+        15,
+        17,
+        19,
+        20,
+        26,
+        27,
+        28,
+        31,
+        32,
+        33,
+        35,
+        36,
+        40,
+        42,
+        45,
+        47,
+        49,
+        51,
+        52,
+        53,
+        55,
+        58,
+        61,
+        63,
+        69,
+        71,
+        75,
+        83,
+        87,
+        88,
+        89,
+        92,
+        95,
+        98,
+        104,
+        105,
+        106,
+        107,
+        108,
+        112,
+        113,
+        115,
+        117,
+        119,
+        120,
+        121,
+        127
+      ],
+      "rows": [
+        {
+          "id": "zbot",
+          "count": 50,
+          "dexterityP25": 0.27584615314585464,
+          "payloadTorqueP95": 3.1205455229203354,
+          "selfGravityTorqueP95": 10.080476318028218,
+          "stiffnessCoefficientP95": 0.2699008340966506
+        },
+        {
+          "id": "snake",
+          "count": 50,
+          "dexterityP25": 0.29815196356954354,
+          "payloadTorqueP95": 4.080013958667108,
+          "selfGravityTorqueP95": 13.149369337047258,
+          "stiffnessCoefficientP95": 0.25020015208089025
+        },
+        {
+          "id": "yumi_style",
+          "count": 50,
+          "dexterityP25": 0.2706609044890639,
+          "payloadTorqueP95": 4.214363252895003,
+          "selfGravityTorqueP95": 13.34246415130692,
+          "stiffnessCoefficientP95": 0.25087437307663013
+        }
+      ]
+    }
+  ]
+}

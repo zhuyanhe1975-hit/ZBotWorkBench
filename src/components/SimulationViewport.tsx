@@ -448,13 +448,10 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
       // visualGeomIndex 1: Module 0 Part B (mb)
       // visualGeomIndex 2: Module 1 Part A (ma)
       // visualGeomIndex 3: Module 1 Part B (mb), etc.
-      const isPartA = model.geom_dataid && model.geom_dataid[g] !== undefined
-        ? model.geom_dataid[g] === 0
-        : visualGeomIndex % 2 === 0;
-
       let geomName = '';
       for (let k = model.name_geomadr[g]; model.names[k]; k++) geomName += String.fromCharCode(model.names[k]);
       const namedIndex = /^visual_[ab]_(\d+)$/.exec(geomName);
+      const isPartA = namedIndex ? geomName.startsWith('visual_a_') : visualGeomIndex % 2 === 0;
       const modIndex = namedIndex ? Number(namedIndex[1]) : Math.floor(visualGeomIndex / 2);
       visualGeomIndex++;
       const palette = moduleColors[modIndex % moduleColors.length] || { colorA: '#2563eb', colorB: '#38bdf8' };
@@ -467,7 +464,9 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
         envMapIntensity: 1.0,
       });
 
-      const geometry = isPartA ? geomA.clone() : geomB.clone();
+      const geometry = model.geom_type[g] === 5
+        ? new THREE.CylinderGeometry(model.geom_size[g*3], model.geom_size[g*3], 2*model.geom_size[g*3+1], 32).rotateX(Math.PI/2)
+        : isPartA ? geomA.clone() : geomB.clone();
       const meshId = model.geom_dataid[g];
       // Compiler centers and aligns source meshes, composing that offset into geom_xpose.
       // Undo mesh_pos/mesh_quat on raw OBJ vertices before applying the compiled geom pose.

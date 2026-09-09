@@ -14,6 +14,7 @@ export function validateConfiguration(config: unknown): string[] {
   if (config.hypothesis !== undefined && (typeof config.hypothesis !== 'string' || config.hypothesis.length > 5000)) errors.push('研究假设必须是最多 5000 字符的文本');
   if (typeof config.category !== 'string' || !['planar', 'orthogonal', 'helical', 'alternating', 'leg', 'zoned', 'snake', 'loop', 'walker', 'arm', 'custom'].includes(config.category)) errors.push('未知构型类别');
   if (config.baseMode !== undefined && (typeof config.baseMode !== 'string' || !['fixed', 'free'].includes(config.baseMode))) errors.push('基座模式必须为 fixed 或 free');
+  if (config.geometryMode !== undefined && (typeof config.geometryMode !== 'string' || !['cad', 'envelope'].includes(config.geometryMode))) errors.push('未知几何模型');
   if (!vector(config.rootPos, 3, -100, 100)) errors.push('基座位置必须是 ±100 米内的三个有限数');
   if (!vector(config.rootEuler, 3, -360, 360)) errors.push('基座角度必须是 ±360° 内的三个有限数');
   if (!Array.isArray(config.modules) || config.modules.length < 1 || config.modules.length > 24) return [...errors, '仅支持 1–24 个模块的串联链'];

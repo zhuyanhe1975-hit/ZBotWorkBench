@@ -1,0 +1,14 @@
+{
+  "generatedAt": "2026-09-09T12:35:38.214Z",
+  "node": "v24.14.0",
+  "sha256": {
+    "src/utils/designAnalysis.ts": "82b87a625adbbf845733c23b2ceb66fce16144a52133e9c8f883f43b9a55e129",
+    "src/utils/kinematics.ts": "dc920022347444e28a1761a8f9c37e45748a9c55bf0febfa5177ef75971ba228",
+    "src/utils/inverseKinematics.ts": "111f795d223b83956dd691f8e7f8a5e57fb43f7e21f18e7165460776e01ba0d2",
+    "scripts/design-arms.ts": "8884ff5f8c19446718d7fb0ad960b232a62c6b58383c71e0aa2b9e0fb4ea6074",
+    "scripts/validate-arm-designs.ts": "a206a2b9cb653884e748da1dee703bffbeef0c9ec248cb96fa6c7e119513eb51",
+    "public/assets/ma.obj": "780769a5cf8e167a89ccce9c1affe2d536b9136f0ed90e4cfcb8a788de7c04d7",
+    "public/assets/mb.obj": "1a97cbe7e6511fec5f0a3bbafd7898eacde77f6f262b0ce01f08d2c7b9458c4b",
+    "package-lock.json": "4596e1cbdcf4138a416a2abbc4aa05d08676bd9ee33f7cf0fc92219281f54b3c"
+  }
+}

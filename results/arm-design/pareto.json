@@ -1,0 +1,292 @@
+[
+  {
+    "sigma": [
+      180,
+      90,
+      270,
+      90,
+      90
+    ],
+    "n": 6,
+    "cells": 249,
+    "dexterityP25": 0.019109741625684237,
+    "fullRankFraction": 1,
+    "id": "design_6_21311",
+    "validSamples": 4002,
+    "collisionFreeFraction": 0.97705078125,
+    "sampledOccupiedVolumeM3": [
+      {
+        "width": 0.03,
+        "cells": 3564,
+        "volume": 0.09622799999999998
+      },
+      {
+        "width": 0.05,
+        "cells": 2406,
+        "volume": 0.3007500000000001
+      },
+      {
+        "width": 0.08,
+        "cells": 980,
+        "volume": 0.5017600000000001
+      }
+    ],
+    "collisionFreeDexterityP25": 0.02755749112497626,
+    "payloadTorqueP95NmPerKg": 2.994697612094017,
+    "positionSuccess": 23,
+    "positionTotal": 27,
+    "poseSuccess": 16,
+    "poseTotal": 81,
+    "taskDexterityP25": 0.1419672212802478,
+    "taskPayloadTorqueP95NmPerKg": 2.729403064336655
+  },
+  {
+    "sigma": [
+      180,
+      270,
+      180,
+      180,
+      180
+    ],
+    "n": 6,
+    "cells": 235,
+    "dexterityP25": 0.06460634068881256,
+    "fullRankFraction": 1,
+    "id": "design_6_23222",
+    "validSamples": 3709,
+    "collisionFreeFraction": 0.905517578125,
+    "sampledOccupiedVolumeM3": [
+      {
+        "width": 0.03,
+        "cells": 3278,
+        "volume": 0.08850599999999999
+      },
+      {
+        "width": 0.05,
+        "cells": 2262,
+        "volume": 0.28275000000000006
+      },
+      {
+        "width": 0.08,
+        "cells": 946,
+        "volume": 0.48435200000000006
+      }
+    ],
+    "collisionFreeDexterityP25": 0.037425858038482335,
+    "payloadTorqueP95NmPerKg": 2.9375787980613963,
+    "positionSuccess": 23,
+    "positionTotal": 27,
+    "poseSuccess": 29,
+    "poseTotal": 81,
+    "taskDexterityP25": 0.12004766499570063,
+    "taskPayloadTorqueP95NmPerKg": 2.709601008994454
+  },
+  {
+    "sigma": [
+      180,
+      180,
+      180,
+      180,
+      90
+    ],
+    "n": 6,
+    "cells": 236,
+    "dexterityP25": 0.056723691235237385,
+    "fullRankFraction": 1,
+    "id": "design_6_22221",
+    "validSamples": 3587,
+    "collisionFreeFraction": 0.875732421875,
+    "sampledOccupiedVolumeM3": [
+      {
+        "width": 0.03,
+        "cells": 3198,
+        "volume": 0.08634599999999999
+      },
+      {
+        "width": 0.05,
+        "cells": 2220,
+        "volume": 0.2775000000000001
+      },
+      {
+        "width": 0.08,
+        "cells": 937,
+        "volume": 0.47974400000000006
+      }
+    ],
+    "collisionFreeDexterityP25": 0.039520751018578076,
+    "payloadTorqueP95NmPerKg": 3.014941767965133,
+    "positionSuccess": 22,
+    "positionTotal": 27,
+    "poseSuccess": 31,
+    "poseTotal": 81,
+    "taskDexterityP25": 0.10619363597843477,
+    "taskPayloadTorqueP95NmPerKg": 2.6805915556328066
+  },
+  {
+    "sigma": [
+      180,
+      180,
+      90,
+      270,
+      90
+    ],
+    "n": 6,
+    "cells": 233,
+    "dexterityP25": 0.05602676010017984,
+    "fullRankFraction": 1,
+    "id": "design_6_22131",
+    "validSamples": 3882,
+    "collisionFreeFraction": 0.94775390625,
+    "sampledOccupiedVolumeM3": [
+      {
+        "width": 0.03,
+        "cells": 3463,
+        "volume": 0.09350099999999999
+      },
+      {
+        "width": 0.05,
+        "cells": 2376,
+        "volume": 0.2970000000000001
+      },
+      {
+        "width": 0.08,
+        "cells": 967,
+        "volume": 0.4951040000000001
+      }
+    ],
+    "collisionFreeDexterityP25": 0.030978283196576875,
+    "payloadTorqueP95NmPerKg": 3.021322631859786,
+    "positionSuccess": 22,
+    "positionTotal": 27,
+    "poseSuccess": 22,
+    "poseTotal": 81,
+    "taskDexterityP25": 0.12333407115099973,
+    "taskPayloadTorqueP95NmPerKg": 2.4827065244886586
+  },
+  {
+    "sigma": [
+      180,
+      270,
+      180,
+      180,
+      180,
+      180
+    ],
+    "n": 7,
+    "cells": 250,
+    "dexterityP25": 0.14313640151231483,
+    "fullRankFraction": 1,
+    "id": "design_7_232222",
+    "validSamples": 3449,
+    "collisionFreeFraction": 0.842041015625,
+    "sampledOccupiedVolumeM3": [
+      {
+        "width": 0.03,
+        "cells": 3183,
+        "volume": 0.08594099999999999
+      },
+      {
+        "width": 0.05,
+        "cells": 2408,
+        "volume": 0.30100000000000005
+      },
+      {
+        "width": 0.08,
+        "cells": 1179,
+        "volume": 0.6036480000000001
+      }
+    ],
+    "collisionFreeDexterityP25": 0.10699570435200578,
+    "payloadTorqueP95NmPerKg": 3.3977788615944062,
+    "positionSuccess": 27,
+    "positionTotal": 27,
+    "poseSuccess": 60,
+    "poseTotal": 81,
+    "taskDexterityP25": 0.14826403143432496,
+    "taskPayloadTorqueP95NmPerKg": 3.4683554667019947
+  },
+  {
+    "sigma": [
+      180,
+      180,
+      90,
+      180,
+      180,
+      180
+    ],
+    "n": 7,
+    "cells": 242,
+    "dexterityP25": 0.13756111570341842,
+    "fullRankFraction": 1,
+    "id": "design_7_221222",
+    "validSamples": 3474,
+    "collisionFreeFraction": 0.84814453125,
+    "sampledOccupiedVolumeM3": [
+      {
+        "width": 0.03,
+        "cells": 3220,
+        "volume": 0.08693999999999999
+      },
+      {
+        "width": 0.05,
+        "cells": 2440,
+        "volume": 0.30500000000000005
+      },
+      {
+        "width": 0.08,
+        "cells": 1180,
+        "volume": 0.6041600000000001
+      }
+    ],
+    "collisionFreeDexterityP25": 0.1046434048060684,
+    "payloadTorqueP95NmPerKg": 3.4508148974932666,
+    "positionSuccess": 26,
+    "positionTotal": 27,
+    "poseSuccess": 56,
+    "poseTotal": 81,
+    "taskDexterityP25": 0.18806670486991411,
+    "taskPayloadTorqueP95NmPerKg": 3.468211966957448
+  },
+  {
+    "sigma": [
+      180,
+      270,
+      180,
+      180,
+      90,
+      90
+    ],
+    "n": 7,
+    "cells": 239,
+    "dexterityP25": 0.1309867717396172,
+    "fullRankFraction": 1,
+    "id": "design_7_232211",
+    "validSamples": 3560,
+    "collisionFreeFraction": 0.869140625,
+    "sampledOccupiedVolumeM3": [
+      {
+        "width": 0.03,
+        "cells": 3298,
+        "volume": 0.08904599999999999
+      },
+      {
+        "width": 0.05,
+        "cells": 2555,
+        "volume": 0.3193750000000001
+      },
+      {
+        "width": 0.08,
+        "cells": 1274,
+        "volume": 0.6522880000000001
+      }
+    ],
+    "collisionFreeDexterityP25": 0.09739793045546165,
+    "payloadTorqueP95NmPerKg": 3.4596377550903616,
+    "positionSuccess": 27,
+    "positionTotal": 27,
+    "poseSuccess": 54,
+    "poseTotal": 81,
+    "taskDexterityP25": 0.17533965246602334,
+    "taskPayloadTorqueP95NmPerKg": 3.675360308760059
+  }
+]

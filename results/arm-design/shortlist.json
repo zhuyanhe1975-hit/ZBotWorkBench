@@ -1,0 +1,352 @@
+[
+  {
+    "sigma": [
+      180,
+      180,
+      270,
+      180,
+      90
+    ],
+    "n": 6,
+    "cells": 250,
+    "dexterityP25": 0.02554675254408675,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      180,
+      90,
+      180,
+      0,
+      0
+    ],
+    "n": 6,
+    "cells": 249,
+    "dexterityP25": 0.00533447189493865,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      270,
+      90,
+      270,
+      270,
+      0
+    ],
+    "n": 6,
+    "cells": 249,
+    "dexterityP25": 0.01793030131768394,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      180,
+      90,
+      270,
+      90,
+      90
+    ],
+    "n": 6,
+    "cells": 249,
+    "dexterityP25": 0.019109741625684237,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      180,
+      270,
+      180,
+      180,
+      180
+    ],
+    "n": 6,
+    "cells": 235,
+    "dexterityP25": 0.06460634068881256,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      90,
+      180,
+      270,
+      90,
+      180
+    ],
+    "n": 6,
+    "cells": 236,
+    "dexterityP25": 0.06206031179531015,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      180,
+      180,
+      180,
+      180,
+      90
+    ],
+    "n": 6,
+    "cells": 236,
+    "dexterityP25": 0.056723691235237385,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      180,
+      180,
+      90,
+      270,
+      90
+    ],
+    "n": 6,
+    "cells": 233,
+    "dexterityP25": 0.05602676010017984,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      180,
+      180,
+      270,
+      90,
+      0,
+      270
+    ],
+    "n": 7,
+    "cells": 254,
+    "dexterityP25": 0.06174595800240487,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      90,
+      270,
+      270,
+      270,
+      0,
+      0
+    ],
+    "n": 7,
+    "cells": 253,
+    "dexterityP25": 0.053642766354525265,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      180,
+      180,
+      270,
+      0,
+      270,
+      0
+    ],
+    "n": 7,
+    "cells": 253,
+    "dexterityP25": 0.057339501801914716,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      90,
+      270,
+      180,
+      0,
+      90,
+      90
+    ],
+    "n": 7,
+    "cells": 253,
+    "dexterityP25": 0.0636637154884552,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      180,
+      270,
+      180,
+      180,
+      180,
+      180
+    ],
+    "n": 7,
+    "cells": 250,
+    "dexterityP25": 0.14313640151231483,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      180,
+      180,
+      180,
+      180,
+      180,
+      90
+    ],
+    "n": 7,
+    "cells": 244,
+    "dexterityP25": 0.13812138700117146,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      180,
+      180,
+      90,
+      180,
+      180,
+      180
+    ],
+    "n": 7,
+    "cells": 242,
+    "dexterityP25": 0.13756111570341842,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      180,
+      270,
+      180,
+      180,
+      90,
+      90
+    ],
+    "n": 7,
+    "cells": 239,
+    "dexterityP25": 0.1309867717396172,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "n": 6,
+    "cells": 91,
+    "dexterityP25": 0,
+    "fullRankFraction": 0
+  },
+  {
+    "sigma": [
+      180,
+      180,
+      180,
+      180,
+      180
+    ],
+    "n": 6,
+    "cells": 237,
+    "dexterityP25": 0.044746148564681724,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      90,
+      90,
+      90,
+      90,
+      90
+    ],
+    "n": 6,
+    "cells": 236,
+    "dexterityP25": 0.017640271731947755,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      90,
+      270,
+      90,
+      270,
+      90
+    ],
+    "n": 6,
+    "cells": 239,
+    "dexterityP25": 0.024664587373245575,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      180,
+      180,
+      0,
+      180,
+      0
+    ],
+    "n": 6,
+    "cells": 240,
+    "dexterityP25": 0.021285509306271464,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      0,
+      180,
+      180,
+      90,
+      0
+    ],
+    "n": 6,
+    "cells": 234,
+    "dexterityP25": 0.01865168361604759,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "n": 7,
+    "cells": 92,
+    "dexterityP25": 0,
+    "fullRankFraction": 0
+  },
+  {
+    "sigma": [
+      90,
+      90,
+      90,
+      90,
+      90,
+      90
+    ],
+    "n": 7,
+    "cells": 240,
+    "dexterityP25": 0.07814069483166905,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      180,
+      180,
+      180,
+      180,
+      180,
+      180
+    ],
+    "n": 7,
+    "cells": 242,
+    "dexterityP25": 0.13096317080704528,
+    "fullRankFraction": 1
+  },
+  {
+    "sigma": [
+      90,
+      270,
+      90,
+      270,
+      90,
+      270
+    ],
+    "n": 7,
+    "cells": 245,
+    "dexterityP25": 0.05331214650589541,
+    "fullRankFraction": 1
+  }
+]
