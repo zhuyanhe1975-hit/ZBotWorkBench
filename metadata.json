@@ -1,0 +1,6 @@
+{
+  "name": "Zbot 模块化机器人虚拟实验台",
+  "description": "Zbot模块化机器人虚拟实验台，支持多模块构型快速搭建与拓扑编辑，并基于MuJoCo WASM进行高精度动力学仿真与步态验证。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
