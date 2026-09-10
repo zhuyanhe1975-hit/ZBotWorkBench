@@ -116,7 +116,7 @@ export default function App() {
   const handleConfigChange = (next: ZbotConfiguration) => {
     setArmTarget(null); setArmStatus(null);
     runningRef.current = false; setIsRunning(false);
-    if (next.geometryMode === 'envelope' && SEVEN_DOF_PRESETS.some(p => p.id === next.id)) setSelfCollision(true);
+    if (SEVEN_DOF_PRESETS.some(p => p.id === next.id)) setSelfCollision(true);
     setConfig(structuredClone(next));
     setGait(structuredClone(next.defaultGait));
     setCustomXmlOverride(null);
@@ -183,9 +183,9 @@ export default function App() {
       <div className="px-4 py-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] border-b border-slate-800 text-slate-400">
         <span className={errorMessage ? 'text-rose-400' : isMujocoReady ? 'text-emerald-400' : 'text-amber-400'}>{errorMessage ? '模型异常 · 已暂停' : !isMujocoReady ? '物理引擎加载中…' : isRunning ? '动力学运行中' : simMetrics.time === 0 ? '构型预览 · 可编辑初始姿态' : '动力学已暂停'}</span>
         <span>{config.baseMode === 'fixed' ? '固定基座' : '自由基座'} · {config.modules.length} 模块</span>
-        <span>{config.geometryMode === 'envelope' ? '圆柱包络 · Ø100 × 106 mm · 标称1 kg/模块' : meshManager.hasCadMeshA() && meshManager.hasCadMeshB() ? 'OBJ 网格已载入' : '使用程序网格 / 等待资产'}</span>
+        <span>{config.geometryMode === 'mechanical' ? '关节壳体 + 叉架 + 法兰 · 标称1 kg/模块' : config.geometryMode === 'envelope' ? '圆柱包络 · Ø100 × 106 mm · 标称1 kg/模块' : meshManager.hasCadMeshA() && meshManager.hasCadMeshB() ? 'OBJ 网格已载入' : '使用程序网格 / 等待资产'}</span>
         <label className="flex gap-1.5 items-center"><input type="checkbox" checked={selfCollision} disabled={!!customXmlOverride} onChange={e => setSelfCollision(e.target.checked)} />启用非相邻自碰撞</label>
-        <span>{customXmlOverride ? '自定义 XML 模式：物理参数以 XML 为准' : config.geometryMode === 'envelope' ? '等包络轴系抽象 · 非实物承载模型' : '候选构型 · 接触采用凸包近似 · 功能需实验验证'}</span>
+        <span>{customXmlOverride ? '自定义 XML 模式：物理参数以 XML 为准' : config.geometryMode === 'mechanical' ? '关节圆柱轴线 = 转轴 · 概念连接结构' : config.geometryMode === 'envelope' ? '等包络轴系抽象 · 非实物承载模型' : '候选构型 · 接触采用凸包近似 · 功能需实验验证'}</span>
       </div>
       {errorMessage && <div role="alert" className="bg-rose-950 px-4 py-2 text-xs text-rose-200 flex gap-2"><AlertCircle size={16} /><span>{errorMessage}</span><button className="underline ml-auto" onClick={() => handleConfigChange(PRESET_CONFIGURATIONS[0])}>恢复平面预设</button></div>}
       <main className="flex-1 flex flex-col xl:flex-row overflow-y-auto xl:overflow-hidden min-h-0">

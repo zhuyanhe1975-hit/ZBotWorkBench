@@ -1,5 +1,6 @@
 import { ZbotConfiguration, ZbotModule } from '../types/zbot';
 import { Euler, Quaternion, Vector3 } from 'three';
+import { mechanicalGeoms } from './mechanicalGeometry';
 import { validateConfiguration } from './configuration';
 
 export interface XmlGeneratorOptions {
@@ -40,7 +41,8 @@ export function generateMujocoXML(
 ): string {
   const errors = validateConfiguration(config);
   if (errors.length) throw new Error(errors.join('；'));
-  const envelope = config.geometryMode === 'envelope';
+  const mechanical = config.geometryMode === 'mechanical';
+  const envelope = config.geometryMode === 'envelope' || mechanical;
   const kp = options.kp ?? 80;
   const kv = options.kv ?? 8;
   const friction = options.friction ?? 1.2;
@@ -129,15 +131,22 @@ export function generateMujocoXML(
       const childAPos = envelope ? new Vector3(0,0,.0265).applyEuler(new Euler(...childEuler.map(v=>v*Math.PI/180) as [number,number,number], 'XYZ')).add(new Vector3(0,0,.106)).toArray().join(' ') : '0 0 0.106';
 
       lines.push(`${indent}<!-- Module ${childIdx}: Part A fixed to parent docking port at z=0.106 with euler="${childEulerStr}" -->`);
+      if (mechanical) {
+        lines.push(`${indent}<body pos="0 0 0.106" euler="${childEulerStr}">`, ...mechanicalGeoms(childAxis, 'a', childIdx).map(g => indent + g), `${indent}</body>`);
+      } else {
       lines.push(`${indent}<geom name="visual_a_${childIdx}" class="visual_a" pos="${childAPos}" euler="${childEulerStr}"/>`);
       lines.push(`${indent}<geom class="coliision_a" pos="${childAPos}" euler="${childEulerStr}"/>`);
 
+      }
       lines.push(`${indent}<!-- Module ${childIdx}: Body & Joint ${childJointName} -->`);
       lines.push(`${indent}<body name="body_${childIdx}" pos="0 0 0.106" euler="${childEulerStr}">`);
       lines.push(`${indent}  <joint name="${childJointName}" type="hinge" pos="0 0 0.053" axis="${childAxisStr}" range="${childRange[0]} ${childRange[1]}"/>`);
+      if (mechanical) lines.push(...mechanicalGeoms(childAxis, 'b', childIdx).map(g => indent + g));
+      else {
       lines.push(`${indent}  <geom name="visual_b_${childIdx}" class="visual_b" pos="0 0 ${envelope ? .0795 : 0}"/>`);
       lines.push(`${indent}  <geom class="coliision_b" pos="0 0 ${envelope ? .0795 : 0}"/>`);
 
+      }
       if (!childrenMap.has(child.id)) lines.push(`${indent}  <site name="tip_${childIdx}" pos="0 0 0.106" size="0.008" rgba="0.2 0.9 0.7 1"/>`);
       // Recurse for deeper children
       buildModuleChildren(child, indent + '  ');
@@ -160,15 +169,21 @@ export function generateMujocoXML(
     lines.push(`      <freejoint/>`);
   }
   lines.push(`      <!-- Root Module ${rootModIdx} Part A (Base Half) -->`);
+  if (mechanical) lines.push(...mechanicalGeoms(rootAxis, 'a', rootModIdx));
+  else {
   lines.push(`      <geom name="visual_a_${rootModIdx}" class="visual_a" pos="0 0 ${envelope ? .0265 : 0}"/>`);
   lines.push(`      <geom class="coliision_a" pos="0 0 ${envelope ? .0265 : 0}"/>`);
   lines.push(``);
+  }
   lines.push(`      <!-- Root Module ${rootModIdx} Part B with ${rootJointName} -->`);
   lines.push(`      <body name="body_${rootModIdx}" pos="0 0 0.0">`);
   lines.push(`        <joint name="${rootJointName}" type="hinge" pos="0 0 0.053" axis="${rootAxisStr}" range="${rootRange[0]} ${rootRange[1]}"/>`);
+  if (mechanical) lines.push(...mechanicalGeoms(rootAxis, 'b', rootModIdx));
+  else {
   lines.push(`        <geom name="visual_b_${rootModIdx}" class="visual_b" pos="0 0 ${envelope ? .0795 : 0}"/>`);
   lines.push(`        <geom class="coliision_b" pos="0 0 ${envelope ? .0795 : 0}"/>`);
 
+  }
   if (!childrenMap.has(rootModule.id)) lines.push(`        <site name="tip_${rootModIdx}" pos="0 0 0.106" size="0.008"/>`);
   buildModuleChildren(rootModule, '        ');
 

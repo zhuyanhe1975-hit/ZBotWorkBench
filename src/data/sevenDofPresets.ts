@@ -11,10 +11,10 @@ const poses = [
 ];
 const colors = [['#0284c7','#7dd3fc'],['#059669','#6ee7b7'],['#9333ea','#d8b4fe']];
 export const SEVEN_DOF_PRESETS: ZbotConfiguration[] = benchmarkRobots(90).map((robot,k) => ({
-  id:`seven_${robot.id}`,name:names[k],category:'arm',baseMode:'fixed',geometryMode:'envelope',
+  id:`seven_${robot.id}`,name:names[k],category:'arm',baseMode:'fixed',geometryMode:k===0?'cad':'mechanical',
   rootPos:[0,0,.35],rootEuler:[0,0,0],
-  hypothesis:descriptions[k],description:`${descriptions[k]} 每模块零位包络直径100 mm、长106 mm，标称质量1 kg用于对照，不是实物质量或额定承载。`,
+  hypothesis:descriptions[k],description:`${descriptions[k]} ZBot 使用原始 OBJ 模块；其他构型使用轴向壳体、输出叉架与连接法兰概念结构。非实物额定承载模型。`,
   modules:robot.cells.map((cell,i)=>({id:`mod_${i}`,name:`模块 ${i+1}`,parentId:i?`mod_${i-1}`:null,
-    dockAngle:i&&k===0?180:0,jointAxis:[...cell.axis],jointRange:[-90,90],initialAngle:poses[k][i],colorA:colors[k][0],colorB:colors[k][1]})),
+    dockAngle:i&&k===0?180:0,jointAxis:[...cell.axis],jointRange:k===0 || k===2 && Math.abs(cell.axis[2])>.999?[-180,180]:[-90,90],initialAngle:poses[k][i],colorA:colors[k][0],colorB:colors[k][1]})),
   defaultGait:{type:'manual',frequency:.7,amplitude:20,phaseLag:60,steering:0,speed:1,manualAngles:Object.fromEntries(poses[k].map((q,i)=>[`joint_${i}`,q]))},
 }));

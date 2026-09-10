@@ -69,10 +69,10 @@ export const ConfigurationEditor: React.FC<ConfigurationEditorProps> = ({ curren
           <span className="block font-mono text-[11px] text-slate-300">q = [{p.modules.map(m => m.initialAngle).join(', ')}]°</span>
         </button>)}
         <h3 className="text-sm font-semibold text-cyan-200 pt-3 border-t border-slate-700">七自由度 · 等包络对照</h3>
-        <p className="text-xs text-slate-400">统一7模块、Ø100 × 106 mm圆柱包络。默认±90°；在“基座与保存”切换±180°。三个预设从相同末端目标开始。</p>
+        <p className="text-xs text-slate-400">统一7模块、106 mm安装节距；ZBot原始网格，蛇形/YuMi风格使用关节壳体与连接件。ZBot全部±180°；YuMi纵轴±180°、横轴±90°；蛇形全部±90°。三个预设从相同末端目标开始。</p>
         {SEVEN_DOF_PRESETS.map(p => <button key={p.id} onClick={() => apply(p, false)} className={`w-full text-left p-3 rounded-lg border transition-colors ${config.id === p.id ? 'border-cyan-500 bg-cyan-950/50' : 'border-slate-700 bg-slate-800/60 hover:border-cyan-600'}`}>
           <span className="block text-xs font-semibold">{p.name}</span><span className="block text-[11px] text-slate-400 mt-1 leading-relaxed">{p.hypothesis}</span>
-          <span className="block text-[11px] text-cyan-300 mt-2">7 DOF · 固定基座 · 圆柱包络</span>
+          <span className="block text-[11px] text-cyan-300 mt-2">7 DOF · 固定基座 · {p.geometryMode === 'cad' ? 'ZBot OBJ' : '关节与连接结构'}</span>
         </button>)}
         <p className="text-[11px] text-amber-200/80 leading-relaxed">前四类按轴系排列，后两类按任务组织，分类可交叉。所有功能仍为待验证假设。</p>
       </>}
@@ -88,20 +88,21 @@ export const ConfigurationEditor: React.FC<ConfigurationEditorProps> = ({ curren
         </div>
         <label className="block text-xs text-slate-400">模块名称<input className={`${field} mt-1`} value={selected.name} onChange={e => update({ name: e.target.value })}/></label>
         {index > 0 && <label className="block text-xs text-slate-400">连接方位 σ（°）<select className={`${field} mt-1`} value={selected.dockAngle} onChange={e => update({ dockAngle: Number(e.target.value), customEuler: undefined })}>{[0, 90, 180, 270].map(v => <option key={v} value={v}>{v}°</option>)}{![0,90,180,270].includes(selected.dockAngle) && <option value={selected.dockAngle}>{selected.dockAngle}°（导入值）</option>}</select></label>}
+        <p className="text-xs text-cyan-300">关节范围：{selected.jointRange[0]}° ～ {selected.jointRange[1]}°</p>
         <label className="block text-xs text-slate-400">初始动作角 q（°）<input className={`${field} mt-1`} type="number" min={selected.jointRange[0]} max={selected.jointRange[1]} value={selected.initialAngle ?? 0} onChange={e => update({ initialAngle: e.target.valueAsNumber })}/><input className="w-full mt-2 accent-blue-500" aria-label="初始动作角滑块" type="range" min={selected.jointRange[0]} max={selected.jointRange[1]} value={selected.initialAngle ?? 0} onChange={e => update({ initialAngle: Number(e.target.value) })}/></label>
         <div className="text-xs text-slate-400">关节轴 [x, y, z]<div className="grid grid-cols-3 gap-2 mt-1">{selected.jointAxis.map((v, i) => <input key={i} className={field} aria-label={`关节轴 ${'XYZ'[i]}`} type="number" value={v} onChange={e => { const axis = [...selected.jointAxis] as [number, number, number]; axis[i] = e.target.valueAsNumber; update({ jointAxis: axis }); }}/>)}</div></div>
         <div className="flex gap-3 text-xs text-slate-400">{(['colorA', 'colorB'] as const).map(key => <label key={key}>半模块 {key.slice(-1)}<input aria-label={key} className="ml-2 w-8 h-6 align-middle" type="color" value={selected[key] ?? '#3687b4'} onChange={e => update({ [key]: e.target.value })}/></label>)}</div>
         <p className="text-[11px] text-slate-500">增删与排序自动重接单链；q 随模块身份保留。σ 是安装方位，不等于相邻关节轴夹角。</p>
       </>}
       {tab === 'environment' && <>
-        {config.geometryMode === 'envelope' && <div className="rounded-lg border border-cyan-800 p-3 space-y-2">
-          <p className="text-xs text-cyan-200">统一圆柱包络 · Ø100 × 106 mm</p>
+        {config.modules.length === 7 && <div className="rounded-lg border border-cyan-800 p-3 space-y-2">
+          <p className="text-xs text-cyan-200">七轴结构 · 106 mm安装节距</p>
           <label className="block text-xs text-slate-300">统一关节限位<select aria-label="统一关节限位" className={`${field} mt-1`} value={config.modules.every(m=>m.jointRange[0]===-90 && m.jointRange[1]===90) ? '90' : config.modules.every(m=>m.jointRange[0]===-180 && m.jointRange[1]===180) ? '180' : 'custom'} onChange={e=>{
             const limit=Number(e.target.value); if(!Number.isFinite(limit))return;
             const clamp=(v:number)=>Math.max(-limit,Math.min(limit,v));
             apply({...config, modules:config.modules.map(m=>({...m,jointRange:[-limit,limit],initialAngle:clamp(m.initialAngle??0)})), defaultGait:{...config.defaultGait,manualAngles:Object.fromEntries(config.modules.map((m,i)=>[`joint_${i}`,clamp(config.defaultGait.manualAngles[`joint_${i}`]??m.initialAngle??0)]))}});
-          }}><option value="90">±90° · 共同基础条件</option><option value="180">±180° · 大转角对照</option><option value="custom" disabled>自定义限位</option></select></label>
-          <p className="text-[11px] text-slate-400">切换会暂停并重建；超出新范围的初始角会截断。每模块标称1 kg用于对照，不是实物质量；YuMi风格不代表ABB原机。</p>
+          }}><option value="90">±90° · 共同基础条件</option><option value="180">±180° · 大转角对照</option><option value="custom" disabled>混合／自定义限位</option></select></label>
+          <p className="text-[11px] text-slate-400">切换会暂停并重建；超出新范围的初始角会截断。概念结构每模块标称1 kg，ZBot沿用网格密度估算；均非实测质量。YuMi风格不代表ABB原机。</p>
         </div>}
 
         <label className="block text-xs text-slate-400">构型名称<input className={`${field} mt-1`} value={config.name} onChange={e => apply({ ...config, name: e.target.value })}/></label>

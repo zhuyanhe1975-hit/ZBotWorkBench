@@ -68,7 +68,7 @@ npm run preview
 
 七模块 ZBot／蛇形／YuMi风格的等包络轴系对照见 [results/architecture-comparison/README.md](results/architecture-comparison/README.md)，运行 `npm run design:compare` 重现。三组使用共同的100×106 mm零位包络代理几何，YuMi风格模型不是ABB原机，其结果不可用于商业产品性能排名。
 
-三组已加入顶部“7DOF 对照”和右侧构型库。点击“7DOF ZBot”“7DOF 蛇形”“7DOF YuMi风格”即可切换，默认固定基座、暂停、±90°并启用非相邻自碰撞。三组从同一末端目标的不同关节解开始，使用统一半圆柱视觉／碰撞模型和每模块1 kg标称质量。末端控制、七关节手动调节、运行／重置、实验记录及JSON保存导入均可使用；“基座与保存”提供±90°／±180°统一限位切换。保存文件通过 `geometryMode: "envelope"` 保留包络模型；旧文件省略该字段时仍使用原OBJ。
+三组已加入顶部“7DOF 对照”和右侧构型库。点击“7DOF ZBot”“7DOF 蛇形”“7DOF YuMi风格”即可切换，默认固定基座、暂停并启用非相邻自碰撞；ZBot 全关节 ±180°，YuMi 风格沿身体方向 Z 轴 ±180°、横向 Y 轴 ±90°，蛇形所有关节 ±90°。三组从同一末端目标的不同关节解开始，ZBot 使用仓库原始 ma/mb OBJ 模块；蛇形与 YuMi 风格使用沿关节轴布置的圆柱电机壳、轴端、输出叉架及安装法兰，视觉和碰撞共用几何。概念结构每模块标称1 kg，ZBot 沿用原网格密度估算。末端控制、七关节手动调节、运行／重置、实验记录及JSON保存导入均可使用；“基座与保存”提供±90°／±180°统一限位切换。保存文件通过 `geometryMode: "cad"` / `"mechanical"` 保留对应模型；旧版 `"envelope"` 仍可导入；旧文件省略该字段时仍使用原OBJ。
 
 ## 所有构型末端控制球
 
@@ -85,3 +85,5 @@ npm run preview
 - 重置、切换构型、改变物理模型，或操作步态/手动关节时会退出末端控制，避免控制目标冲突。对所有固定基座串联构型的自动生成模型开放；自由基座与自定义 XML 暂不支持。
 
 实现：`src/utils/inverseKinematics.ts`（求解）、`src/utils/armTargetControl.ts`（三维交互）、`src/components/ArmControlPanel.tsx`（控制面板），接入 `App.tsx` 与 `SimulationViewport.tsx`。复用已有 Three.js，无新增依赖。
+
+新增连接结构保留 106 mm 零位安装节距，横向关节壳体轴沿局部 X/Y，扭转关节沿局部 Z；输入壳体随上游、输出叉架随本关节转动。YuMi 风格是概念轴系，不是 ABB 原机复刻。`results/architecture-comparison` 的数据仍对应旧半圆柱模型，不能直接用作新结构的负载／碰撞结论。±180°是仿真关节限位，不代表连接件已验证全行程无干涉。

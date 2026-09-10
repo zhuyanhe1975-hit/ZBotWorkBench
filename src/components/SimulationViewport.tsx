@@ -450,7 +450,7 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
       // visualGeomIndex 3: Module 1 Part B (mb), etc.
       let geomName = '';
       for (let k = model.name_geomadr[g]; model.names[k]; k++) geomName += String.fromCharCode(model.names[k]);
-      const namedIndex = /^visual_[ab]_(\d+)$/.exec(geomName);
+      const namedIndex = /^visual_[ab]_(\d+)(?:_\d+)?$/.exec(geomName);
       const isPartA = namedIndex ? geomName.startsWith('visual_a_') : visualGeomIndex % 2 === 0;
       const modIndex = namedIndex ? Number(namedIndex[1]) : Math.floor(visualGeomIndex / 2);
       visualGeomIndex++;
