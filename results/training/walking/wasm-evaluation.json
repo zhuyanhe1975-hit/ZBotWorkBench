@@ -1,0 +1,12 @@
+{
+  "scope": "600 control steps, no reset; displacement/height/lateral checks only",
+  "results": [
+    {
+      "file": ".training/jobs/2d4482b7-52f9-4db6-a34f-566a74a870cc/bundle.json",
+      "seconds": 19.999999999999186,
+      "forwardMetres": 3.1909419229827733,
+      "minimumBaseHeight": 0.254055489691734,
+      "maximumLateralDeviation": 0.2572907667785813
+    }
+  ]
+}

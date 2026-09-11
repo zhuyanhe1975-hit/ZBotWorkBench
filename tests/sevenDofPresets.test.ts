@@ -7,6 +7,8 @@ import { generateMujocoXML } from '../src/utils/xmlGenerator';
 import { benchmarkRobots, benchmarkFK, benchmarkXML } from '../src/utils/architectureBenchmark';
 import { forwardKinematics } from '../src/utils/kinematics';
 import { getEndEffectorPose, solveInverseKinematics } from '../src/utils/inverseKinematics';
+import { Vector3 } from 'three';
+import { mechanicalGeoms } from '../src/utils/mechanicalGeometry';
 import { MujocoEngine } from '../src/mujoco/MujocoEngine';
 
 test('seven DOF presets retain geometry through save/import and IK works',()=>{
@@ -78,5 +80,38 @@ test('physical presets use CAD or shaft-aligned connected geometry, with consist
     assert.ok(Math.abs(e.getTime()-.2)<1e-8);
     for(let i=0;i<d.warning.size();i++) assert.equal(d.warning.get(i).number,0,c.id);
     e.destroy();
+  }
+});
+
+
+test('snake and YuMi motors share one barrel and fit the neutral module envelope', () => {
+  for (const axis of [[1,0,0], [0,1,0], [0,0,1]]) {
+    const parts = ['a', 'b'].map(part => mechanicalGeoms(axis, part as 'a' | 'b', 0)
+      .filter(xml => xml.includes('name="visual_'))
+      .map(xml => {
+        const points = xml.match(/fromto="([^"]+)"/)![1].split(' ').map(Number);
+        return {p: new Vector3(...points.slice(0,3) as [number,number,number]),
+          q: new Vector3(...points.slice(3) as [number,number,number]),
+          r: Number(xml.match(/size="([^"]+)"/)![1])};
+      }));
+    const barrels = parts.flat().filter(g => g.r === .024);
+    assert.equal(barrels.length, 1);
+    assert.ok(Math.abs(barrels[0].p.distanceTo(barrels[0].q) - .064) < 1e-12);
+    assert.ok(barrels[0].p.clone().add(barrels[0].q).multiplyScalar(.5).distanceTo(new Vector3(0,0,.053)) < 1e-12);
+    for (const {p,q,r} of parts.flat()) {
+      const direction = q.clone().sub(p).normalize();
+      const u = new Vector3(Math.abs(direction.x) < .9 ? 1 : 0, Math.abs(direction.x) < .9 ? 0 : 1, 0)
+        .cross(direction).normalize();
+      const v = direction.clone().cross(u);
+      // Extremal axial extent is analytic; sample both rim circles for radial bounds.
+      const dz = r * Math.sqrt(1 - direction.z ** 2);
+      assert.ok(Math.min(p.z,q.z) - dz >= -1e-12);
+      assert.ok(Math.max(p.z,q.z) + dz <= .106 + 1e-12);
+      for (const center of [p,q]) for (let i=0;i<360;i++) {
+        const t=i*Math.PI/180;
+        const point=center.clone().addScaledVector(u,r*Math.cos(t)).addScaledVector(v,r*Math.sin(t));
+        assert.ok(Math.hypot(point.x,point.y) <= .05 + 1e-12);
+      }
+    }
   }
 });

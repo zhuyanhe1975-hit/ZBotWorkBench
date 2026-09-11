@@ -9,3 +9,9 @@ coverage/
 
 # Local agent runtime state
 .omx/
+
+# Generated diagnostics from optional offline model tools
+__pycache__/
+*.pyc
+MUJOCO_LOG.TXT
+.training/

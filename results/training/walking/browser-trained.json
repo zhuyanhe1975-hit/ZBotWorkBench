@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "task": "Mjlab-Zbot-6dof-Walking-Finetune",
+  "device": "cuda:0",
+  "numEnvs": 256,
+  "trainedModel": "model_901",
+  "trainedPlaybackSeconds": 20,
+  "idleDraws": 0
+}

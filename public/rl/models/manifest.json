@@ -1,0 +1,514 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "task": "Zbot-Direct-6dof-bipedal-quat-v0",
+      "rootPosition": [
+        0,
+        -0.06,
+        0
+      ],
+      "rootQuaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "initialQ": [
+        0.312,
+        0.837,
+        -2.02,
+        2.02,
+        -0.837,
+        -0.312
+      ],
+      "key": "zbot_6s_new",
+      "url": "/rl/models/zbot_6s_new.xml",
+      "jointNames": [
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6"
+      ],
+      "qposJointNames": [
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6"
+      ],
+      "rootBody": "foot_0",
+      "baseBody": "base",
+      "sourceUsd": "zbot_6s_new.usd",
+      "sourceSha256": "4552508fd31c1045172e82b509e7c752c1665bf103e48e4654ef25871a8c1a71",
+      "physicsDt": 0.0016666666666666668,
+      "trainingPhysicsDt": 0.016666666666666666,
+      "controlDt": 0.03333333333333333,
+      "rigidBodyCount": 12,
+      "meshCount": 4,
+      "massKg": 3.0050400495529175,
+      "fidelity": "USD geometry, joint frames, mass and principal inertia; MuJoCo convex contacts and implicit PD approximate PhysX dynamics."
+    },
+    {
+      "task": "Zbot-Direct-8dof-bipedal-v0",
+      "rootPosition": [
+        0,
+        -0.06,
+        0
+      ],
+      "rootQuaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "initialQ": [
+        0,
+        0.312,
+        0.837,
+        -2.02,
+        2.02,
+        -0.837,
+        -0.312,
+        0
+      ],
+      "key": "zbot_8s_human",
+      "url": "/rl/models/zbot_8s_human.xml",
+      "jointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "qposJointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "rootBody": "foot_0",
+      "baseBody": "base",
+      "sourceUsd": "zbot_8s_human.usd",
+      "sourceSha256": "17273f47946ac8fca04ce361a9d669f442db76fb1096d0a24d9d3e305a3522f0",
+      "physicsDt": 0.0016666666666666668,
+      "trainingPhysicsDt": 0.016666666666666666,
+      "controlDt": 0.03333333333333333,
+      "rigidBodyCount": 16,
+      "meshCount": 8,
+      "massKg": 4.006720066070557,
+      "fidelity": "USD geometry, joint frames, mass and principal inertia; MuJoCo convex contacts and implicit PD approximate PhysX dynamics."
+    },
+    {
+      "task": "Zbot-Direct-8dof-snake-v0",
+      "rootPosition": [
+        0,
+        0,
+        0.053
+      ],
+      "rootQuaternion": [
+        0.7071067811865476,
+        0,
+        -0.7071067811865476,
+        0
+      ],
+      "initialQ": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "key": "zbot_8s_snake_v0",
+      "url": "/rl/models/zbot_8s_snake_v0.xml",
+      "jointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "qposJointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "rootBody": "foot_0",
+      "baseBody": "base",
+      "sourceUsd": "zbot_8s_snake_v0.usd",
+      "sourceSha256": "0c388c8ab2eba81866d3ef2095803739e993ad5fcb9ff8e591a0d167cac63a55",
+      "physicsDt": 0.0016666666666666668,
+      "trainingPhysicsDt": 0.016666666666666666,
+      "controlDt": 0.03333333333333333,
+      "rigidBodyCount": 16,
+      "meshCount": 14,
+      "massKg": 4.006720066070557,
+      "fidelity": "USD geometry, joint frames, mass and principal inertia; MuJoCo convex contacts and implicit PD approximate PhysX dynamics."
+    },
+    {
+      "task": "Zbot-Direct-8dof-bipedal-v1",
+      "sourceUsd": "zbot_8s_human.usd",
+      "rootPosition": [
+        0,
+        -0.06,
+        0
+      ],
+      "rootQuaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "initialQ": [
+        -0.08,
+        0,
+        0.4363323129985824,
+        -2.181661564992912,
+        2.181661564992912,
+        -0.4363323129985824,
+        0,
+        0.08
+      ],
+      "key": "zbot_8s_human_v1",
+      "url": "/rl/models/zbot_8s_human_v1.xml",
+      "jointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "qposJointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "rootBody": "foot_0",
+      "baseBody": "base",
+      "sourceSha256": "17273f47946ac8fca04ce361a9d669f442db76fb1096d0a24d9d3e305a3522f0",
+      "physicsDt": 0.0016666666666666668,
+      "trainingPhysicsDt": 0.016666666666666666,
+      "controlDt": 0.03333333333333333,
+      "rigidBodyCount": 16,
+      "meshCount": 8,
+      "massKg": 4.006720066070557,
+      "fidelity": "USD geometry, joint frames, mass and principal inertia; MuJoCo convex contacts and implicit PD approximate PhysX dynamics."
+    },
+    {
+      "task": "Zbot-Direct-8dof-bipedal-v2",
+      "sourceUsd": "zbot_8s_human_2.usd",
+      "rootPosition": [
+        0,
+        -0.06,
+        0
+      ],
+      "rootQuaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "initialQ": [
+        0.0,
+        0.17453292519943295,
+        -0.17453292519943295,
+        2.443460952792061,
+        -2.443460952792061,
+        0.17453292519943295,
+        -0.17453292519943295,
+        0.0
+      ],
+      "key": "zbot_8s_human_v2",
+      "url": "/rl/models/zbot_8s_human_v2.xml",
+      "jointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "qposJointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "rootBody": "foot_0",
+      "baseBody": "base",
+      "sourceSha256": "12e702214c67e1e9f28a024ec74430d0c12c8e1b90e7f1dea41bf4a9e4e32f6a",
+      "physicsDt": 0.0016666666666666668,
+      "trainingPhysicsDt": 0.016666666666666666,
+      "controlDt": 0.03333333333333333,
+      "rigidBodyCount": 16,
+      "meshCount": 8,
+      "massKg": 4.006720066070557,
+      "fidelity": "USD geometry, joint frames, mass and principal inertia; MuJoCo convex contacts and implicit PD approximate PhysX dynamics."
+    },
+    {
+      "task": "Zbot-Direct-8dof-bipedal-v3",
+      "sourceUsd": "zbot_8s_human_2.usd",
+      "rootPosition": [
+        0,
+        -0.06,
+        0
+      ],
+      "rootQuaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "initialQ": [
+        0.2617993877991494,
+        0.17453292519943295,
+        0.0,
+        2.0943951023931953,
+        -2.0943951023931953,
+        0.0,
+        -0.17453292519943295,
+        -0.2617993877991494
+      ],
+      "key": "zbot_8s_human_v3",
+      "url": "/rl/models/zbot_8s_human_v3.xml",
+      "jointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "qposJointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "rootBody": "foot_0",
+      "baseBody": "base",
+      "sourceSha256": "12e702214c67e1e9f28a024ec74430d0c12c8e1b90e7f1dea41bf4a9e4e32f6a",
+      "physicsDt": 0.0016666666666666668,
+      "trainingPhysicsDt": 0.016666666666666666,
+      "controlDt": 0.03333333333333333,
+      "rigidBodyCount": 16,
+      "meshCount": 8,
+      "massKg": 4.006720066070557,
+      "fidelity": "USD geometry, joint frames, mass and principal inertia; MuJoCo convex contacts and implicit PD approximate PhysX dynamics."
+    },
+    {
+      "task": "Zbot-Direct-8dof-bird-v0",
+      "rootPosition": [
+        0,
+        -0.06,
+        0
+      ],
+      "rootQuaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "initialQ": [
+        0,
+        0.312,
+        0.837,
+        -2.02,
+        2.02,
+        -0.837,
+        -0.312,
+        0
+      ],
+      "sourceUsd": "zbot_8s_new.usd",
+      "key": "zbot_8s_bird",
+      "url": "/rl/models/zbot_8s_bird.xml",
+      "jointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "qposJointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "rootBody": "foot_0",
+      "baseBody": "base",
+      "sourceSha256": "ce3353eae4c94123fdf4ac0de36cafb9971bf987602cc07d1038f568ebd84d6e",
+      "physicsDt": 0.0016666666666666668,
+      "trainingPhysicsDt": 0.016666666666666666,
+      "controlDt": 0.03333333333333333,
+      "rigidBodyCount": 16,
+      "meshCount": 4,
+      "massKg": 4.006720066070557,
+      "fidelity": "USD geometry, joint frames, mass and principal inertia; MuJoCo convex contacts and implicit PD approximate PhysX dynamics."
+    },
+    {
+      "task": "Zbot-Direct-8dof-wheel-v0",
+      "sourceUsd": "zbot_8s_new.usd",
+      "rootPosition": [
+        0,
+        0,
+        0.053
+      ],
+      "rootQuaternion": [
+        0.7071067811865476,
+        0.7071067811865476,
+        0,
+        0
+      ],
+      "initialQ": [
+        1.2,
+        -1.2,
+        1.8,
+        -1.2,
+        1.8,
+        -1.2,
+        1.2,
+        -1.2
+      ],
+      "key": "zbot_8s_wheel",
+      "url": "/rl/models/zbot_8s_wheel.xml",
+      "jointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "qposJointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "rootBody": "foot_0",
+      "baseBody": "base",
+      "sourceSha256": "ce3353eae4c94123fdf4ac0de36cafb9971bf987602cc07d1038f568ebd84d6e",
+      "physicsDt": 0.0016666666666666668,
+      "trainingPhysicsDt": 0.016666666666666666,
+      "controlDt": 0.03333333333333333,
+      "rigidBodyCount": 16,
+      "meshCount": 4,
+      "massKg": 4.006720066070557,
+      "fidelity": "USD geometry, joint frames, mass and principal inertia; MuJoCo convex contacts and implicit PD approximate PhysX dynamics."
+    },
+    {
+      "task": "Zbot-Direct-8dof-bipedal-run-v0",
+      "rootPosition": [
+        0,
+        -0.06,
+        0
+      ],
+      "rootQuaternion": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "initialQ": [
+        0,
+        0.312,
+        0.837,
+        -2.02,
+        2.02,
+        -0.837,
+        -0.312,
+        0
+      ],
+      "sourceUsd": "zbot_8s_human.usd",
+      "staticFriction": 1.2,
+      "dynamicFriction": 1.1,
+      "key": "zbot_8s_run",
+      "url": "/rl/models/zbot_8s_run.xml",
+      "jointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "qposJointNames": [
+        "joint0",
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "rootBody": "foot_0",
+      "baseBody": "base",
+      "sourceSha256": "17273f47946ac8fca04ce361a9d669f442db76fb1096d0a24d9d3e305a3522f0",
+      "physicsDt": 0.0016666666666666668,
+      "trainingPhysicsDt": 0.016666666666666666,
+      "controlDt": 0.03333333333333333,
+      "rigidBodyCount": 16,
+      "meshCount": 8,
+      "massKg": 4.006720066070557,
+      "fidelity": "USD geometry, joint frames, mass and principal inertia; MuJoCo convex contacts and implicit PD approximate PhysX dynamics."
+    }
+  ]
+}

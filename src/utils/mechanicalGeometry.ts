@@ -2,6 +2,7 @@ import { Vector3 } from 'three';
 
 /** Concept joint: fixed motor barrel + rotating output fork, all in the module frame.
  * Neutral docking planes z=0/.106; hinge passes through z=.053.
+ * Every motor is one Ø48 × 64 mm cylinder; neutral assembly fits Ø100 × 106 mm.
  * Cylinders use fromto so their longitudinal axis is the physical shaft axis.
  */
 export function mechanicalGeoms(axis: number[], part: 'a' | 'b', index: number): string[] {
@@ -14,25 +15,22 @@ export function mechanicalGeoms(axis: number[], part: 'a' | 'b', index: number):
   if (axial) {
     if (part === 'a') {
       cylinder(z(0),z(.008),.04);
-      cylinder(z(.008),z(.018),.018);
-      cylinder(z(.018),z(.051),.033);
-      cylinder(z(.049),z(.059),.009);
+      cylinder(z(.008),z(.021),.015);
+      cylinder(h.clone().addScaledVector(a,-.032),h.clone().addScaledVector(a,.032),.024);
     } else {
-      cylinder(z(.055),z(.066),.033);
-      cylinder(z(.066),z(.098),.018);
+      cylinder(z(.085),z(.098),.015);
       cylinder(z(.098),z(.106),.04);
     }
   } else if (part === 'a') {
     cylinder(z(0),z(.008),.04);
     cylinder(z(.008),z(.035),.015);
     cylinder(h.clone().addScaledVector(a,-.032),h.clone().addScaledVector(a,.032),.024);
-    cylinder(h.clone().addScaledVector(a,-.037),h.clone().addScaledVector(a,.037),.009);
   } else {
     for (const s of [-1,1]) {
       cylinder(h.clone().addScaledVector(a,s*.033),h.clone().addScaledVector(a,s*.045),.019);
       const elbow = z(.091).addScaledVector(a,s*.04);
       cylinder(h.clone().addScaledVector(a,s*.04),elbow,.006);
-      cylinder(elbow,z(.102),.006);
+      cylinder(elbow,z(.100),.006);
     }
     cylinder(z(.098),z(.106),.04);
   }

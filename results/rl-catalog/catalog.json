@@ -1,0 +1,318 @@
+{
+  "source": "/home/yhzhu/myWorks_vips/zbot_rl_student/pth",
+  "originalNetworks": 15,
+  "exportedCopiesChecked": 15,
+  "allExportedActorsMatchOriginal": true,
+  "exportedRunNormalizerMatchesOriginal": true,
+  "summary": {
+    "totalPolicies": 15,
+    "motionValidated": 12,
+    "experimental": 3
+  },
+  "policies": [
+    {
+      "id": "Zbot-Direct-8dof-bipedal-v0",
+      "label": "8DOF 双足 v0",
+      "checkpoint": "Zbot-Direct-8dof-bipedal-v0/model_4050.pt",
+      "bytes": 922421,
+      "sha256": "e9ef108a8e851417972044a7a7510e65cd0b52f81e9bb7d008ec8eeddf887c0d",
+      "inputSize": 30,
+      "outputSize": 8,
+      "normalization": null,
+      "model": "zbot_8s_human",
+      "engines": [
+        "physx",
+        "mujoco"
+      ],
+      "commands": null,
+      "validation": "motion-validated",
+      "sourceLimitation": null
+    },
+    {
+      "id": "Zbot-Direct-8dof-snake-v0",
+      "label": "8DOF 蛇形 v0",
+      "checkpoint": "Zbot-Direct-8dof-snake-v0/model_12050.pt",
+      "bytes": 922495,
+      "sha256": "3365e3966a8df4b3dd4d9b029de9b482260e9c80b23d70a9594496be8869f49c",
+      "inputSize": 30,
+      "outputSize": 8,
+      "normalization": null,
+      "model": "zbot_8s_snake_v0",
+      "engines": [
+        "physx",
+        "mujoco"
+      ],
+      "commands": null,
+      "validation": "motion-validated",
+      "sourceLimitation": null
+    },
+    {
+      "id": "Zbot-Direct-6dof-bipedal-quat-v0",
+      "label": "6DOF 双足 · 四元数观测",
+      "checkpoint": "Zbot-Direct-6dof-bipedal-quat-v0/model_3850.pt",
+      "bytes": 907125,
+      "sha256": "8b120032c27be1a9d5e576a635dae769f2a3d70da5d1447c0b68012bf7c81bab",
+      "inputSize": 26,
+      "outputSize": 6,
+      "normalization": null,
+      "model": "zbot_6s_new",
+      "engines": [
+        "physx",
+        "mujoco"
+      ],
+      "commands": null,
+      "validation": "motion-validated",
+      "sourceLimitation": null
+    },
+    {
+      "id": "Zbot-Direct-6dof-bipedal-to-snake-v0",
+      "label": "6DOF 双足到蛇形 v0",
+      "checkpoint": "Zbot-Direct-6dof-bipedal-to-snake-v0/model_1000.pt",
+      "bytes": 907125,
+      "sha256": "965d8c6f5a6c7aa38e39c28f09d5a6411837f657606ede24423747268948d337",
+      "inputSize": 26,
+      "outputSize": 6,
+      "normalization": null,
+      "model": "zbot_6s_new",
+      "engines": [
+        "physx",
+        "mujoco"
+      ],
+      "commands": null,
+      "validation": "motion-validated",
+      "sourceLimitation": null
+    },
+    {
+      "id": "Zbot-Direct-6dof-bipedal-to-snake-v1",
+      "label": "6DOF 双足到蛇形 v1",
+      "checkpoint": "Zbot-Direct-6dof-bipedal-to-snake-v1/model_3400.pt",
+      "bytes": 907125,
+      "sha256": "26aa8cd617bafb6082b4ba07f05b57b9009fa0fbc26a9ccd0580492373718091",
+      "inputSize": 26,
+      "outputSize": 6,
+      "normalization": null,
+      "model": "zbot_6s_new",
+      "engines": [
+        "physx",
+        "mujoco"
+      ],
+      "commands": null,
+      "validation": "motion-validated",
+      "sourceLimitation": null
+    },
+    {
+      "id": "Zbot-Direct-6dof-bipedal-v0",
+      "label": "6DOF 双足 v0",
+      "checkpoint": "Zbot-Direct-6dof-bipedal-v0/model_8350.pt",
+      "bytes": 900917,
+      "sha256": "8eedcebf98ab69b28a2f82301b7a63e44ece66ca8a23bc037a4a9913365c391b",
+      "inputSize": 24,
+      "outputSize": 6,
+      "normalization": null,
+      "model": "zbot_6s_new",
+      "engines": [
+        "physx",
+        "mujoco"
+      ],
+      "commands": null,
+      "validation": "motion-validated",
+      "sourceLimitation": null
+    },
+    {
+      "id": "Zbot-Direct-8dof-bipedal-v1",
+      "label": "8DOF 双足 v1",
+      "checkpoint": "Zbot-Direct-8dof-bipedal-v1/model_4850.pt",
+      "bytes": 922421,
+      "sha256": "de4da0266689570ad9e4351897454c87731811aeb413d0998887d31950db0dae",
+      "inputSize": 30,
+      "outputSize": 8,
+      "normalization": null,
+      "model": "zbot_8s_human_v1",
+      "engines": [
+        "physx",
+        "mujoco"
+      ],
+      "commands": null,
+      "validation": "motion-validated",
+      "sourceLimitation": null
+    },
+    {
+      "id": "Zbot-Direct-8dof-bipedal-v2",
+      "label": "8DOF 双足 v2",
+      "checkpoint": "Zbot-Direct-8dof-bipedal-v2/model_1550.pt",
+      "bytes": 922421,
+      "sha256": "bc221d6e808ea36221ab12de5eb175a751538eb9a42310c3ae8a044ae370775f",
+      "inputSize": 30,
+      "outputSize": 8,
+      "normalization": null,
+      "model": "zbot_8s_human_v2",
+      "engines": [
+        "physx",
+        "mujoco"
+      ],
+      "commands": null,
+      "validation": "motion-validated",
+      "sourceLimitation": null
+    },
+    {
+      "id": "Zbot-Direct-8dof-bipedal-v3",
+      "label": "8DOF 双足 v3（实验）",
+      "checkpoint": "Zbot-Direct-8dof-bipedal-v3/model_1700.pt",
+      "bytes": 922421,
+      "sha256": "5df7119faa1d94f82a70c3e0dcdcb435ee26d06ea101635bc3593ce3666940b6",
+      "inputSize": 30,
+      "outputSize": 8,
+      "normalization": null,
+      "model": "zbot_8s_human_v3",
+      "engines": [
+        "physx",
+        "mujoco"
+      ],
+      "commands": null,
+      "validation": "experimental-numerical-only",
+      "sourceLimitation": "该历史权重在原生 Isaac 的当前姿态及历史初始朝向下也会倒地；此处提供原样回放，不代表已学会稳定行走。"
+    },
+    {
+      "id": "Zbot-Direct-8dof-bird-v0",
+      "label": "8DOF 鸟形",
+      "checkpoint": "Zbot-Direct-8dof-bird-v0/model_13900.pt",
+      "bytes": 922495,
+      "sha256": "3358aa3fd34817038b906a02ff629c254835b4e4da6ad102251b4613c3a057e3",
+      "inputSize": 30,
+      "outputSize": 8,
+      "normalization": null,
+      "model": "zbot_8s_bird",
+      "engines": [
+        "physx",
+        "mujoco"
+      ],
+      "commands": null,
+      "validation": "motion-validated",
+      "sourceLimitation": null
+    },
+    {
+      "id": "Zbot-Direct-8dof-wheel-v0",
+      "label": "8DOF 轮式",
+      "checkpoint": "Zbot-Direct-8dof-wheel-v0/model_800.pt",
+      "bytes": 922347,
+      "sha256": "fa36eb362d1b639e07b3655aaf6a045985854eee5dec8bd4594564309eb2af21",
+      "inputSize": 30,
+      "outputSize": 8,
+      "normalization": null,
+      "model": "zbot_8s_wheel",
+      "engines": [
+        "physx",
+        "mujoco"
+      ],
+      "commands": null,
+      "validation": "motion-validated",
+      "sourceLimitation": null
+    },
+    {
+      "id": "Zbot-Direct-6dof-bipedal-velocity-v0",
+      "label": "6DOF 全向速度（实验）",
+      "checkpoint": "Zbot-Direct-6dof-bipedal-velocity-v0/model_latest.pt",
+      "bytes": 928703,
+      "sha256": "c7cb159f58f02da49527298f72cd1623781498d88516eeb8b170329dc6f35141",
+      "inputSize": 33,
+      "outputSize": 6,
+      "normalization": null,
+      "model": "zbot_6s_new",
+      "engines": [
+        "physx"
+      ],
+      "commands": [
+        0.2,
+        0,
+        0
+      ],
+      "validation": "experimental-numerical-only",
+      "sourceLimitation": "该历史速度权重的跟踪稳定性有限：固定前进 0.2 m/s 的原生测试中也会失稳。可用速度命令比较其原有行为。"
+    },
+    {
+      "id": "Zbot-Direct-8dof-bipedal-velocity-v0",
+      "label": "8DOF 全向速度（实验）",
+      "checkpoint": "Zbot-Direct-8dof-bipedal-velocity-v0/model_latest.pt",
+      "bytes": 950133,
+      "sha256": "d39a254c1a631622de5935c4221d88ba9604837064fb982a5987ae3bf50e6997",
+      "inputSize": 39,
+      "outputSize": 8,
+      "normalization": null,
+      "model": "zbot_8s_human_v1",
+      "engines": [
+        "physx"
+      ],
+      "commands": [
+        0.2,
+        0,
+        0
+      ],
+      "validation": "experimental-numerical-only",
+      "sourceLimitation": "该历史速度权重在固定前进 0.2 m/s 的原生测试中也会失稳；保持原权重，未把跌倒隐藏为自动重置。"
+    },
+    {
+      "id": "Zbot-Direct-6dof-bipedal-velocity-imu-v0",
+      "label": "6DOF IMU 学生策略",
+      "checkpoint": "Zbot-Direct-6dof-bipedal-velocity-imu-v0/model_latest.pt",
+      "bytes": 627701,
+      "sha256": "58c26f77058751e2f56b153a4d3afb9883ddd368028b69bfc50dbd661e2fa14b",
+      "inputSize": 34,
+      "outputSize": 6,
+      "normalization": null,
+      "model": "zbot_6s_new",
+      "engines": [
+        "physx"
+      ],
+      "commands": [
+        0.2,
+        0,
+        0
+      ],
+      "validation": "motion-validated",
+      "sourceLimitation": null
+    },
+    {
+      "id": "Zbot-Direct-8dof-bipedal-run-v0",
+      "label": "8DOF 跑步",
+      "checkpoint": "Zbot-Direct-8dof-bipedal-run-v0/model_latest.pt",
+      "bytes": 2658531,
+      "sha256": "68f3e14c75e7b3681fc9171e7ea5f79beaeb3c88d9e5a3bf640e6970f353dcfe",
+      "inputSize": 40,
+      "outputSize": 8,
+      "normalization": "saved mean/std + epsilon0.01",
+      "model": "zbot_8s_run",
+      "engines": [
+        "physx"
+      ],
+      "commands": null,
+      "validation": "motion-validated",
+      "sourceLimitation": null
+    }
+  ],
+  "browserChecks": {
+    "passed": true,
+    "policies": [
+      "8DOF 双足 v0",
+      "8DOF 蛇形 v0",
+      "6DOF 双足 · 四元数观测",
+      "6DOF 双足到蛇形 v0",
+      "6DOF 双足到蛇形 v1",
+      "6DOF 双足 v0",
+      "8DOF 双足 v1",
+      "8DOF 双足 v2",
+      "8DOF 双足 v3（实验）",
+      "8DOF 鸟形",
+      "8DOF 轮式",
+      "6DOF 全向速度（实验）",
+      "8DOF 全向速度（实验）",
+      "6DOF IMU 学生策略",
+      "8DOF 跑步"
+    ],
+    "fullDurationPolicies": [
+      "IMU",
+      "run"
+    ],
+    "commandControls": true,
+    "idleDraws": 0
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "verifiedAt": "2026-09-11",
+  "jobId": "2d4482b7-52f9-4db6-a34f-566a74a870cc",
+  "configuration": {
+    "device": "cuda:0",
+    "numEnvs": 4096,
+    "iterations": 300,
+    "physicsHz": 240,
+    "controlHz": 30,
+    "contactHistory": 8,
+    "seed": 42,
+    "livePreviewDuringTraining": false
+  },
+  "finalTrainingMetrics": {
+    "reward": 26.128085553646088,
+    "episodeLengthSteps": 584.45,
+    "maximumEpisodeSteps": 600
+  },
+  "nativeEvaluationSeed123": {
+    "environments": 32,
+    "survived20Seconds": 32,
+    "meanDisplacementMetres": 3.135678958147764,
+    "meanSpeedMetresPerSecond": 0.15704569072526364,
+    "fullGaitGatePassed": false
+  },
+  "wasmEvaluation": {
+    "seconds": 20,
+    "forwardMetres": 3.1909419229827733,
+    "minimumBaseHeight": 0.254055489691734,
+    "maximumLateralDeviation": 0.2572907667785813
+  },
+  "continuousPreview": {
+    "streamFrames": 87,
+    "streamSeconds": 3.02554024,
+    "averageStreamHz": 28.424675653958577,
+    "displayMode": "direct mjlab frames; fixed camera; no interpolation",
+    "workerCaptureDisabledWhenHidden": true
+  },
+  "runtimeTaskCard": {
+    "verifiedJob": "b654aa07-ea2c-4afb-855f-28205df5818c",
+    "revision": 1,
+    "stage1FeetForceDiff": 3.5,
+    "stage2FeetSlide": -7,
+    "terminatedRewardPenalty": 25,
+    "checkpointPersisted": true
+  }
+}

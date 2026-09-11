@@ -28,6 +28,7 @@ export class MujocoEngine {
   private tipSite = -1;
   private freeDof = -1;
   private freeQpos = -1;
+  private rootBodyId = 1;
   private initPromise: Promise<void> | null = null;
 
   public async init(): Promise<void> {
@@ -98,6 +99,12 @@ export class MujocoEngine {
     this.joints = [];
     this.freeDof = -1;
     this.freeQpos = -1;
+    this.rootBodyId = this.model.nbody > 1 ? 1 : 0;
+    if (this.model.nu > 0) {
+      const firstJoint = this.model.actuator_trnid[0];
+      this.rootBodyId = this.model.jnt_bodyid[firstJoint];
+      while (this.model.body_parentid[this.rootBodyId] > 0) this.rootBodyId = this.model.body_parentid[this.rootBodyId];
+    }
     this.tipSite = -1;
     const nameAt = (start: number): string => {
       let name = '';
@@ -116,7 +123,7 @@ export class MujocoEngine {
       if (index > highestTip) { this.tipSite = site; highestTip = index; }
     }
     for (let j = 0; j < this.model.njnt; j++) {
-      if (this.model.jnt_type[j] === 0 && this.model.jnt_bodyid[j] === 1) {
+      if (this.model.jnt_type[j] === 0 && this.model.jnt_bodyid[j] === this.rootBodyId) {
         this.freeDof = this.model.jnt_dofadr[j];
         this.freeQpos = this.model.jnt_qposadr[j];
       }
@@ -129,6 +136,15 @@ export class MujocoEngine {
     }
     this.isLoaded = true;
     return true;
+  }
+
+  /** Training bundles own only this isolated VFS namespace, never CAD assets. */
+  public installTrainingAssets(assets: Record<string, string>): void {
+    if (!this.mujoco) throw new Error('MuJoCo WASM not initialized yet');
+    for (const [name, contents] of Object.entries(assets)) {
+      if (!/^training_[A-Za-z0-9_.-]+$/.test(name) || name.includes('..')) throw new Error('训练资源文件名无效');
+      this.mujoco.FS.writeFile(name, contents);
+    }
   }
 
   public cleanupModel(): void {
@@ -239,6 +255,17 @@ export class MujocoEngine {
     this.mujoco.mj_forward(this.model, this.data);
   }
 
+  /** Restore a packaged training pose exactly, without workbench ground lifting. */
+  public resetPolicyPose(): void {
+    if (!this.isLoaded || this.initialKeyframe < 0) throw new Error('策略模型缺少 initial 初始姿态');
+    this.mujoco.mj_resetDataKeyframe(this.model, this.data, this.initialKeyframe);
+    this.mujoco.mj_forward(this.model, this.data);
+  }
+
+  public forward(): void {
+    if (this.isLoaded) this.mujoco.mj_forward(this.model, this.data);
+  }
+
   public applyImpulse(fx: number, fy: number, fz: number): void {
     if (!this.isLoaded || !this.model || !this.data) return;
     if (this.freeDof >= 0) {
@@ -301,9 +328,9 @@ export class MujocoEngine {
 
     const t = this.data.time;
     const rootPos: [number, number, number] = [
-      this.data.xpos[3] || 0,
-      this.data.xpos[4] || 0,
-      this.data.xpos[5] || 0,
+      this.data.xpos[this.rootBodyId * 3] || 0,
+      this.data.xpos[this.rootBodyId * 3 + 1] || 0,
+      this.data.xpos[this.rootBodyId * 3 + 2] || 0,
     ];
 
     let vx = 0;
@@ -346,13 +373,15 @@ export class MujocoEngine {
       jointTorques,
       endEffectorPos: tip,
       contactCount: this.data.ncon,
-      centerOfMass: Array.from(this.data.subtree_com.slice(3, 6)) as [number, number, number],
+      centerOfMass: Array.from(this.data.subtree_com.slice(this.rootBodyId * 3, this.rootBodyId * 3 + 3)) as [number, number, number],
     };
   }
 
   public getModel(): any {
     return this.model;
   }
+
+  public getRootBodyId(): number { return this.rootBodyId; }
 
   public getData(): any {
     return this.data;

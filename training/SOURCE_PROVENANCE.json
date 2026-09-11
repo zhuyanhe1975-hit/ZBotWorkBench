@@ -1,0 +1,21 @@
+{
+  "sourceDirectory": "/home/yhzhu/myWorks_vips/zbot_rl_mjlab/src/zbot_rl_mjlab",
+  "snapshotDate": "2026-09-11",
+  "note": "Task source and robot assets were copied from the sibling project. The local task card, environment and reward files now include the documented contact-point slip reward; no training requires sibling source at runtime. Original notices and asset provenance are retained.",
+  "files": {
+    "actions.py": "7f83f29d4442d49365af83ed3ed16e2cbbc0218368f5edae3810772b68cf76f6",
+    "task_card.py": "36940bce811b8a34bcd69c83ba399d82255ab7bcf020578ba6209130e747ab06",
+    "mdp.py": "6544107c3fb696be9126b447536bee8cdbff991d7e69d34d0662f1d4cc47f563",
+    "runner.py": "0192cf43775b564db2588f57c24380f0b59ef0e6bc1e02469e7b71923816a164",
+    "env_cfg.py": "2f9836c608f53996f4476b8a58886dffcad0872ecd5468c92547e340c4ed3420",
+    "__init__.py": "2677108e40d9fa858695eba9b58f34fa5d0accbadb1718d175deac00c4052561",
+    "robot.py": "a487e7d3f8797c91e4d09a81c11655c417f650cc0672192ed1cbd6ba5458fa98",
+    "assets/zbot_6dof/README.md": "a960c1b6b134c6adf2a6ea3edd8764f7340782077d650596a700eb5236459f65",
+    "assets/zbot_6dof/provenance.json": "8080d2f58a01899160f9fcc0dde29624904e422ed93555a0bec5e0941f0a386c",
+    "assets/zbot_6dof/robot.xml": "d4ead8218650e31bd86d9509454c8aca6be53bf7eb0ed64f68d00a593b6d8095",
+    "assets/zbot_6dof/meshes/mesh_cdb66879ba3b5662.obj": "cdb66879ba3b56626fc6e7c75e393b88411cf08ed9eadb511a18322855d0c62f",
+    "assets/zbot_6dof/meshes/mesh_b2f807ccdba07ce2.obj": "b2f807ccdba07ce2ef4ef46a8cc1fa623c8e3c685e0f6aacc02503573fab34da",
+    "assets/zbot_6dof/meshes/mesh_2fa6986b40efe990.obj": "2fa6986b40efe9909aeca6a068fdb11d7dc5bd511b0f0853d34a167fdc6a8689",
+    "assets/zbot_6dof/meshes/mesh_8c7e589cf98741ba.obj": "8c7e589cf98741bac18c048c97a4169f8029d46af1d0473c81372f5cc1dd6a45"
+  }
+}

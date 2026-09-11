@@ -4,6 +4,25 @@ import fs from 'fs';
 import path from 'path';
 import {defineConfig, Plugin} from 'vite';
 
+// Vite can serve the read-only workbench on the LAN; its training proxy must not
+// turn a loopback-only process-control API into a network-accessible endpoint.
+function localTrainingProxyGuard(): Plugin {
+  return {
+    name: 'local-training-proxy-guard',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url?.startsWith('/api/training') && !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress ?? '')) {
+          res.statusCode = 403;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: '训练接口仅允许本机访问' }));
+          return;
+        }
+        next();
+      });
+    },
+  };
+}
+
 // LINT.IfChange(aistudio_media_plugin)
 function aistudioMediaPlugin(): Plugin {
   return {
@@ -66,7 +85,7 @@ function aistudioMediaPlugin(): Plugin {
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss(), aistudioMediaPlugin()],
+    plugins: [localTrainingProxyGuard(), react(), tailwindcss(), aistudioMediaPlugin()],
     resolve: {
       dedupe: ['react', 'react-dom'],
       alias: {
@@ -77,6 +96,9 @@ export default defineConfig(() => {
       include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime'],
     },
     server: {
+      proxy: {
+        '/api/training': { target: process.env.ZBOT_TRAINING_URL || 'http://127.0.0.1:8767', changeOrigin: true },
+      },
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',

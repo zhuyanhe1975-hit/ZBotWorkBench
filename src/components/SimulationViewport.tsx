@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { mujocoEngine } from '../mujoco/MujocoEngine';
+import { mujocoEngine, MujocoEngine } from '../mujoco/MujocoEngine';
 import { ZbotConfiguration } from '../types/zbot';
 import { meshManager } from '../utils/meshManager';
+import { compiledMeshGeometry } from '../utils/compiledMeshGeometry';
 import { EndEffectorTarget } from '../utils/inverseKinematics';
 import { createArmTargetControl } from '../utils/armTargetControl';
+import { createRenderScheduler } from '../utils/renderScheduler';
+import { anchorGroundGrid, trackGroundShadow } from '../utils/shadowTracking';
 import {
   Camera,
   Compass,
@@ -19,6 +22,10 @@ import {
 } from 'lucide-react';
 
 interface SimulationViewportProps {
+  engine?: MujocoEngine;
+  active?: boolean;
+  revision?: number;
+  physicsLabel?: string;
   config: ZbotConfiguration;
   simMetrics?: {
     time: number;
@@ -34,6 +41,10 @@ interface SimulationViewportProps {
 }
 
 export const SimulationViewport: React.FC<SimulationViewportProps> = ({
+  engine = mujocoEngine,
+  active = true,
+  revision = 0,
+  physicsLabel = 'MuJoCo WASM 动力学仿真器',
   config,
   simMetrics,
   onApplyImpulse,
@@ -50,17 +61,28 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
+  const invalidateRef = useRef<() => void>(() => {});
+  const visibilityRef = useRef<() => void>(() => {});
+  const activeRef = useRef(active);
+  activeRef.current = active;
+  const armTargetRef = useRef(armTarget);
+  armTargetRef.current = armTarget;
+  const poseDirtyRef = useRef(true);
 
-  const [followRobot, setFollowRobot] = useState(true);
+  const [followRobot, setFollowRobot] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
-  const [showTrail, setShowTrail] = useState(true);
+  const [showTrail, setShowTrail] = useState(false);
   const [showAxes, setShowAxes] = useState(false);
-  const optionsRef = useRef({ followRobot, showTrail, showAxes });
-  optionsRef.current = { followRobot, showTrail, showAxes };
+  const optionsRef = useRef({ followRobot, showGrid, showTrail, showAxes });
+  optionsRef.current = { followRobot, showGrid, showTrail, showAxes };
   const jointAxesRef = useRef<THREE.Group | null>(null);
   const tipMarkerRef = useRef<THREE.Mesh | null>(null);
   const frameRobotRef = useRef<() => void>(() => {});
-  useEffect(() => { needsRebuildRef.current = true; }, [config]);
+  useEffect(() => {
+    needsRebuildRef.current = true;
+    poseDirtyRef.current = true;
+    invalidateRef.current();
+  }, [config]);
 
   // Mesh map for MuJoCo geoms
   const geomMeshesRef = useRef<Map<number, THREE.Mesh>>(new Map());
@@ -68,7 +90,7 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
   const trailLineRef = useRef<THREE.Line | null>(null);
   const rootMarkerRef = useRef<THREE.Mesh | null>(null);
   const robotGroupRef = useRef<THREE.Group | null>(null);
-  const gridHelperRef = useRef<THREE.GridHelper | null>(null);
+  const gridHelperRef = useRef<THREE.Object3D | null>(null);
   const axesHelperRef = useRef<THREE.AxesHelper | null>(null);
   const lastModelRef = useRef<any>(null);
   const needsRebuildRef = useRef<boolean>(true);
@@ -77,6 +99,8 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
   useEffect(() => {
     return meshManager.subscribe(() => {
       needsRebuildRef.current = true;
+      poseDirtyRef.current = true;
+      invalidateRef.current();
     });
   }, []);
 
@@ -105,6 +129,8 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.autoUpdate = false;
+    renderer.shadowMap.needsUpdate = true;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.1;
     renderer.domElement.style.width = '100%';
@@ -137,7 +163,7 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
     dirLight.shadow.camera.top = 2;
     dirLight.shadow.camera.bottom = -2;
     dirLight.shadow.bias = -0.0005;
-    scene.add(dirLight);
+    scene.add(dirLight, dirLight.target);
 
     const fillLight = new THREE.DirectionalLight(0x94a3b8, 0.6);
     fillLight.position.set(-2, 2, 2);
@@ -155,10 +181,18 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
     scene.add(floorMesh);
 
     // Floor Grid
-    const grid = new THREE.GridHelper(20, 40, '#0284c7', '#334155');
-    grid.rotation.x = Math.PI / 2; // Orient to Z-up
-    grid.position.z = 0.001;
+    const gridCanvas = document.createElement('canvas'); gridCanvas.width = gridCanvas.height = 128;
+    const gridContext = gridCanvas.getContext('2d')!;
+    gridContext.clearRect(0, 0, 128, 128);
+    gridContext.strokeStyle = '#475569'; gridContext.lineWidth = 1;
+    gridContext.beginPath(); gridContext.moveTo(.5, .5); gridContext.lineTo(127.5, .5); gridContext.moveTo(.5, .5); gridContext.lineTo(.5, 127.5); gridContext.stroke();
+    const gridTexture = new THREE.CanvasTexture(gridCanvas);
+    gridTexture.wrapS = gridTexture.wrapT = THREE.RepeatWrapping; gridTexture.repeat.set(40, 40); gridTexture.magFilter = THREE.LinearFilter;
+    const grid = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshBasicMaterial({ map: gridTexture, transparent: true, opacity: .35, depthTest: true, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+    grid.position.z = 0.004;
+    grid.renderOrder = 1;
     scene.add(grid);
+    grid.visible = optionsRef.current.showGrid;
     gridHelperRef.current = grid;
 
     // Robot group
@@ -201,24 +235,16 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
     scene.add(trailLine);
     trailLineRef.current = trailLine;
 
-    // ResizeObserver debounced with requestAnimationFrame
-    let resizeRafId: number | null = null;
+    // Resize joins the same demand-render queue; there is no second RAF loop.
+    let pendingSize: { width: number; height: number } | null = null;
+    let currentWidth = width;
+    let currentHeight = height;
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width: newW, height: newH } = entry.contentRect;
-        if (newW > 0 && newH > 0) {
-          if (resizeRafId !== null) {
-            cancelAnimationFrame(resizeRafId);
-          }
-          resizeRafId = requestAnimationFrame(() => {
-            if (rendererRef.current && cameraRef.current) {
-              cameraRef.current.aspect = newW / newH;
-              cameraRef.current.updateProjectionMatrix();
-              rendererRef.current.setSize(newW, newH, false);
-              needsFrame = true;
-              previousRoot = null;
-            }
-          });
+        if (newW > 0 && newH > 0 && (newW !== currentWidth || newH !== currentHeight)) {
+          pendingSize = { width: newW, height: newH };
+          invalidateRef.current();
         }
       }
     });
@@ -227,8 +253,7 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
     const armControl = createArmTargetControl(scene, camera, renderer.domElement, controls, pose => armChangeRef.current?.(pose));
     armControlRef.current = armControl;
 
-    // Animation Loop
-    let animId: number;
+    // Draw only on changes, continuing just long enough for orbit damping.
     let lastTrailTime = -Infinity;
     let previousSimTime = -Infinity;
     let needsFrame = true;
@@ -244,18 +269,36 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
       controls.target.copy(center);
       camera.position.copy(center).add(new THREE.Vector3(0.6, -0.9, 0.6).normalize().multiplyScalar(distance));
       controls.update();
+      invalidateRef.current();
     };
     frameRobotRef.current = frameRobot;
 
-    const animate = () => {
-      animId = requestAnimationFrame(animate);
+    const render = () => {
+      if (pendingSize) {
+        currentWidth = pendingSize.width;
+        currentHeight = pendingSize.height;
+        pendingSize = null;
+        camera.aspect = currentWidth / currentHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(currentWidth, currentHeight, false);
+        needsFrame = true;
+        previousRoot = null;
+      }
+      // Camera moves alone do not invalidate the cached shadow map.
+      if (poseDirtyRef.current || lastModelRef.current !== engine.getModel() || needsRebuildRef.current
+        || (engine.isReady() && engine.getData()?.time !== previousSimTime)) {
+        renderer.shadowMap.needsUpdate = true;
+      }
+      poseDirtyRef.current = false;
 
       // Sync MuJoCo physics to Three.js meshes
-      if (mujocoEngine.isReady()) {
-        const model = mujocoEngine.getModel();
-        const data = mujocoEngine.getData();
+      if (engine.isReady()) {
+        const model = engine.getModel();
+        const data = engine.getData();
 
         if (model && data && robotGroupRef.current) {
+          robotGroupRef.current.visible = true;
+          if (rootMarkerRef.current) rootMarkerRef.current.visible = true;
           const ngeom = model.ngeom;
           const geomPos = data.geom_xpos;
           const geomMat = data.geom_xmat;
@@ -303,6 +346,10 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
             }
           }
 
+          // A simulation reset clears time-dependent overlays but preserves the
+          // user's camera position, orientation and zoom.
+          if (data.time < previousSimTime) { clearTrail(); lastTrailTime = -Infinity; previousRoot = null; }
+          previousSimTime = data.time;
           if (needsFrame) { frameRobot(); needsFrame = false; }
           jointAxes.visible = optionsRef.current.showAxes;
           axes.visible = optionsRef.current.showAxes;
@@ -315,13 +362,17 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
           const tipId = tipMarker.userData.site;
           tipMarker.visible = Number.isInteger(tipId) && tipId >= 0;
           if (tipMarker.visible) tipMarker.position.fromArray(data.site_xpos, tipId * 3);
-          if (data.time < previousSimTime) { clearTrail(); lastTrailTime = -Infinity; needsFrame = true; previousRoot = null; }
-          previousSimTime = data.time;
 
           // Root-body origin
-          const rootX = data.xpos[3] || 0;
-          const rootY = data.xpos[4] || 0;
-          const rootZ = data.xpos[5] ?? 0.05;
+          const rootOffset = engine.getRootBodyId() * 3;
+          const rootX = data.xpos[rootOffset] || 0;
+          const rootY = data.xpos[rootOffset + 1] || 0;
+          const rootZ = data.xpos[rootOffset + 2] ?? 0.05;
+
+          // Keep sunlight and its bounded shadow camera over the moving robot,
+          // independently of whether the viewing camera follows it.
+          if (trackGroundShadow(dirLight, floorMesh, rootX, rootY, [grid])) renderer.shadowMap.needsUpdate = true;
+          anchorGroundGrid(gridTexture, rootX, rootY);
 
           if (rootMarkerRef.current) {
             rootMarkerRef.current.position.set(rootX, rootY, rootZ);
@@ -349,24 +400,50 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
             }
           }
         }
+      } else {
+        if (robotGroupRef.current) robotGroupRef.current.visible = false;
+        if (rootMarkerRef.current) rootMarkerRef.current.visible = false;
+        jointAxes.visible = false;
+        tipMarker.visible = false;
+        if (lastModelRef.current) {
+          clearTrail(); lastTrailTime = -Infinity; previousRoot = null;
+          lastModelRef.current = null;
+        }
       }
 
-      if (controlsRef.current) {
-        controlsRef.current.update();
-      }
-
-      if (rendererRef.current && sceneRef.current && cameraRef.current) {
-        rendererRef.current.render(sceneRef.current, cameraRef.current);
-      }
+      const changed = controls.update();
+      renderer.render(scene, camera);
+      return changed;
     };
 
-    animId = requestAnimationFrame(animate);
+    const scheduler = createRenderScheduler(render);
+    invalidateRef.current = scheduler.invalidate;
+    controls.addEventListener('change', scheduler.invalidate);
+    // TransformControls changes hover highlighting without a React state update.
+    // Listen above its canvas capture handlers, which may stop propagation.
+    const pointerFeedback = () => { if (armTargetRef.current) scheduler.invalidate(); };
+    const pointerEvents = ['pointermove', 'pointerdown', 'pointerup', 'pointercancel', 'pointerleave'] as const;
+    pointerEvents.forEach(event => container.addEventListener(event, pointerFeedback, true));
+    let intersecting = typeof IntersectionObserver === 'undefined';
+    const updateVisibility = () => scheduler.setVisible(activeRef.current && !document.hidden && intersecting);
+    visibilityRef.current = updateVisibility;
+    const intersectionObserver = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(entries => {
+      intersecting = entries.some(entry => entry.isIntersecting);
+      updateVisibility();
+    });
+    intersectionObserver?.observe(container);
+    document.addEventListener('visibilitychange', updateVisibility);
+    updateVisibility();
+    scheduler.invalidate();
 
     return () => {
-      cancelAnimationFrame(animId);
-      if (resizeRafId !== null) {
-        cancelAnimationFrame(resizeRafId);
-      }
+      scheduler.dispose();
+      invalidateRef.current = () => {};
+      visibilityRef.current = () => {};
+      controls.removeEventListener('change', scheduler.invalidate);
+      pointerEvents.forEach(event => container.removeEventListener(event, pointerFeedback, true));
+      document.removeEventListener('visibilitychange', updateVisibility);
+      intersectionObserver?.disconnect();
       resizeObserver.disconnect();
       armControl.dispose();
       armControlRef.current = null;
@@ -377,17 +454,33 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
         if (renderable.material) (Array.isArray(renderable.material) ? renderable.material : [renderable.material]).forEach(material => material.dispose());
       });
       dirLight.shadow.dispose();
+      gridTexture.dispose();
       renderer.dispose();
       renderer.domElement.remove();
       lastModelRef.current = null;
       trailPointsRef.current = [];
       geomMeshesRef.current.clear();
+      frameRobotRef.current = () => {};
     };
-  }, []);
+  }, [engine]);
+
+  useEffect(() => { visibilityRef.current(); }, [active]);
+
+  // Parent pose edits and async model readiness may leave simulation time at zero.
+  useEffect(() => {
+    poseDirtyRef.current = true;
+    invalidateRef.current();
+  }, [simMetrics, revision]);
+
+  useEffect(() => {
+    if (gridHelperRef.current) gridHelperRef.current.visible = showGrid;
+    invalidateRef.current();
+  }, [followRobot, showGrid, showTrail, showAxes]);
 
   useEffect(() => {
     armControlRef.current?.setTarget(armTarget, armMode, armValid);
-  }, [armTarget, armMode, armValid]);
+    invalidateRef.current();
+  }, [armTarget, armMode, armValid, engine]);
 
   // Rebuild Three.js geometries for MuJoCo model
   const rebuildGeomMeshes = (model: any, currentConfig: ZbotConfiguration) => {
@@ -464,16 +557,19 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
         envMapIntensity: 1.0,
       });
 
-      const geometry = model.geom_type[g] === 5
+      const meshId = model.geom_dataid[g];
+      let meshName = '';
+      if (meshId >= 0) for (let k = model.name_meshadr[meshId]; k >= 0 && model.names[k]; k++) meshName += String.fromCharCode(model.names[k]);
+      const compiledMesh = meshId >= 0 && meshName !== 'ma' && meshName !== 'mb';
+      const geometry = compiledMesh ? compiledMeshGeometry(model, meshId) : model.geom_type[g] === 5
         ? new THREE.CylinderGeometry(model.geom_size[g*3], model.geom_size[g*3], 2*model.geom_size[g*3+1], 32).rotateX(Math.PI/2)
         : isPartA ? geomA.clone() : geomB.clone();
-      const meshId = model.geom_dataid[g];
       // Compiler centers and aligns source meshes, composing that offset into geom_xpose.
       // Undo mesh_pos/mesh_quat on raw OBJ vertices before applying the compiled geom pose.
       // https://mujoco.readthedocs.io/en/stable/XMLreference.html#asset-mesh
       const p = model.mesh_pos;
       const q = model.mesh_quat;
-      if (meshId >= 0 && p && q) {
+      if (meshId >= 0 && !compiledMesh && p && q) {
         const scale = model.mesh_scale;
         if (scale) geometry.scale(scale[meshId * 3], scale[meshId * 3 + 1], scale[meshId * 3 + 2]);
         const transform = new THREE.Matrix4().compose(
@@ -486,6 +582,7 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
       const mesh = new THREE.Mesh(geometry, mat);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
+      mesh.renderOrder = 2;
       mesh.matrixAutoUpdate = false;
 
       group.add(mesh);
@@ -511,6 +608,7 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
         break;
     }
     controlsRef.current.update();
+    invalidateRef.current();
   };
 
   const clearTrail = () => {
@@ -539,7 +637,7 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
       <div className="absolute top-3 left-3 right-3 flex flex-wrap items-center gap-2 z-10">
         <div className="bg-slate-900/85 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-700/60 shadow-lg flex items-center gap-2 text-xs text-slate-200">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-medium">MuJoCo WASM 动力学仿真器</span>
+          <span className="font-medium">{physicsLabel}</span>
           <span className="text-slate-500">|</span>
           <span className="text-slate-400 font-mono">
             {simMetrics ? `${simMetrics.speed.toFixed(2)} m/s` : '0.00 m/s'}
@@ -636,7 +734,7 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
       </button>
       {/* Bottom Interactive Perturbation Bar (Force Nudge) */}
       <div className="absolute bottom-9 left-3 right-3 hidden sm:flex flex-wrap items-center gap-2 z-10">
-        <div className="bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-700/70 shadow-lg flex flex-wrap items-center gap-2 text-xs text-slate-300">
+        {onApplyImpulse && <div className="bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-700/70 shadow-lg flex flex-wrap items-center gap-2 text-xs text-slate-300">
           <Zap className="w-3.5 h-3.5 text-amber-400" />
           <span className="font-medium text-slate-200">速度扰动 Δv:</span>
           <button
@@ -674,11 +772,11 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
           >
             颠簸
           </button>
-        </div>
+        </div>}
 
         {showTrail && (
           <button
-            onClick={clearTrail}
+            onClick={() => { clearTrail(); invalidateRef.current(); }}
             className="bg-slate-900/90 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-slate-700/70 text-xs text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
           >
             清除轨迹

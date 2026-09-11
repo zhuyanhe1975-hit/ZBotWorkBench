@@ -15,12 +15,26 @@ npm run dev
 
 打开 http://localhost:3000。无需 Gemini API Key。模型资源位于 `public/assets/ma.obj`、`mb.obj`，MuJoCo WASM 位于 `public/mujoco.wasm`，应与安装的 `@mujoco/mujoco` 版本一致。
 
+暂停时采用按需绘制，静止画面不会持续占用 CPU 重绘；切换到后台标签页会挂起仿真，回来继续，不补算后台时间。性能测量和维护约定见 [CPU 优化说明](docs/performance.md)。
+
 ```bash
 npm run lint   # TypeScript 静态检查
 npm test       # 域模型、正运动学、网格与真实 MuJoCo WASM 回归测试
 npm run build  # 生产构建
 npm run preview
 ```
+
+## 强化学习回放（独立前端）
+
+新增可选的**本机强化学习训练**：`npm run build` 后运行 `npm run training`，打开 http://127.0.0.1:8767/?training=1。自动检测CPU/GPU并管理mjlab训练、停止、续训和结果回放；默认提供已有行走策略微调预设，并保留六自由度从零训练实验任务。详见 [训练说明](docs/training.md)。原静态回放不需要启动此服务。
+
+点击顶部 **强化学习回放**，选择训练任务，点击 **加载策略 → Play**。支持内置示例、浏览器选择本地 `.pt/.pth` 文件，以及允许 CORS 的 HTTP(S) 权重网址。文件在浏览器中解析，不上传。可暂停、单步、重置和调整播放速度，每次预览 20 秒。
+
+默认回放使用浏览器 CPU 前馈网络推理和 PhysX WASM（与 Isaac 同类求解器）；MuJoCo 用于几何显示，也可切换为迁移对照引擎。`npm run build` 后，完整 `dist/` 可放到普通静态 HTTP(S) 网站根目录；运行端不需要训练工程、Python、Node 服务、CUDA、GPU 或模型推理服务器。三维显示使用浏览器 WebGL，支持软件渲染环境。不是读取现成录像。
+
+已收录 `zbot_rl_student/pth` 中全部 **15 组原始训练网络**，包括双足各版本、蛇形、鸟形、轮式、速度控制、IMU 学生策略和跑步。15 份导出副本的策略参数相同，未重复列出。12 组通过运动验收；8DOF 双足 v3、6/8DOF 速度控制三组在原生测试中也存在失稳，已标为实验。速度任务提供前进、侧移、转向命令，扩展观测任务使用 PhysX。未知网络仍不能只靠输入维度匹配。
+
+默认 **PhysX WASM** 保留训练用 TGS 求解器、60 Hz 物理步长、50/5 隐式关节驱动、实际凸碰撞体、观测定义与 30 Hz 积分动作接口。双足策略通过连续 20 秒站立和前进验收；蛇形与形态转换任务按各自运动目标验证。浮点与接触实现仍可能使轨迹不同，不复现训练中的接触终止或跌倒自动重置。**MuJoCo 对照模式仍存在 sim-to-sim 差异，原策略可能跌倒。**详见 [回放格式与验证说明](docs/rl-replay.md)。
 
 ## 六类构型
 

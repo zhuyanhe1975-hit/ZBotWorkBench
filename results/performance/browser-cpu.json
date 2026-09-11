@@ -1,0 +1,121 @@
+{
+  "method": {
+    "browser": "Chrome headless, WebGL SwiftShader software rendering",
+    "viewport": [
+      1280,
+      800
+    ],
+    "pixelRatio": 1,
+    "sampleSeconds": 5,
+    "warmupSecondsPerState": 2,
+    "cpuDefinition": "Sum of isolated test Chrome process CPU time / wall time; one fully utilized logical core = 100%.",
+    "drawDefinition": "Instrument WebGL draw methods and requestAnimationFrame callbacks before navigation.",
+    "scope": "App page only, separate new browser profile for each build; excludes other Chrome/VMware processes."
+  },
+  "sourceHashes": {
+    "src/App.tsx": "0c703993c6df0d5dbfcc8c4a79ad238978da30c994f01e97f2b9cbc3016a3312",
+    "src/components/SimulationViewport.tsx": "a97ec8ecfb6b12a50a926cb42eaec8a36d4e5877971042e14e93dc31d2f78db1",
+    "src/components/RlReplayPanel.tsx": "ed59bd624c996c0018d85478fa1894384c633562101d797c210809df1715e893",
+    "src/utils/renderScheduler.ts": "1d27257b9f0a139935896e7074278da501e40ce353ff4178ef08e63e70ec06d5"
+  },
+  "comparison": {
+    "workbenchPaused": {
+      "before": {
+        "cpuPercentOneCore": 660.96,
+        "seconds": 5.00482755899975,
+        "drawCalls": 8758,
+        "rafCallbacks": 606
+      },
+      "after": {
+        "cpuPercentOneCore": 7.79,
+        "seconds": 5.004500981000092,
+        "drawCalls": 0,
+        "rafCallbacks": 0
+      },
+      "cpuReductionPercent": 98.82
+    },
+    "replayEmpty": {
+      "before": {
+        "cpuPercentOneCore": 812.08,
+        "seconds": 5.004419703998792,
+        "drawCalls": 6603,
+        "rafCallbacks": 856
+      },
+      "after": {
+        "cpuPercentOneCore": 24.78,
+        "seconds": 5.004392075999931,
+        "drawCalls": 0,
+        "rafCallbacks": 0
+      },
+      "cpuReductionPercent": 96.95
+    },
+    "replayPaused": {
+      "before": {
+        "cpuPercentOneCore": 927.3,
+        "seconds": 5.00484515899916,
+        "drawCalls": 10595,
+        "rafCallbacks": 656
+      },
+      "after": {
+        "cpuPercentOneCore": 6.99,
+        "seconds": 5.005168503999812,
+        "drawCalls": 0,
+        "rafCallbacks": 0
+      },
+      "cpuReductionPercent": 99.25
+    },
+    "replayRunning": {
+      "before": {
+        "cpuPercentOneCore": 922.83,
+        "seconds": 5.006363783000779,
+        "drawCalls": 10296,
+        "rafCallbacks": 708
+      },
+      "after": {
+        "cpuPercentOneCore": 301.32,
+        "seconds": 5.004725716000394,
+        "drawCalls": 3039,
+        "rafCallbacks": 403
+      },
+      "cpuReductionPercent": 67.35
+    },
+    "replayPausedAgain": {
+      "before": {
+        "cpuPercentOneCore": 988.82,
+        "seconds": 5.004949778998707,
+        "drawCalls": 10290,
+        "rafCallbacks": 844
+      },
+      "after": {
+        "cpuPercentOneCore": 7.99,
+        "seconds": 5.004558401000395,
+        "drawCalls": 0,
+        "rafCallbacks": 0
+      },
+      "cpuReductionPercent": 99.19
+    }
+  },
+  "uiValidation": {
+    "passed": true,
+    "checks": [
+      "idle0draws",
+      "camera",
+      "damping",
+      "model change",
+      "gizmo",
+      "covered view",
+      "single step",
+      "reset",
+      "clear trail",
+      "hidden tab",
+      "20s replay",
+      "close"
+    ]
+  },
+  "limitations": [
+    "Single workstation/software-rendered browser sample, not a cross-device benchmark.",
+    "Initial model/shader startup and active physics still consume CPU.",
+    "Hardware-accelerated browsers and other tabs produce different absolute CPU percentages."
+  ],
+  "testProcessesRemaining": 0
+}

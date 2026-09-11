@@ -1,0 +1,222 @@
+{
+  "seed": 123,
+  "evaluator_version": "physics-contact-first-episode-v2-qualified-swings",
+  "checkpoint": "/home/yhzhu/myWorks_vips/zbot-模块化机器人虚拟实验台/training/presets/walking/model_801.pt",
+  "checkpoint_sha256": "ddd61fd509a2d9bca3dd027c8e62b93d019c34be8a3da6e0f2262ee1f15181c6",
+  "checkpoint_config": {
+    "contract": "isaaclab-quat-v1",
+    "task_card": {
+      "num_envs": 2048,
+      "physics_dt": 0.004166666666666667,
+      "decimation": 8,
+      "contact_history_length": 8,
+      "constraint_capacity": 256,
+      "friction_cone": "pyramidal",
+      "friction_impedance_ratio": 1.0,
+      "contact_dimension": 3,
+      "foot_sliding_friction": 1.0,
+      "gravity": [
+        0.0,
+        0.0,
+        -9.81
+      ],
+      "episode_length_s": 20.0,
+      "action_scale": 1.0,
+      "joint_speed_range": [
+        0.8,
+        1.2
+      ],
+      "stiffness": 50.0,
+      "damping": 5.0,
+      "effort_limit": 2000.0,
+      "termination_height": 0.22,
+      "maximum_lateral_deviation": 0.5,
+      "non_foot_contact_force": 1.0,
+      "terminated_reward_penalty": 20.0,
+      "moving_direction": 1.0,
+      "reward_mode": "bipedal_curriculum",
+      "initial_stage": 2,
+      "promotion_threshold": 0.5,
+      "promotion_window_steps": 50,
+      "stage_1_rewards": {
+        "feet_downward": -1.0,
+        "feet_forward": -0.5,
+        "base_heading_x": -1.0,
+        "feet_force_diff": 2.0,
+        "feet_force_sum": -0.1
+      },
+      "stage_2_rewards": {
+        "base_vel_forward": 5.0,
+        "feet_downward": -1.0,
+        "feet_forward": -0.5,
+        "similar_to_default": -0.5,
+        "base_heading_x": -1.0,
+        "base_heading_x_sum": -1.0,
+        "step_length": 5.0,
+        "airtime_balance": -15.0,
+        "airtime_sum": 2.0,
+        "action_rate": -0.1,
+        "torques": -1.0,
+        "feet_slide": -10.0,
+        "base_pos_y_err": -0.1
+      },
+      "target_forward_speed": 0.5,
+      "velocity_sigma": 0.3,
+      "reward_scales": {
+        "base_vel_forward": 1.0,
+        "feet_downward": -1.0,
+        "feet_forward": -0.5
+      }
+    },
+    "ppo": {
+      "seed": 42,
+      "num_steps_per_env": 24,
+      "max_iterations": 500,
+      "obs_groups": {
+        "actor": [
+          "actor"
+        ],
+        "critic": [
+          "critic"
+        ]
+      },
+      "save_interval": 50,
+      "experiment_name": "6dof_bipedal_walking",
+      "run_name": "",
+      "logger": "tensorboard",
+      "wandb_project": "mjlab",
+      "wandb_tags": [],
+      "resume": false,
+      "load_run": ".*",
+      "load_checkpoint": "model_.*.pt",
+      "clip_actions": null,
+      "upload_model": false,
+      "class_name": "OnPolicyRunner",
+      "actor": {
+        "hidden_dims": [
+          128,
+          128,
+          128
+        ],
+        "activation": "elu",
+        "obs_normalization": false,
+        "cnn_cfg": null,
+        "distribution_cfg": {
+          "class_name": "GaussianDistribution",
+          "init_std": 0.03,
+          "std_type": "scalar"
+        },
+        "rnn_type": null,
+        "rnn_hidden_dim": 256,
+        "rnn_num_layers": 1,
+        "class_name": "zbot_rl_mjlab.models:QuatFeatureMLP"
+      },
+      "critic": {
+        "hidden_dims": [
+          128,
+          128,
+          128
+        ],
+        "activation": "elu",
+        "obs_normalization": false,
+        "cnn_cfg": null,
+        "distribution_cfg": null,
+        "rnn_type": null,
+        "rnn_hidden_dim": 256,
+        "rnn_num_layers": 1,
+        "class_name": "zbot_rl_mjlab.models:QuatFeatureMLP"
+      },
+      "algorithm": {
+        "num_learning_epochs": 5,
+        "num_mini_batches": 4,
+        "learning_rate": 1e-05,
+        "schedule": "fixed",
+        "gamma": 0.99,
+        "lam": 0.95,
+        "entropy_coef": 0.0,
+        "desired_kl": 0.01,
+        "max_grad_norm": 1.0,
+        "value_loss_coef": 1.0,
+        "use_clipped_value_loss": true,
+        "clip_param": 0.2,
+        "normalize_advantage_per_mini_batch": false,
+        "optimizer": "adam",
+        "share_cnn_encoders": false,
+        "class_name": "PPO"
+      }
+    }
+  },
+  "physics_dt": 0.004166666666666667,
+  "control_dt": 0.03333333333333333,
+  "measurement": {
+    "physics_sampling": "scene.update after mj_step, before auto-reset",
+    "derived_state_lag_seconds": 0.004166666666666667,
+    "elapsed_time": "first-episode control steps times control_dt",
+    "contact": "all retained MuJoCo foot-to-terrain contact points; local-frame force norm",
+    "contact_slots_per_foot": 8,
+    "ground_velocity": [
+      0,
+      0,
+      0
+    ],
+    "clearance": "world minimum of compiled collision-mesh vertices; plane z=0",
+    "swing_qualification": "completed contact intervals with peak collision clearance >=0.005m",
+    "jitter": "all raw deadband reversals divided by qualified left-right swing pairs",
+    "primary_names": [
+      "foot_0",
+      "foot_1"
+    ],
+    "randomness_scope": "existing initialized action speed and task randomness only"
+  },
+  "versions": {
+    "mjlab": "1.3.0",
+    "mujoco": "3.8.1",
+    "rsl-rl-lib": "5.2.0",
+    "torch": "2.9.1+cu128"
+  },
+  "summary": {
+    "denominator": 32,
+    "survival_count": 32,
+    "gait_success_count": 0,
+    "passed": false,
+    "mean_displacement_x": 3.8853045776486397,
+    "mean_world_x_speed": 0.194589544790416,
+    "population_contact_slip": {
+      "mean": 0.0912034884095192,
+      "p95": 0.18937858939170837,
+      "force_sample_sum": 5364402.0
+    },
+    "failed_gate_counts": {
+      "survival": 0,
+      "progress": 0,
+      "speed": 0,
+      "swing_pairs": 0,
+      "alternation": 0,
+      "swing_duration": 0,
+      "swing_advancement": 0,
+      "swing_clearance": 0,
+      "joint_jitter": 0,
+      "slip_mean": 32,
+      "slip_p95": 6,
+      "numerical_validity": 0,
+      "contact_capacity": 0
+    },
+    "thresholds": {
+      "contact_force": 1.0,
+      "contact_debounce_samples": 2,
+      "reversal_deadband": 0.1,
+      "minimum_displacement": 3.0,
+      "minimum_speed": 0.15,
+      "minimum_swing_pairs": 6,
+      "minimum_alternation": 0.8,
+      "minimum_swing_duration": 0.08,
+      "minimum_swing_advancement": 0.025,
+      "minimum_swing_clearance": 0.005,
+      "maximum_mean_reversals_per_pair": 3.0,
+      "maximum_joint_reversals_per_pair": 4.0,
+      "maximum_slip_mean": 0.08,
+      "maximum_slip_p95": 0.2,
+      "minimum_success_fraction": 0.96875
+    }
+  }
+}

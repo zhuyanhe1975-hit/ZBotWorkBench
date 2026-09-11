@@ -1,0 +1,295 @@
+{
+  "verifiedAt": "2026-09-11",
+  "scope": "Real CPU/GPU PPO updates, resume, cooperative SIGTERM and portable replay; not learned-gait quality",
+  "runs": [
+    {
+      "device": "cpu",
+      "request": {
+        "taskId": "Mjlab-Zbot-6dof-Bipedal-Walking",
+        "device": "cpu",
+        "cpuThreads": 2,
+        "numEnvs": 1,
+        "iterations": 1,
+        "saveInterval": 1,
+        "seed": 42,
+        "maxSeconds": 1200,
+        "resumePath": "/tmp/zbot-training-cpu/checkpoints/model_0.pt"
+      },
+      "events": [
+        {
+          "event": "ready",
+          "device": "cpu",
+          "versions": {
+            "mjlab": "1.3.0",
+            "mujoco": "3.8.1",
+            "mujoco-warp": "3.8.1",
+            "warp-lang": "1.12.1",
+            "rsl-rl-lib": "5.2.0",
+            "torch": "2.9.1+cu128"
+          }
+        },
+        {
+          "event": "progress",
+          "iteration": 1,
+          "totalIterations": 1,
+          "fps": 58.450308122793885,
+          "reward": -23.30828094482422,
+          "episodeLength": 7.0,
+          "loss": 99.2929950378835
+        },
+        {
+          "event": "checkpoint",
+          "name": "model_1.pt"
+        },
+        {
+          "event": "bundle",
+          "name": "bundle.json"
+        },
+        {
+          "event": "finished",
+          "stopped": false,
+          "iterations": 1
+        }
+      ],
+      "bundleBytes": 558061,
+      "bundleSha256": "4e3f1a6b49748bd542a2fb193925b4d2cf34dc74e01945812daa9aab8a3d0e84",
+      "profile": {
+        "jointNames": [
+          "robot/joint1",
+          "robot/joint2",
+          "robot/joint3",
+          "robot/joint4",
+          "robot/joint5",
+          "robot/joint6"
+        ],
+        "defaultAngles": [
+          0.31200000643730164,
+          0.8370000123977661,
+          -2.0199999809265137,
+          2.0199999809265137,
+          -0.8370000123977661,
+          -0.31200000643730164
+        ],
+        "observation": "quaternion",
+        "inputSize": 26,
+        "physicsDt": 0.016666666666666666,
+        "controlDt": 0.03333333333333333,
+        "jointSpeedLimit": 1.0
+      },
+      "sourceArtifactDirectory": "/tmp/zbot-training-cpu-final"
+    },
+    {
+      "device": "cuda:0",
+      "request": {
+        "taskId": "Mjlab-Zbot-6dof-Bipedal-Walking",
+        "device": "cuda:0",
+        "cpuThreads": 2,
+        "numEnvs": 4,
+        "iterations": 1,
+        "saveInterval": 1,
+        "seed": 42,
+        "maxSeconds": 1200,
+        "resumePath": "/tmp/zbot-training-gpu/checkpoints/model_0.pt"
+      },
+      "events": [
+        {
+          "event": "ready",
+          "device": "cuda:0",
+          "versions": {
+            "mjlab": "1.3.0",
+            "mujoco": "3.8.1",
+            "mujoco-warp": "3.8.1",
+            "warp-lang": "1.12.1",
+            "rsl-rl-lib": "5.2.0",
+            "torch": "2.9.1+cu128"
+          }
+        },
+        {
+          "event": "progress",
+          "iteration": 1,
+          "totalIterations": 1,
+          "fps": 141.92256196660503,
+          "reward": -17.719300031661987,
+          "episodeLength": 9.0,
+          "loss": 28.32191529600532
+        },
+        {
+          "event": "checkpoint",
+          "name": "model_1.pt"
+        },
+        {
+          "event": "bundle",
+          "name": "bundle.json"
+        },
+        {
+          "event": "finished",
+          "stopped": false,
+          "iterations": 1
+        }
+      ],
+      "bundleBytes": 558058,
+      "bundleSha256": "1f8e13e493193f8016f7e4b167d4a4c5be07b8d0857a3cf2a2efdbbdceeef882",
+      "profile": {
+        "jointNames": [
+          "robot/joint1",
+          "robot/joint2",
+          "robot/joint3",
+          "robot/joint4",
+          "robot/joint5",
+          "robot/joint6"
+        ],
+        "defaultAngles": [
+          0.31200000643730164,
+          0.8370000123977661,
+          -2.0199999809265137,
+          2.0199999809265137,
+          -0.8370000123977661,
+          -0.31200000643730164
+        ],
+        "observation": "quaternion",
+        "inputSize": 26,
+        "physicsDt": 0.016666666666666666,
+        "controlDt": 0.03333333333333333,
+        "jointSpeedLimit": 1.0
+      },
+      "sourceArtifactDirectory": "/tmp/zbot-training-gpu-final"
+    },
+    {
+      "device": "cpu",
+      "request": {
+        "taskId": "Mjlab-Zbot-6dof-Bipedal-Walking",
+        "device": "cpu",
+        "cpuThreads": 2,
+        "numEnvs": 1,
+        "iterations": 10,
+        "saveInterval": 1,
+        "seed": 42,
+        "maxSeconds": 1200,
+        "resumePath": "/tmp/zbot-training-cpu/checkpoints/model_0.pt"
+      },
+      "events": [
+        {
+          "event": "ready",
+          "device": "cpu",
+          "versions": {
+            "mjlab": "1.3.0",
+            "mujoco": "3.8.1",
+            "mujoco-warp": "3.8.1",
+            "warp-lang": "1.12.1",
+            "rsl-rl-lib": "5.2.0",
+            "torch": "2.9.1+cu128"
+          }
+        },
+        {
+          "event": "progress",
+          "iteration": 1,
+          "totalIterations": 10,
+          "fps": 62.87989745652709,
+          "reward": -23.30828094482422,
+          "episodeLength": 7.0,
+          "loss": 99.2929950378835
+        },
+        {
+          "event": "checkpoint",
+          "name": "model_1.pt"
+        },
+        {
+          "event": "progress",
+          "iteration": 2,
+          "totalIterations": 10,
+          "fps": 63.76607624059788,
+          "reward": -20.889617919921875,
+          "episodeLength": 7.5,
+          "loss": 62.88470716749629
+        },
+        {
+          "event": "checkpoint",
+          "name": "model_2.pt"
+        },
+        {
+          "event": "bundle",
+          "name": "bundle.json"
+        },
+        {
+          "event": "finished",
+          "stopped": true,
+          "iterations": 2
+        }
+      ],
+      "bundleBytes": 558061,
+      "bundleSha256": "933779298157776d09bb5b790495b120d511bd354e649903ea384b8b4f5fa763",
+      "profile": {
+        "jointNames": [
+          "robot/joint1",
+          "robot/joint2",
+          "robot/joint3",
+          "robot/joint4",
+          "robot/joint5",
+          "robot/joint6"
+        ],
+        "defaultAngles": [
+          0.31200000643730164,
+          0.8370000123977661,
+          -2.0199999809265137,
+          2.0199999809265137,
+          -0.8370000123977661,
+          -0.31200000643730164
+        ],
+        "observation": "quaternion",
+        "inputSize": 26,
+        "physicsDt": 0.016666666666666666,
+        "controlDt": 0.03333333333333333,
+        "jointSpeedLimit": 1.0
+      },
+      "sourceArtifactDirectory": "/tmp/zbot-training-stop"
+    }
+  ],
+  "browserRuntimeVerification": {
+    "loader": "src/training/bundle.ts::loadTrainingBundle",
+    "engine": "@mujoco/mujoco WASM (Node validation)",
+    "bundles": [
+      "cpu-final",
+      "gpu-final"
+    ],
+    "controlStepsEach": 600,
+    "simulatedSecondsEach": 20,
+    "finite": true,
+    "numericalWarnings": false
+  },
+  "sourceSha256": {
+    "training/worker.py": "9859683ec3098d0f45ca88fbf3f847982f6d4148eedcd0e0185fd8b2fb37e2f5",
+    "training/export_bundle.py": "6da97124a3ae1e53823ec8bea4f2ce56743ff447ae78588f59fe277a6fc59513",
+    "training/probe.py": "d9d2f66b7b977996fd262885f59fdb6e4e1a518e6e3bf63e90a559f51a10cdc7",
+    "training/SOURCE_PROVENANCE.json": "27bdf52d022fb6bed91c4fdd46d9dd48454550a8d2659e4d5f34c97b993dd652"
+  },
+  "portabilityHardening": {
+    "unitTestsPassed": 7,
+    "checks": [
+      "Physical GPU index replaces inherited CUDA_VISIBLE_DEVICES; internal device cuda:0",
+      "CPU clears CUDA visibility and caps environments at 64",
+      "Existing physical GPU0 mapping is unchanged"
+    ],
+    "sourceSha256": {
+      "training/worker.py": "1df2b1ef3e6c71adb2cae8c0e970a0aed478147209c769e8b87a14d631bd3c44",
+      "training/requirements.txt": "159f0c7812b4d75812287e35bc3d14a164a60f6cfc5aaada2edac7fa1b51104f",
+      "training/tests/test_worker_request.py": "8a48b3774ab23d39f040e23c5fbe51f0ba9d6b9d6344542b61205e7d94f35d05"
+    },
+    "limitation": "No multi-GPU hardware run performed; selection tested with isolated environment dictionaries. Earlier real CPU/GPU0 training and replay evidence is retained above."
+  },
+  "affinityHardening": {
+    "unitTestsPassed": 13,
+    "childOnlyLinuxCheck": {
+      "selected": [
+        0,
+        1
+      ],
+      "actual": [
+        0,
+        1
+      ]
+    },
+    "parentMaskUnchanged": true,
+    "cudaBuildProbe": true,
+    "note": "Lightweight child process only; no additional training or GPU initialization."
+  }
+}

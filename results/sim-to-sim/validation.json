@@ -1,0 +1,1542 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-11T02:33:03.734Z",
+  "passed": true,
+  "summary": {
+    "totalPolicies": 15,
+    "motionValidated": 12,
+    "experimental": 3
+  },
+  "command": "node --import tsx scripts/validate-rl-motion.ts [--output FILE] [--reference-dir DIR]",
+  "controlSteps": 600,
+  "controlDt": 0.03333333333333333,
+  "durationSeconds": 20,
+  "runtimes": {
+    "node": "v20.19.6",
+    "physxPackage": "2.7.3",
+    "physxSdk": "5.6.1",
+    "mujocoPackage": "3.12.0"
+  },
+  "sourceHashes": {
+    "src/rl/checkpoint.ts": "761abbf1525b5bc914d4d57629735f38dfd7f3bc05510a730a06561a90ea6ba5",
+    "src/rl/replay.ts": "3e1106058119dbccc7caafa226c128bae6fa0959f8569e6d916637e7a47939ad",
+    "src/rl/physx.ts": "d979972629dcd4dd607f537be882a2a3bb58a110efb81812b9f09578b3dcd5ef",
+    "src/rl/profiles.ts": "d4fb6816eabde07a59ffd36a5a9b0bd8d9f371b2c9f54191a6ffce34db2d7681",
+    "scripts/validate-rl-motion.ts": "0d0b2887434e783dee5b358ca6e15f549310985df8a93be67eca63020a713006"
+  },
+  "acceptance": {
+    "motion": "12 tasks must pass their explicit per-task height and displacement requirements, recorded with each run. Existing five baselines retain their original motion thresholds.",
+    "experimental": "Three source checkpoints (8DOF v3, 6DOF velocity, 8DOF velocity) are graded for finite complete 20-second replay only. Native instability warnings remain visible; this is not a motion success claim. Their .15m height fraction is descriptive only.",
+    "comparison": "MuJoCo results are diagnostic and do not gate exit status. Only PhysX acceptance gates exit status."
+  },
+  "limitations": [
+    "A deterministic 20-second check is not a guarantee over arbitrary starts, checkpoints, or longer horizons.",
+    "PhysX CPU WASM and native Isaac trajectories may diverge; this checks motion behavior, not bitwise solver equivalence.",
+    "Optional native capture summaries have external-file provenance and can be omitted when regenerating elsewhere."
+  ],
+  "results": [
+    {
+      "task": "Zbot-Direct-8dof-bipedal-v0",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-8dof-bipedal-v0/model_4050.pt",
+      "checkpointSha256": "e9ef108a8e851417972044a7a7510e65cd0b52f81e9bb7d008ec8eeddf887c0d",
+      "physxModelSha256": "7ee643b617da421b7428a22045f153790e92429907000f37c0b43f10a70d85fc",
+      "mujocoModelSha256": "c6607d9152fd7beaf34aa475ab3ec653b7fb5e4336ac783b20b4e5306b2710f1",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 312.97474,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.3,
+            "xDirection": -1,
+            "minX": 5
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              0.01122414879500866,
+              0.017297815531492233,
+              0.3608003556728363
+            ],
+            "finalBasePosition": [
+              -9.626306533813477,
+              0.17530906200408936,
+              0.37635427713394165
+            ],
+            "minBaseHeight": 0.3490118086338043,
+            "maxBaseHeight": 0.38252735137939453,
+            "standHeightThreshold": 0.3,
+            "standFraction": 1,
+            "netXYDisplacement": 9.638825924988572,
+            "xProgress": -9.637530682608485
+          }
+        },
+        {
+          "engine": "mujoco",
+          "completedSteps": 600,
+          "simulationTime": 20.00000000400206,
+          "elapsedMs": 274.083389,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.3,
+            "xDirection": -1,
+            "minX": 5
+          },
+          "nativeWarning": null,
+          "accepted": false,
+          "failures": [
+            "Base height must stay above 0.3m",
+            "Directed X progress must exceed 5m"
+          ],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              0.011224082273125673,
+              0.01729779779298283,
+              0.36080025375940067
+            ],
+            "finalBasePosition": [
+              -0.6750914859814353,
+              -1.4270807092091757,
+              0.08855903331641594
+            ],
+            "minBaseHeight": 0.04657436701381287,
+            "maxBaseHeight": 0.3913249184972449,
+            "standHeightThreshold": 0.3,
+            "standFraction": 0.03166666666666667,
+            "netXYDisplacement": 1.5991429988335522,
+            "xProgress": -0.686315568254561
+          }
+        }
+      ],
+      "optionalNativeReferences": [
+        {
+          "externalFile": "/tmp/zbot-isaac-human-cpu.json",
+          "sha256": "331bbdec0bbd261c002971d463696a3c010637ce966981adcbd94c5265884716",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            0.011224105954170227,
+            0.017297830432653427,
+            0.3608003258705139
+          ],
+          "finalBasePosition": [
+            -9.765772819519043,
+            -0.3670752942562103,
+            0.3783297538757324
+          ],
+          "minBaseHeight": 0.34670472145080566,
+          "maxBaseHeight": 0.38287410140037537,
+          "standHeightThreshold": 0.3,
+          "standFraction": 1,
+          "netXYDisplacement": 9.784549636017783,
+          "xProgress": -9.776996925473213
+        },
+        {
+          "externalFile": "/tmp/zbot-isaac-human.json",
+          "sha256": "caf10f631b911537c94ea2774e972814d2975dda378733466e423b2565fbab26",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            0.011224081739783287,
+            0.017297785729169846,
+            0.36080029606819153
+          ],
+          "finalBasePosition": [
+            -9.778159141540527,
+            0.07748402655124664,
+            0.36927613615989685
+          ],
+          "minBaseHeight": 0.3433089852333069,
+          "maxBaseHeight": 0.3812238276004791,
+          "standHeightThreshold": 0.3,
+          "standFraction": 1,
+          "netXYDisplacement": 9.789568237456967,
+          "xProgress": -9.78938322328031
+        }
+      ]
+    },
+    {
+      "task": "Zbot-Direct-8dof-snake-v0",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-8dof-snake-v0/model_12050.pt",
+      "checkpointSha256": "3365e3966a8df4b3dd4d9b029de9b482260e9c80b23d70a9594496be8869f49c",
+      "physxModelSha256": "cc82965a8da2df7a13a4ba73de7df6f1c2f0c24ad6143524d11ba268c04b199b",
+      "mujocoModelSha256": "eb7b562057c3a3bc1a17d91457befd6d149a72a5167d71e0f354a3a5616f334e",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 269.07342399999993,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.025,
+            "maxHeight": 0.12,
+            "minXY": 2
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.42400527000427246,
+              -9.38861788313261e-9,
+              0.05299607664346695
+            ],
+            "finalBasePosition": [
+              -6.31882381439209,
+              8.912537574768066,
+              0.05877577140927315
+            ],
+            "minBaseHeight": 0.04737558588385582,
+            "maxBaseHeight": 0.06987762451171875,
+            "standHeightThreshold": 0.025,
+            "standFraction": 1,
+            "netXYDisplacement": 10.685607697284418,
+            "xProgress": -5.894818544387817
+          }
+        },
+        {
+          "engine": "mujoco",
+          "completedSteps": 600,
+          "simulationTime": 20.00000000400206,
+          "elapsedMs": 353.9946590000002,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.025,
+            "maxHeight": 0.12,
+            "minXY": 2
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.4239999981700001,
+              0,
+              0.053
+            ],
+            "finalBasePosition": [
+              -2.023592721060485,
+              -1.6098658966588442,
+              0.05479189772504113
+            ],
+            "minBaseHeight": 0.04753046939372245,
+            "maxBaseHeight": 0.07908091627459779,
+            "standHeightThreshold": 0.025,
+            "standFraction": 1,
+            "netXYDisplacement": 2.2694415798494085,
+            "xProgress": -1.5995927228904847
+          }
+        }
+      ],
+      "optionalNativeReferences": [
+        {
+          "externalFile": "/tmp/zbot-isaac-snake-cpu.json",
+          "sha256": "e21299f30da64964aff37e2f18321156ab28282f79a589352210d4ae98929ccf",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            -0.42398911714553833,
+            -9.322874916506407e-9,
+            0.05299392715096474
+          ],
+          "finalBasePosition": [
+            -4.076084613800049,
+            10.081033706665039,
+            0.053023021668195724
+          ],
+          "minBaseHeight": 0.049621306359767914,
+          "maxBaseHeight": 0.07052896916866302,
+          "standHeightThreshold": 0.025,
+          "standFraction": 1,
+          "netXYDisplacement": 10.722175259692841,
+          "xProgress": -3.6520954966545105
+        },
+        {
+          "externalFile": "/tmp/zbot-isaac-snake.json",
+          "sha256": "870fc5b87faffeff87f1515372cc58b9074b33fbd85aa268b57618d58f181b26",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            -0.423988938331604,
+            -1.1946745814839232e-8,
+            0.05299391970038414
+          ],
+          "finalBasePosition": [
+            7.78970193862915,
+            1.5199897289276123,
+            0.055786944925785065
+          ],
+          "minBaseHeight": 0.04951886087656021,
+          "maxBaseHeight": 0.06872716546058655,
+          "standHeightThreshold": 0.025,
+          "standFraction": 1,
+          "netXYDisplacement": 8.353148306754264,
+          "xProgress": 8.213690876960754
+        }
+      ]
+    },
+    {
+      "task": "Zbot-Direct-6dof-bipedal-quat-v0",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-6dof-bipedal-quat-v0/model_3850.pt",
+      "checkpointSha256": "8b120032c27be1a9d5e576a635dae769f2a3d70da5d1447c0b68012bf7c81bab",
+      "physxModelSha256": "9fd3558a802b8636889605cda028b66eefce0a70c52e097402d1778cbed40fee",
+      "mujocoModelSha256": "c0859d5ba319ca3bc2cab37c72292f67cb8c4cded69b63a470ab2bfa4f24ac41",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 193.1670919999999,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.22,
+            "xDirection": 1,
+            "minX": 2.5
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.024447470903396606,
+              -0.000039927661418914795,
+              0.25447380542755127
+            ],
+            "finalBasePosition": [
+              3.8847031593322754,
+              0.0409921370446682,
+              0.26814839243888855
+            ],
+            "minBaseHeight": 0.25447380542755127,
+            "maxBaseHeight": 0.27440717816352844,
+            "standHeightThreshold": 0.22,
+            "standFraction": 1,
+            "netXYDisplacement": 3.9093659690806635,
+            "xProgress": 3.909150630235672
+          }
+        },
+        {
+          "engine": "mujoco",
+          "completedSteps": 600,
+          "simulationTime": 20.00000000400206,
+          "elapsedMs": 246.47642399999995,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.22,
+            "xDirection": 1,
+            "minX": 2.5
+          },
+          "nativeWarning": null,
+          "accepted": false,
+          "failures": [
+            "Base height must stay above 0.22m",
+            "Directed X progress must exceed 2.5m"
+          ],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.024447492342133274,
+              -0.00003993424035442922,
+              0.2544737610051511
+            ],
+            "finalBasePosition": [
+              0.12301408214823088,
+              0.4221659875247081,
+              0.04981389451962049
+            ],
+            "minBaseHeight": 0.04574700589487678,
+            "maxBaseHeight": 0.2801598399869204,
+            "standHeightThreshold": 0.22,
+            "standFraction": 0.05,
+            "netXYDisplacement": 0.44721667715399804,
+            "xProgress": 0.14746157449036415
+          }
+        }
+      ],
+      "optionalNativeReferences": [
+        {
+          "externalFile": "/tmp/zbot-isaac-quat.json",
+          "sha256": "bb84fb151ce277a560888fbb1e052446ac85c75ba715f5acff0bd211f7ea56cd",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            -0.024447496980428696,
+            -0.000039944425225257874,
+            0.2544737756252289
+          ],
+          "finalBasePosition": [
+            3.9844443798065186,
+            -0.1441792994737625,
+            0.2578778564929962
+          ],
+          "minBaseHeight": 0.2544737756252289,
+          "maxBaseHeight": 0.2707938849925995,
+          "standHeightThreshold": 0.22,
+          "standFraction": 1,
+          "netXYDisplacement": 4.0114822987821075,
+          "xProgress": 4.008891876786947
+        }
+      ]
+    },
+    {
+      "task": "Zbot-Direct-6dof-bipedal-to-snake-v0",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-6dof-bipedal-to-snake-v0/model_1000.pt",
+      "checkpointSha256": "965d8c6f5a6c7aa38e39c28f09d5a6411837f657606ede24423747268948d337",
+      "physxModelSha256": "9fd3558a802b8636889605cda028b66eefce0a70c52e097402d1778cbed40fee",
+      "mujocoModelSha256": "c0859d5ba319ca3bc2cab37c72292f67cb8c4cded69b63a470ab2bfa4f24ac41",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 141.44442499999968,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "transition": true
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.024447470903396606,
+              -0.000039927661418914795,
+              0.25447380542755127
+            ],
+            "finalBasePosition": [
+              -0.08509157598018646,
+              -0.021702438592910767,
+              0.05005970597267151
+            ],
+            "minBaseHeight": 0.049960337579250336,
+            "maxBaseHeight": 0.25447380542755127,
+            "standHeightThreshold": null,
+            "standFraction": null,
+            "netXYDisplacement": 0.0643969864234479,
+            "xProgress": -0.060644105076789856
+          }
+        },
+        {
+          "engine": "mujoco",
+          "completedSteps": 600,
+          "simulationTime": 20.00000000400206,
+          "elapsedMs": 217.08370400000013,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "transition": true
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.024447492342133274,
+              -0.00003993424035442922,
+              0.2544737610051511
+            ],
+            "finalBasePosition": [
+              -0.18439011892060092,
+              -0.014154027784295323,
+              0.04976306445987487
+            ],
+            "minBaseHeight": 0.048532975007718415,
+            "maxBaseHeight": 0.2544737610051511,
+            "standHeightThreshold": null,
+            "standFraction": null,
+            "netXYDisplacement": 0.1605641660937653,
+            "xProgress": -0.15994262657846764
+          }
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "Zbot-Direct-6dof-bipedal-to-snake-v1",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-6dof-bipedal-to-snake-v1/model_3400.pt",
+      "checkpointSha256": "26aa8cd617bafb6082b4ba07f05b57b9009fa0fbc26a9ccd0580492373718091",
+      "physxModelSha256": "9fd3558a802b8636889605cda028b66eefce0a70c52e097402d1778cbed40fee",
+      "mujocoModelSha256": "c0859d5ba319ca3bc2cab37c72292f67cb8c4cded69b63a470ab2bfa4f24ac41",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 168.97197700000015,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "transition": true,
+            "minXY": 1
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.024447470903396606,
+              -0.000039927661418914795,
+              0.25447380542755127
+            ],
+            "finalBasePosition": [
+              2.4356026649475098,
+              0.42288216948509216,
+              0.049728117883205414
+            ],
+            "minBaseHeight": 0.049272570759058,
+            "maxBaseHeight": 0.25447380542755127,
+            "standHeightThreshold": null,
+            "standFraction": null,
+            "netXYDisplacement": 2.496138972724649,
+            "xProgress": 2.4600501358509064
+          }
+        },
+        {
+          "engine": "mujoco",
+          "completedSteps": 600,
+          "simulationTime": 20.00000000400206,
+          "elapsedMs": 223.90611099999978,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "transition": true,
+            "minXY": 1
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.024447492342133274,
+              -0.00003993424035442922,
+              0.2544737610051511
+            ],
+            "finalBasePosition": [
+              2.394363789950327,
+              -1.5407657540018442,
+              0.05120553200562215
+            ],
+            "minBaseHeight": 0.04717567477292325,
+            "maxBaseHeight": 0.2544737610051511,
+            "standHeightThreshold": null,
+            "standFraction": null,
+            "netXYDisplacement": 2.86783613043441,
+            "xProgress": 2.4188112822924603
+          }
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "Zbot-Direct-6dof-bipedal-v0",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-6dof-bipedal-v0/model_8350.pt",
+      "checkpointSha256": "8eedcebf98ab69b28a2f82301b7a63e44ece66ca8a23bc037a4a9913365c391b",
+      "physxModelSha256": "9fd3558a802b8636889605cda028b66eefce0a70c52e097402d1778cbed40fee",
+      "mujocoModelSha256": "c0859d5ba319ca3bc2cab37c72292f67cb8c4cded69b63a470ab2bfa4f24ac41",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 165.75145999999995,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.22,
+            "xDirection": 1,
+            "minX": 1
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.024447470903396606,
+              -0.000039927661418914795,
+              0.25447380542755127
+            ],
+            "finalBasePosition": [
+              2.5635154247283936,
+              -0.30735236406326294,
+              0.2711932361125946
+            ],
+            "minBaseHeight": 0.2539699971675873,
+            "maxBaseHeight": 0.2767605483531952,
+            "standHeightThreshold": 0.22,
+            "standFraction": 1,
+            "netXYDisplacement": 2.6061452152046547,
+            "xProgress": 2.58796289563179
+          }
+        },
+        {
+          "engine": "mujoco",
+          "completedSteps": 600,
+          "simulationTime": 20.00000000400206,
+          "elapsedMs": 283.68471,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.22,
+            "xDirection": 1,
+            "minX": 1
+          },
+          "nativeWarning": null,
+          "accepted": false,
+          "failures": [
+            "Base height must stay above 0.22m",
+            "Directed X progress must exceed 1m"
+          ],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.024447492342133274,
+              -0.00003993424035442922,
+              0.2544737610051511
+            ],
+            "finalBasePosition": [
+              0.3240984995117505,
+              -0.3496805584949335,
+              0.05257596573261702
+            ],
+            "minBaseHeight": 0.04517617790501549,
+            "maxBaseHeight": 0.28687128987059174,
+            "standHeightThreshold": 0.22,
+            "standFraction": 0.03666666666666667,
+            "netXYDisplacement": 0.49369309754800034,
+            "xProgress": 0.3485459918538838
+          }
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "Zbot-Direct-8dof-bipedal-v1",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-8dof-bipedal-v1/model_4850.pt",
+      "checkpointSha256": "de4da0266689570ad9e4351897454c87731811aeb413d0998887d31950db0dae",
+      "physxModelSha256": "8fea4433d4d621d00b89ec59e7a40c54acb0d831d9fbd13dd387075acf4c1c82",
+      "mujocoModelSha256": "c4e3c29f55b84e6c80d4a0aa3ea651c4ea662f5e81e2030e0283e45680204fdf",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 228.8551010000001,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.3,
+            "xDirection": -1,
+            "minX": 5
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              0.06573864072561264,
+              -0.0342063382267952,
+              0.36784812808036804
+            ],
+            "finalBasePosition": [
+              -9.564207077026367,
+              0.380950927734375,
+              0.368568480014801
+            ],
+            "minBaseHeight": 0.3578522503376007,
+            "maxBaseHeight": 0.3828526437282562,
+            "standHeightThreshold": 0.3,
+            "standFraction": 1,
+            "netXYDisplacement": 9.63889050058823,
+            "xProgress": -9.62994571775198
+          }
+        },
+        {
+          "engine": "mujoco",
+          "completedSteps": 600,
+          "simulationTime": 20.00000000400206,
+          "elapsedMs": 258.89407200000005,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.3,
+            "xDirection": -1,
+            "minX": 5
+          },
+          "nativeWarning": null,
+          "accepted": false,
+          "failures": [
+            "Base height must stay above 0.3m",
+            "Directed X progress must exceed 5m"
+          ],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              0.06573856307426601,
+              -0.03420635260494401,
+              0.36784804466067
+            ],
+            "finalBasePosition": [
+              0.37475919745481584,
+              0.5454777736565871,
+              0.07303424077695898
+            ],
+            "minBaseHeight": 0.04618847570439082,
+            "maxBaseHeight": 0.38487370632613754,
+            "standHeightThreshold": 0.3,
+            "standFraction": 0.055,
+            "netXYDisplacement": 0.6569074810904137,
+            "xProgress": 0.30902063438054983
+          }
+        }
+      ],
+      "optionalNativeReferences": [
+        {
+          "externalFile": "/tmp/zbot-isaac-human_v1.json",
+          "sha256": "0eafc27f87f43712410ba1c7dd467b3e7bbeea54dc99565b8684f753d788f143",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            0.06573861837387085,
+            -0.0342063345015049,
+            0.36784812808036804
+          ],
+          "finalBasePosition": [
+            -9.27850341796875,
+            0.8605760931968689,
+            0.36853718757629395
+          ],
+          "minBaseHeight": 0.3449370563030243,
+          "maxBaseHeight": 0.3781513571739197,
+          "standHeightThreshold": 0.3,
+          "standFraction": 1,
+          "netXYDisplacement": 9.386985396104027,
+          "xProgress": -9.34424203634262
+        }
+      ]
+    },
+    {
+      "task": "Zbot-Direct-8dof-bipedal-v2",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-8dof-bipedal-v2/model_1550.pt",
+      "checkpointSha256": "bc221d6e808ea36221ab12de5eb175a751538eb9a42310c3ae8a044ae370775f",
+      "physxModelSha256": "85dbb3b1faba3ac9466aeb40bea33961c94f68af452b5f19aa17d2b46c7adc27",
+      "mujocoModelSha256": "4a0a68afdd2612ff8e529a251ab3ed6d4ad3127d6cc03834ce12a92cb651ee7d",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 278.1662660000002,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.3,
+            "xDirection": 1,
+            "minX": 2
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              0.04924672096967697,
+              -0.12363564968109131,
+              0.36642205715179443
+            ],
+            "finalBasePosition": [
+              6.114858150482178,
+              -0.10278981924057007,
+              0.36921000480651855
+            ],
+            "minBaseHeight": 0.36186593770980835,
+            "maxBaseHeight": 0.38104048371315,
+            "standHeightThreshold": 0.3,
+            "standFraction": 1,
+            "netXYDisplacement": 6.065647250086296,
+            "xProgress": 6.065611429512501
+          }
+        },
+        {
+          "engine": "mujoco",
+          "completedSteps": 600,
+          "simulationTime": 20.00000000400206,
+          "elapsedMs": 344.2536060000002,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.3,
+            "xDirection": 1,
+            "minX": 2
+          },
+          "nativeWarning": null,
+          "accepted": false,
+          "failures": [
+            "Base height must stay above 0.3m",
+            "Directed X progress must exceed 2m"
+          ],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              0.04924665999752427,
+              -0.123635591922655,
+              0.36642196666034493
+            ],
+            "finalBasePosition": [
+              0.18598595169829807,
+              -0.33724642912402486,
+              0.06024616154138749
+            ],
+            "minBaseHeight": 0.04645289915054619,
+            "maxBaseHeight": 0.37457343139133664,
+            "standHeightThreshold": 0.3,
+            "standFraction": 0.016666666666666666,
+            "netXYDisplacement": 0.2536281208082011,
+            "xProgress": 0.1367392917007738
+          }
+        }
+      ],
+      "optionalNativeReferences": [
+        {
+          "externalFile": "/tmp/zbot-isaac-human_v2.json",
+          "sha256": "8507db0b5203e225299d28fce0168ead3fd086ceb20aad2076e008513c0137b8",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            0.04924669861793518,
+            -0.12363561987876892,
+            0.3664221167564392
+          ],
+          "finalBasePosition": [
+            5.9575629234313965,
+            0.25432831048965454,
+            0.36960917711257935
+          ],
+          "minBaseHeight": 0.36259132623672485,
+          "maxBaseHeight": 0.3802197575569153,
+          "standHeightThreshold": 0.3,
+          "standFraction": 1,
+          "netXYDisplacement": 5.920393343778227,
+          "xProgress": 5.908316224813461
+        }
+      ]
+    },
+    {
+      "task": "Zbot-Direct-8dof-bipedal-v3",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-8dof-bipedal-v3/model_1700.pt",
+      "checkpointSha256": "5df7119faa1d94f82a70c3e0dcdcb435ee26d06ea101635bc3593ce3666940b6",
+      "physxModelSha256": "22a139ce7ca58151400d7c4d01d874c99adcd8ec09987c5c35d40198abc64494",
+      "mujocoModelSha256": "b65a1e27c9229cf0d369caf4c9ac982b92748637b58644bda9cd4a7ac94af784",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 205.0632459999997,
+          "acceptanceScope": "experimental-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "该历史权重在原生 Isaac 的当前姿态及历史初始朝向下也会倒地；此处提供原样回放，不代表已学会稳定行走。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              0.1132599413394928,
+              -0.09999364614486694,
+              0.364109605550766
+            ],
+            "finalBasePosition": [
+              0.0005260426551103592,
+              -0.32933029532432556,
+              0.04965576156973839
+            ],
+            "minBaseHeight": 0.04962654411792755,
+            "maxBaseHeight": 0.364109605550766,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.02666666666666667,
+            "netXYDisplacement": 0.25554692439832394,
+            "xProgress": -0.11273389868438244
+          }
+        },
+        {
+          "engine": "mujoco",
+          "completedSteps": 600,
+          "simulationTime": 20.00000000400206,
+          "elapsedMs": 310.49544700000024,
+          "acceptanceScope": "experimental-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "该历史权重在原生 Isaac 的当前姿态及历史初始朝向下也会倒地；此处提供原样回放，不代表已学会稳定行走。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              0.11325982961022568,
+              -0.09999359438170437,
+              0.3641095233565001
+            ],
+            "finalBasePosition": [
+              0.3858500963827287,
+              -0.3427031071662916,
+              0.049776907391339796
+            ],
+            "minBaseHeight": 0.04666030944066256,
+            "maxBaseHeight": 0.38214598091841856,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.028333333333333332,
+            "netXYDisplacement": 0.3649840560014041,
+            "xProgress": 0.27259026677250303
+          }
+        }
+      ],
+      "optionalNativeReferences": [
+        {
+          "externalFile": "/tmp/zbot-isaac-human_v3.json",
+          "sha256": "32d735f1678420ce2e83063c9a054f137e0a9fa2d419d61e9c5ad5cae1131499",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            0.11325987428426743,
+            -0.09999363869428635,
+            0.364109605550766
+          ],
+          "finalBasePosition": [
+            -0.08486524224281311,
+            -0.4422087073326111,
+            0.04999563843011856
+          ],
+          "minBaseHeight": 0.04979303479194641,
+          "maxBaseHeight": 0.364109605550766,
+          "standHeightThreshold": 0.15,
+          "standFraction": 0.02666666666666667,
+          "netXYDisplacement": 0.3954297851730475,
+          "xProgress": -0.19812511652708054
+        },
+        {
+          "externalFile": "/tmp/zbot-isaac-human_v3-historical.json",
+          "sha256": "8def242b0e922e74f9f754066734c0d578c6c465052a467826e6d712c6818057",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            0.042051348835229874,
+            -0.17251215875148773,
+            0.364109605550766
+          ],
+          "finalBasePosition": [
+            -0.02396475523710251,
+            -0.24778957664966583,
+            0.04975312575697899
+          ],
+          "minBaseHeight": 0.04962960630655289,
+          "maxBaseHeight": 0.3674621284008026,
+          "standHeightThreshold": 0.15,
+          "standFraction": 0.021666666666666667,
+          "netXYDisplacement": 0.10012400132988077,
+          "xProgress": -0.06601610407233238
+        },
+        {
+          "externalFile": "/tmp/zbot-isaac-human_v3-historical-exact.json",
+          "sha256": "32e91f8314db3a874b8257a9350f307b735c0ad57b918278718c394444dfe6e2",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            0.0420580729842186,
+            -0.17250962555408478,
+            0.3641096353530884
+          ],
+          "finalBasePosition": [
+            -0.12019086629152298,
+            -0.059017445892095566,
+            0.04993946850299835
+          ],
+          "minBaseHeight": 0.04974474012851715,
+          "maxBaseHeight": 0.367389440536499,
+          "standHeightThreshold": 0.15,
+          "standFraction": 0.023333333333333334,
+          "netXYDisplacement": 0.19800301295821868,
+          "xProgress": -0.16224893927574158
+        }
+      ]
+    },
+    {
+      "task": "Zbot-Direct-8dof-bird-v0",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-8dof-bird-v0/model_13900.pt",
+      "checkpointSha256": "3358aa3fd34817038b906a02ff629c254835b4e4da6ad102251b4613c3a057e3",
+      "physxModelSha256": "c33cdd0f0bee45a1c65303952b2ca02a9fb3be02ce530b4c60d5f1c1b8705f27",
+      "mujocoModelSha256": "e67b924d6a1841bc679785db6661efa0b6631a9268a10b610476d9da47202278",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 197.57319199999984,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.25,
+            "xDirection": -1,
+            "minX": 5
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.02444745972752571,
+              -0.000039927661418914795,
+              0.3604738116264343
+            ],
+            "finalBasePosition": [
+              -11.791666030883789,
+              -0.9059585332870483,
+              0.36990681290626526
+            ],
+            "minBaseHeight": 0.31007620692253113,
+            "maxBaseHeight": 0.3986864686012268,
+            "standHeightThreshold": 0.25,
+            "standFraction": 1,
+            "netXYDisplacement": 11.802038867135776,
+            "xProgress": -11.767218571156263
+          }
+        },
+        {
+          "engine": "mujoco",
+          "completedSteps": 600,
+          "simulationTime": 20.00000000400206,
+          "elapsedMs": 394.05616700000064,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.25,
+            "xDirection": -1,
+            "minX": 5
+          },
+          "nativeWarning": null,
+          "accepted": false,
+          "failures": [
+            "Base height must stay above 0.25m",
+            "Directed X progress must exceed 5m"
+          ],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.024447492342133274,
+              -0.00003993424035442922,
+              0.3604737628851512
+            ],
+            "finalBasePosition": [
+              -0.4178903457418311,
+              0.5614582436986973,
+              0.06524973500874091
+            ],
+            "minBaseHeight": 0.045775285104586436,
+            "maxBaseHeight": 0.3998425334197588,
+            "standHeightThreshold": 0.25,
+            "standFraction": 0.013333333333333334,
+            "netXYDisplacement": 0.6856219677928729,
+            "xProgress": -0.3934428533996978
+          }
+        }
+      ],
+      "optionalNativeReferences": [
+        {
+          "externalFile": "/tmp/zbot-isaac-bird.json",
+          "sha256": "95007f81663be2a836cd78ecc562c2ebeda8f3caec8c2d916fbdb6db61329d83",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            -0.0244474895298481,
+            -0.00003992393612861633,
+            0.3604738712310791
+          ],
+          "finalBasePosition": [
+            -12.162322998046875,
+            -0.9127352833747864,
+            0.31914153695106506
+          ],
+          "minBaseHeight": 0.3085010051727295,
+          "maxBaseHeight": 0.38925179839134216,
+          "standHeightThreshold": 0.25,
+          "standFraction": 1,
+          "netXYDisplacement": 12.172141745781566,
+          "xProgress": -12.137875508517027
+        }
+      ]
+    },
+    {
+      "task": "Zbot-Direct-8dof-wheel-v0",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-8dof-wheel-v0/model_800.pt",
+      "checkpointSha256": "fa36eb362d1b639e07b3655aaf6a045985854eee5dec8bd4594564309eb2af21",
+      "physxModelSha256": "7a4e7e2982f9ef06d16b62859a89628b1dbb05baca556b8f1eba912596e8ee8b",
+      "mujocoModelSha256": "25a3e01564848c049f27c1c569b93749702b8e97eaedc648ad5c7887f182db18",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 221.16240799999923,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.02,
+            "maxHeight": 0.5,
+            "minXY": 2
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.12949247658252716,
+              0.020566292107105255,
+              0.20575106143951416
+            ],
+            "finalBasePosition": [
+              -1.3037511110305786,
+              18.79728126525879,
+              0.051769860088825226
+            ],
+            "minBaseHeight": 0.04849593713879585,
+            "maxBaseHeight": 0.2733316421508789,
+            "standHeightThreshold": 0.02,
+            "standFraction": 1,
+            "netXYDisplacement": 18.81339704900618,
+            "xProgress": -1.1742586344480515
+          }
+        },
+        {
+          "engine": "mujoco",
+          "completedSteps": 600,
+          "simulationTime": 20.00000000400206,
+          "elapsedMs": 258.4955380000001,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.02,
+            "maxHeight": 0.5,
+            "minXY": 2
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.12948725017118937,
+              0.020566283815007268,
+              0.2057549685961181
+            ],
+            "finalBasePosition": [
+              4.0139415765664745,
+              -1.2266612409716362,
+              0.060223483672753514
+            ],
+            "minBaseHeight": 0.04672365657954681,
+            "maxBaseHeight": 0.29591539363435493,
+            "standHeightThreshold": 0.02,
+            "standFraction": 1,
+            "netXYDisplacement": 4.327075102286309,
+            "xProgress": 4.143428826737664
+          }
+        }
+      ],
+      "optionalNativeReferences": [
+        {
+          "externalFile": "/tmp/zbot-isaac-wheel.json",
+          "sha256": "7dab1ae58e081de7eb16bc82945058c84307217a8a88b466184cb76fd2c775fb",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            -0.12948232889175415,
+            0.020574817433953285,
+            0.20574641227722168
+          ],
+          "finalBasePosition": [
+            0.3971889913082123,
+            18.86801528930664,
+            0.08658118546009064
+          ],
+          "minBaseHeight": 0.049282461404800415,
+          "maxBaseHeight": 0.2863439917564392,
+          "standHeightThreshold": 0.02,
+          "standFraction": 1,
+          "netXYDisplacement": 18.854797665854324,
+          "xProgress": 0.5266713201999664
+        }
+      ]
+    },
+    {
+      "task": "Zbot-Direct-6dof-bipedal-velocity-v0",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-6dof-bipedal-velocity-v0/model_latest.pt",
+      "checkpointSha256": "c7cb159f58f02da49527298f72cd1623781498d88516eeb8b170329dc6f35141",
+      "physxModelSha256": "9fd3558a802b8636889605cda028b66eefce0a70c52e097402d1778cbed40fee",
+      "mujocoModelSha256": "c0859d5ba319ca3bc2cab37c72292f67cb8c4cded69b63a470ab2bfa4f24ac41",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 195.95249200000035,
+          "acceptanceScope": "experimental-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "该历史速度权重的跟踪稳定性有限：固定前进 0.2 m/s 的原生测试中也会失稳。可用速度命令比较其原有行为。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.024447470903396606,
+              -0.000039927661418914795,
+              0.25447380542755127
+            ],
+            "finalBasePosition": [
+              -0.10231193900108337,
+              -0.1298031359910965,
+              0.2675940692424774
+            ],
+            "minBaseHeight": 0.24985285103321075,
+            "maxBaseHeight": 0.27571606636047363,
+            "standHeightThreshold": 0.15,
+            "standFraction": 1,
+            "netXYDisplacement": 0.1513319715993517,
+            "xProgress": -0.07786446809768677
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": [
+        {
+          "externalFile": "/tmp/zbot-isaac-velocity6-commanded.json",
+          "sha256": "8fa72d8ea663163747ce93f5376aeb518fe90794d886efb6a3a1af5544b1e794",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            -0.024447504431009293,
+            -0.00003993138670921326,
+            0.2544737756252289
+          ],
+          "finalBasePosition": [
+            0.08913350105285645,
+            -0.9137408137321472,
+            0.07086655497550964
+          ],
+          "minBaseHeight": 0.049710314720869064,
+          "maxBaseHeight": 0.2804636061191559,
+          "standHeightThreshold": 0.15,
+          "standFraction": 0.8333333333333334,
+          "netXYDisplacement": 0.9207333746560715,
+          "xProgress": 0.11358100548386574
+        }
+      ]
+    },
+    {
+      "task": "Zbot-Direct-8dof-bipedal-velocity-v0",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-8dof-bipedal-velocity-v0/model_latest.pt",
+      "checkpointSha256": "d39a254c1a631622de5935c4221d88ba9604837064fb982a5987ae3bf50e6997",
+      "physxModelSha256": "8fea4433d4d621d00b89ec59e7a40c54acb0d831d9fbd13dd387075acf4c1c82",
+      "mujocoModelSha256": "c4e3c29f55b84e6c80d4a0aa3ea651c4ea662f5e81e2030e0283e45680204fdf",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 238.48994200000016,
+          "acceptanceScope": "experimental-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "该历史速度权重在固定前进 0.2 m/s 的原生测试中也会失稳；保持原权重，未把跌倒隐藏为自动重置。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              0.06573864072561264,
+              -0.0342063382267952,
+              0.36784812808036804
+            ],
+            "finalBasePosition": [
+              1.6881183385849,
+              -0.28720131516456604,
+              0.05903736874461174
+            ],
+            "minBaseHeight": 0.04882069677114487,
+            "maxBaseHeight": 0.37120646238327026,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.375,
+            "netXYDisplacement": 1.6419873149271693,
+            "xProgress": 1.6223796978592873
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": [
+        {
+          "externalFile": "/tmp/zbot-isaac-velocity8-commanded.json",
+          "sha256": "3fa4f65a88b9172b7fbab324abf0daacd73018d744ee15507affce643d49c723",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            0.06573861837387085,
+            -0.0342063345015049,
+            0.36784812808036804
+          ],
+          "finalBasePosition": [
+            1.5002635717391968,
+            -0.9874136447906494,
+            0.05043623596429825
+          ],
+          "minBaseHeight": 0.04624298959970474,
+          "maxBaseHeight": 0.36784812808036804,
+          "standHeightThreshold": 0.15,
+          "standFraction": 0.20333333333333334,
+          "netXYDisplacement": 1.7223431766684756,
+          "xProgress": 1.434524953365326
+        }
+      ]
+    },
+    {
+      "task": "Zbot-Direct-6dof-bipedal-velocity-imu-v0",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-6dof-bipedal-velocity-imu-v0/model_latest.pt",
+      "checkpointSha256": "58c26f77058751e2f56b153a4d3afb9883ddd368028b69bfc50dbd661e2fa14b",
+      "physxModelSha256": "9fd3558a802b8636889605cda028b66eefce0a70c52e097402d1778cbed40fee",
+      "mujocoModelSha256": "c0859d5ba319ca3bc2cab37c72292f67cb8c4cded69b63a470ab2bfa4f24ac41",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 207.22689300000002,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.22,
+            "minXY": 0.5
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.024447470903396606,
+              -0.000039927661418914795,
+              0.25447380542755127
+            ],
+            "finalBasePosition": [
+              1.52889084815979,
+              -1.1058262586593628,
+              0.2670820355415344
+            ],
+            "minBaseHeight": 0.25447380542755127,
+            "maxBaseHeight": 0.27257871627807617,
+            "standHeightThreshold": 0.22,
+            "standFraction": 1,
+            "netXYDisplacement": 1.9067310621301423,
+            "xProgress": 1.5533383190631866
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": [
+        {
+          "externalFile": "/tmp/zbot-isaac-imu-commanded.json",
+          "sha256": "006dda700674d679f5c3a4cd81143aa5a1c2bdee74a2c1481a64dc4d552f9e4e",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            -0.024447504431009293,
+            -0.00003993138670921326,
+            0.2544737756252289
+          ],
+          "finalBasePosition": [
+            1.3624053001403809,
+            -1.004747986793518,
+            0.2610713243484497
+          ],
+          "minBaseHeight": 0.2544737756252289,
+          "maxBaseHeight": 0.27241411805152893,
+          "standHeightThreshold": 0.22,
+          "standFraction": 1,
+          "netXYDisplacement": 1.7125416719446163,
+          "xProgress": 1.3868528045713902
+        }
+      ]
+    },
+    {
+      "task": "Zbot-Direct-8dof-bipedal-run-v0",
+      "checkpoint": "public/rl/checkpoints/Zbot-Direct-8dof-bipedal-run-v0/model_latest.pt",
+      "checkpointSha256": "68f3e14c75e7b3681fc9171e7ea5f79beaeb3c88d9e5a3bf640e6970f353dcfe",
+      "physxModelSha256": "03a0f4a501bac41db6684f512b32c3332a70e15e9d40e25e723b1ca10ec7c4c9",
+      "mujocoModelSha256": "6d0300d782642f1b08c6becd8b877f8fd6ea3c4eb2b094022e4e09eb558a1838",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 600,
+          "simulationTime": 20.000000000000153,
+          "elapsedMs": 349.64414099999976,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.3,
+            "xDirection": -1,
+            "minX": 5
+          },
+          "nativeWarning": null,
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              0.01122414693236351,
+              0.017297815531492233,
+              0.3608003556728363
+            ],
+            "finalBasePosition": [
+              -12.17260456085205,
+              2.0578174591064453,
+              0.3655872941017151
+            ],
+            "minBaseHeight": 0.3516981899738312,
+            "maxBaseHeight": 0.3838031589984894,
+            "standHeightThreshold": 0.3,
+            "standFraction": 1,
+            "netXYDisplacement": 12.353517814632676,
+            "xProgress": -12.183828707784414
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": [
+        {
+          "externalFile": "/tmp/zbot-isaac-run.json",
+          "sha256": "105f512e82e5ed03ff509026ff05a8b8604c469136310d02bdb9de48c24857a4",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 600,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            0.011224105954170227,
+            0.017297830432653427,
+            0.3608003258705139
+          ],
+          "finalBasePosition": [
+            -11.365666389465332,
+            0.7807074785232544,
+            0.3735204041004181
+          ],
+          "minBaseHeight": 0.3383660614490509,
+          "maxBaseHeight": 0.3844833970069885,
+          "standHeightThreshold": 0.3,
+          "standFraction": 1,
+          "netXYDisplacement": 11.402474803110263,
+          "xProgress": -11.376890495419502
+        },
+        {
+          "externalFile": "/tmp/zbot-isaac-run-sensor.json",
+          "sha256": "bec020d5a11e96f8dc8f3fa4f871345a8e1929b1fc3ade738f5095f075f9709f",
+          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
+          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
+          "controlSteps": 1,
+          "controlDt": 0.03333333333333333,
+          "initialBasePosition": [
+            0.011224105954170227,
+            0.017297830432653427,
+            0.3608003258705139
+          ],
+          "finalBasePosition": [
+            0.006622565910220146,
+            0.021384086459875107,
+            0.3637588620185852
+          ],
+          "minBaseHeight": 0.3608003258705139,
+          "maxBaseHeight": 0.3637588620185852,
+          "standHeightThreshold": 0.3,
+          "standFraction": 1,
+          "netXYDisplacement": 0.0061539953766704784,
+          "xProgress": -0.004601540043950081
+        }
+      ]
+    }
+  ]
+}

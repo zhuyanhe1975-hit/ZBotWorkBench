@@ -12,6 +12,9 @@ import { XmlModal } from './components/XmlModal';
 import { MeshUploadModal } from './components/MeshUploadModal';
 import { TelemetryDrawer } from './components/TelemetryDrawer';
 import { ResearchPanel } from './components/ResearchPanel';
+import { RlReplayPanel } from './components/RlReplayPanel';
+import { TrainingPanel } from './components/TrainingPanel';
+import type { TrainingReplayBundle } from './training/types';
 import { ArmControlPanel, ArmControlMode, ArmSolveStatus } from './components/ArmControlPanel';
 import { EndEffectorTarget, getEndEffectorPose, supportsEndEffectorControl, solveInverseKinematics } from './utils/inverseKinematics';
 import { Bot, Code2, UploadCloud, AlertCircle, HelpCircle, X } from 'lucide-react';
@@ -31,6 +34,9 @@ export default function App() {
   const [isMeshModalOpen, setIsMeshModalOpen] = useState(false);
   const [isTelemetryOpen, setIsTelemetryOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isRlReplayOpen, setIsRlReplayOpen] = useState(false);
+  const [isTrainingOpen, setIsTrainingOpen] = useState(() => typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('training') === '1');
+  const [trainingBundle, setTrainingBundle] = useState<TrainingReplayBundle | null>(null);
   const [meshRevision, setMeshRevision] = useState(0);
   const [customXmlOverride, setCustomXmlOverride] = useState<string | null>(null);
   const [panel, setPanel] = useState<'create' | 'research'>('create');
@@ -82,11 +88,13 @@ export default function App() {
   }, [isMujocoReady, xmlResult, meshRevision]);
 
   useEffect(() => {
+    if (!isRunning) return;
     let animId = 0;
     let lastTime = performance.now();
     let accumulator = 0;
     let epoch = epochRef.current;
     const loop = (now: number) => {
+      if (document.hidden || !runningRef.current) return;
       const dt = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
       if (epoch !== epochRef.current) { epoch = epochRef.current; accumulator = 0; }
@@ -107,11 +115,17 @@ export default function App() {
           runningRef.current = false; setIsRunning(false); setErrorMessage(String(err));
         }
       } else accumulator = 0;
-      animId = requestAnimationFrame(loop);
+      if (runningRef.current) animId = requestAnimationFrame(loop);
     };
-    animId = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animId);
-  }, []);
+    const visibilityChanged = () => {
+      cancelAnimationFrame(animId);
+      lastTime = performance.now(); accumulator = 0;
+      if (!document.hidden && runningRef.current) animId = requestAnimationFrame(loop);
+    };
+    document.addEventListener('visibilitychange', visibilityChanged);
+    visibilityChanged();
+    return () => { cancelAnimationFrame(animId); document.removeEventListener('visibilitychange', visibilityChanged); };
+  }, [isRunning]);
 
   const handleConfigChange = (next: ZbotConfiguration) => {
     setArmTarget(null); setArmStatus(null);
@@ -175,6 +189,8 @@ export default function App() {
         </nav>
         <nav aria-label="七自由度对照" className="flex flex-wrap items-center gap-1"><span className="text-xs text-cyan-300 mr-1">7DOF 对照</span>{SEVEN_DOF_PRESETS.map((preset,i) => <button key={preset.id} onClick={() => handleConfigChange(preset)} className={`px-2 py-1.5 rounded text-xs transition-colors ${config.id === preset.id ? 'bg-cyan-700 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}>{['7DOF ZBot','7DOF 蛇形','7DOF YuMi风格'][i]}</button>)}</nav>
         <div className="flex gap-2">
+          <button onClick={() => { runningRef.current = false; setIsRunning(false); setTrainingBundle(null); setIsRlReplayOpen(true); }} className="px-3 py-2 bg-blue-700 hover:bg-blue-600 rounded text-xs">强化学习回放</button>
+          <button onClick={() => { runningRef.current = false; setIsRunning(false); setIsTrainingOpen(true); }} className="px-3 py-2 bg-emerald-700 hover:bg-emerald-600 rounded text-xs">强化学习训练</button>
           <button title="CAD资产" onClick={() => setIsMeshModalOpen(true)} className="p-2 bg-slate-800 rounded"><UploadCloud size={16} /></button>
           <button title="MuJoCo XML" onClick={() => setIsXmlModalOpen(true)} className="p-2 bg-slate-800 rounded"><Code2 size={16} /></button>
           <button title="使用指南" onClick={() => setIsHelpOpen(true)} className="p-2 bg-slate-800 rounded"><HelpCircle size={16} /></button>
@@ -190,7 +206,7 @@ export default function App() {
       {errorMessage && <div role="alert" className="bg-rose-950 px-4 py-2 text-xs text-rose-200 flex gap-2"><AlertCircle size={16} /><span>{errorMessage}</span><button className="underline ml-auto" onClick={() => handleConfigChange(PRESET_CONFIGURATIONS[0])}>恢复平面预设</button></div>}
       <main className="flex-1 flex flex-col xl:flex-row overflow-y-auto xl:overflow-hidden min-h-0">
         <section className="flex-1 flex flex-col min-w-0 xl:min-h-0 xl:overflow-y-auto">
-          <div className="flex-1 min-h-[440px] relative p-2"><SimulationViewport config={config} simMetrics={simMetrics} armTarget={armSupported && !disabled ? armTarget : null} armMode={armMode} armValid={armStatus?.converged ?? true} onArmTargetChange={changeArmTarget} onApplyImpulse={(x,y,z) => { if (!disabled) mujocoEngine.applyImpulse(x,y,z); }} /></div>
+          <div className="flex-1 min-h-[440px] relative p-2"><SimulationViewport active={!isRlReplayOpen && !isTrainingOpen} config={config} simMetrics={simMetrics} armTarget={armSupported && !disabled ? armTarget : null} armMode={armMode} armValid={armStatus?.converged ?? true} onArmTargetChange={changeArmTarget} onApplyImpulse={(x,y,z) => { if (!disabled) mujocoEngine.applyImpulse(x,y,z); }} /></div>
           <TelemetryDrawer metrics={simMetrics} isOpen={isTelemetryOpen} onToggle={() => setIsTelemetryOpen(!isTelemetryOpen)} />
           <fieldset disabled={disabled} className="shrink-0 disabled:opacity-50">
             <GaitControlPanel isRunning={isRunning} onTogglePlay={() => setIsRunning(v => !v)} onStep={handleStep} onReset={handleReset}
@@ -211,6 +227,8 @@ export default function App() {
       </main>
       {isXmlModalOpen && <XmlModal isOpen onClose={() => setIsXmlModalOpen(false)} xmlContent={xmlResult.xml} onApplyCustomXml={setCustomXmlOverride} onResetToAutoXml={() => setCustomXmlOverride(null)} />}
       {isMeshModalOpen && <MeshUploadModal isOpen onClose={() => setIsMeshModalOpen(false)} onUpdateMeshes={(a,b) => { mujocoEngine.updateVfsMeshes(a,b); setMeshRevision(v => v + 1); }} hasCustomMeshA={meshManager.hasCadMeshA()} hasCustomMeshB={meshManager.hasCadMeshB()} />}
+      {isRlReplayOpen && <RlReplayPanel initialBundle={trainingBundle ?? undefined} onClose={() => { setIsRlReplayOpen(false); setTrainingBundle(null); }} />}
+      {isTrainingOpen && <TrainingPanel onClose={() => setIsTrainingOpen(false)} onReplay={bundle => { setTrainingBundle(bundle); setIsTrainingOpen(false); setIsRlReplayOpen(true); }} />}
       {isHelpOpen && <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4"><div role="dialog" aria-label="使用指南" className="bg-slate-900 border border-slate-700 rounded-xl max-w-2xl p-6 text-sm space-y-4 max-h-[85vh] overflow-y-auto">
         <div className="flex justify-between"><h2 className="font-semibold">从构型设计到可复现实验</h2><button aria-label="关闭指南" onClick={() => setIsHelpOpen(false)}><X size={18}/></button></div>
         <p>1. 选择六类预设，查看五个连接角 σ 与六个初始关节角 q。σ 绕输出端局部 z 轴；q 绕模块内部 [0, −1, 1] 斜轴。0° / 90° / 180° / 270° 接口旋转对应标准相邻轴夹角 0° / 60° / 90° / 60°。</p>
