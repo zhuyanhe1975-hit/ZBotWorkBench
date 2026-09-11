@@ -224,6 +224,21 @@ test('wheel delta, velocity target bounds and run action scaling match task cont
   const result = integrateActions([.5], new Float64Array(1), [.2], run);
   close(result.targets[0], .2 + Math.PI * 2 * 1.2 * Math.tanh(.5) * CONTROL_DT);
 });
+test('runtime joint speed parameter changes the policy observation and action integration', () => {
+  const e = engine(xmlFor(quaternion));
+  try {
+    const replay = new PolicyReplay(e, quaternion, constantPolicy(quaternion));
+    assert.equal(replay.lastObservation.at(-1), 2);
+    replay.setJointSpeedLimit(.7);
+    close(replay.observe().at(-1)!, .7);
+    replay.step();
+    close(replay.lastObservation.at(-1)!, .7);
+    close(e.getData().ctrl[0], quaternion.defaultAngles[0] + Math.PI * .7 * Math.tanh(.1) * CONTROL_DT);
+    assert.equal(replay.getJointSpeedLimit(), .7);
+    assert.throws(() => replay.setJointSpeedLimit(0), /0.1–5/);
+    assert.throws(() => replay.setJointSpeedLimit(Infinity), /0.1–5/);
+  } finally { e.destroy(); }
+});
 test('velocity filter updates once per control step, resets deterministically and accepts bounded commands', () => {
   const e = engine(xmlFor(velocity6));
   let state = syntheticState(velocity6);

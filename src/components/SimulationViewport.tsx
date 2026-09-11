@@ -257,7 +257,6 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
     let lastTrailTime = -Infinity;
     let previousSimTime = -Infinity;
     let needsFrame = true;
-    let previousRoot: THREE.Vector3 | null = null;
     const frameRobot = () => {
       robotGroup.updateMatrixWorld(true);
       const bounds = new THREE.Box3().setFromObject(robotGroup);
@@ -273,7 +272,14 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
     };
     frameRobotRef.current = frameRobot;
 
+    let lastCameraFrame = performance.now();
     const render = () => {
+      const now = performance.now();
+      // Wall-clock smoothing stays consistent across simulation speeds and FPS.
+      // Cap gaps after hidden tabs so returning to the scene cannot snap the camera.
+      const cameraDt = Math.min(.05, Math.max(0, (now - lastCameraFrame) / 1000));
+      lastCameraFrame = now;
+      let followSettling = false;
       if (pendingSize) {
         currentWidth = pendingSize.width;
         currentHeight = pendingSize.height;
@@ -282,7 +288,6 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
         camera.updateProjectionMatrix();
         renderer.setSize(currentWidth, currentHeight, false);
         needsFrame = true;
-        previousRoot = null;
       }
       // Camera moves alone do not invalidate the cached shadow map.
       if (poseDirtyRef.current || lastModelRef.current !== engine.getModel() || needsRebuildRef.current
@@ -309,7 +314,6 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
               clearTrail();
               lastTrailTime = -Infinity;
               needsFrame = true;
-              previousRoot = null;
             }
             lastModelRef.current = model;
             needsRebuildRef.current = false;
@@ -348,7 +352,7 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
 
           // A simulation reset clears time-dependent overlays but preserves the
           // user's camera position, orientation and zoom.
-          if (data.time < previousSimTime) { clearTrail(); lastTrailTime = -Infinity; previousRoot = null; }
+          if (data.time < previousSimTime) { clearTrail(); lastTrailTime = -Infinity; }
           previousSimTime = data.time;
           if (needsFrame) { frameRobot(); needsFrame = false; }
           jointAxes.visible = optionsRef.current.showAxes;
@@ -378,14 +382,23 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
             rootMarkerRef.current.position.set(rootX, rootY, rootZ);
           }
 
-          // Translate camera and target together to preserve the user's orbit.
-          const root = new THREE.Vector3(rootX, rootY, rootZ);
-          if (optionsRef.current.followRobot && previousRoot) {
-            const delta = root.clone().sub(previousRoot);
-            controls.target.add(delta);
-            camera.position.add(delta);
+          // subtree_com is mass-weighted over the entire robot, even when the
+          // kinematic tree starts at a foot. Keep the orbit centered on that COM.
+          if (optionsRef.current.followRobot) {
+            const center = new THREE.Vector3().fromArray(data.subtree_com, rootOffset);
+            if (center.toArray().every(Number.isFinite)) {
+              const delta = center.clone().sub(controls.target);
+              // Stronger vertical filtering suppresses gait-induced bobbing.
+              const horizontalAlpha = -Math.expm1(-cameraDt / .22);
+              const verticalAlpha = -Math.expm1(-cameraDt / .45);
+              followSettling = delta.lengthSq() > 1e-8;
+              if (followSettling) {
+                delta.multiply(new THREE.Vector3(horizontalAlpha, horizontalAlpha, verticalAlpha));
+              }
+              camera.position.add(delta);
+              controls.target.add(delta);
+            }
           }
-          previousRoot = root;
 
           // Trail points
           if (optionsRef.current.showTrail && data.time - lastTrailTime > 0.08) {
@@ -406,14 +419,14 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
         jointAxes.visible = false;
         tipMarker.visible = false;
         if (lastModelRef.current) {
-          clearTrail(); lastTrailTime = -Infinity; previousRoot = null;
+          clearTrail(); lastTrailTime = -Infinity;
           lastModelRef.current = null;
         }
       }
 
       const changed = controls.update();
       renderer.render(scene, camera);
-      return changed;
+      return changed || followSettling;
     };
 
     const scheduler = createRenderScheduler(render);
@@ -686,7 +699,7 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
               ? 'bg-blue-600/90 border-blue-500 text-white'
               : 'bg-slate-900/80 border-slate-700 text-slate-300 hover:bg-slate-800'
           }`}
-          title="镜头自动跟随机器人"
+          title="平滑跟随机器人整体质心，抑制上下抖动"
         >
           <Camera className="w-3.5 h-3.5" />
           {followRobot ? '跟随锁定' : '自由视角'}

@@ -130,11 +130,13 @@ export class PolicyReplay {
   private filterStep = -1;
   private filteredLinear: Float32Array | null = null;
   private filteredAngular: Float32Array | null = null;
+  private jointSpeedLimit: number;
   public readonly controlDt: number;
   private readonly physicsDt: number;
 
   constructor(private engine: MujocoEngine, public profile: ReplayProfile, private policy: PolicyNetwork, private dynamics?: ReplayDynamics) {
     this.commands = [...(profile.commands ?? [0, 0, 0])];
+    this.jointSpeedLimit = profile.jointSpeedLimit ?? JOINT_SPEED_LIMIT;
     this.controlDt = profile.controlDt ?? CONTROL_DT;
     this.physicsDt = profile.physicsDt ?? PHYSICS_DT;
     const ratio = this.controlDt / this.physicsDt;
@@ -176,6 +178,7 @@ export class PolicyReplay {
   }
 
   public observe(): Float32Array {
+    const observationProfile = { ...this.profile, jointSpeedLimit: this.jointSpeedLimit };
     if (this.dynamics) {
       const state = this.dynamics.state();
       if ((this.profile.observation === 'velocity' || this.profile.observation === 'imu') && this.filterStep !== this.controlSteps) {
@@ -191,12 +194,12 @@ export class PolicyReplay {
         }
         this.filterStep = this.controlSteps;
       }
-      return buildObservation(this.profile, state, this.previousActions, { commands: this.commands, time: this.controlSteps * this.controlDt,
+      return buildObservation(observationProfile, state, this.previousActions, { commands: this.commands, time: this.controlSteps * this.controlDt,
         filteredLinear: this.filteredLinear ?? undefined, filteredAngular: this.filteredAngular ?? undefined });
     }
     const data = this.engine.getData();
     const sensor = (key: string, n: number) => Array.from(data.sensordata.slice(this.sensorAddresses[key], this.sensorAddresses[key] + n)) as number[];
-    return buildObservation(this.profile, { quaternion: sensor('rl_base_quat', 4), angularVelocity: sensor('rl_base_angvel', 3),
+    return buildObservation(observationProfile, { quaternion: sensor('rl_base_quat', 4), angularVelocity: sensor('rl_base_angvel', 3),
       positions: this.joints.map(j => data.qpos[j.qpos]), velocities: this.joints.map(j => data.qvel[j.dof]) }, this.previousActions);
   }
 
@@ -205,9 +208,18 @@ export class PolicyReplay {
     this.commands = [...commands];
   }
 
+  /** Runtime policy parameter used by both the observation and action integrator. */
+  public setJointSpeedLimit(value: number): void {
+    if (!Number.isFinite(value) || value < .1 || value > 5) throw new Error('关节速度参数必须在 0.1–5 之间');
+    this.jointSpeedLimit = value;
+  }
+
+  public getJointSpeedLimit(): number { return this.jointSpeedLimit; }
+
   public step(): void {
     this.lastObservation = this.observe();
-    const { actions, targets } = integrateActions(inferPolicy(this.policy, policyFeatures(this.profile, this.lastObservation)), this.delta, this.profile.defaultAngles, this.profile);
+    const runtimeProfile = { ...this.profile, jointSpeedLimit: this.jointSpeedLimit };
+    const { actions, targets } = integrateActions(inferPolicy(this.policy, policyFeatures(this.profile, this.lastObservation)), this.delta, this.profile.defaultAngles, runtimeProfile);
     const data = this.engine.getData();
     for (let i = 0; i < this.joints.length; i++) data.ctrl[this.joints[i].actuator] = targets[i];
     this.previousActions = actions; this.lastActions = actions;

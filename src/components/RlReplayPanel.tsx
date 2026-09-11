@@ -4,7 +4,7 @@ import { MujocoEngine } from '../mujoco/MujocoEngine';
 import { ZbotConfiguration } from '../types/zbot';
 import { SimulationViewport } from './SimulationViewport';
 import { loadCheckpoint } from '../rl/checkpoint';
-import { REPLAY_PROFILES } from '../rl/profiles';
+import { JOINT_SPEED_LIMIT, REPLAY_PROFILES } from '../rl/profiles';
 import { PolicyReplay } from '../rl/replay';
 import { PhysxSimulation, type PhysxModel } from '../rl/physx';
 import { loadPhysx } from '../rl/physxRuntime';
@@ -56,6 +56,7 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
   const [error, setError] = useState('');
   const [speed, setSpeed] = useState(1);
   const [commands, setCommands] = useState<[number, number, number]>([0, 0, 0]);
+  const [jointSpeedLimit, setJointSpeedLimit] = useState(JOINT_SPEED_LIMIT);
   const [metrics, setMetrics] = useState(() => engine.getMetrics());
   const [steps, setSteps] = useState(0);
   const [actionPeak, setActionPeak] = useState(0);
@@ -105,7 +106,6 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
           let count = 0;
           while (accumulated >= runner.current.controlDt && count++ < 6) {
             runner.current.step(); accumulated -= runner.current.controlDt;
-            if (runner.current.controlSteps * runner.current.controlDt >= 20 - 1e-8) { runningRef.current = false; setRunning(false); accumulated = 0; break; }
           }
           if (count > 0) update();
         } catch (err) { runningRef.current = false; setRunning(false); setError((err as Error).message); }
@@ -132,7 +132,9 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
     physics.current?.dispose(); physics.current = null;
     const loaded = loadTrainingBundle(engine, value);
     setImportedBundle(loaded.bundle); setSource('bundle'); setBackend('mujoco');
-    runner.current = loaded.replay; setLoadedName(loaded.bundle.name); setError(''); update();
+    runner.current = loaded.replay;
+    setJointSpeedLimit(loaded.replay.getJointSpeedLimit());
+    setLoadedName(loaded.bundle.name); setError(''); update();
   };
   useEffect(() => {
     if (!ready || !initialBundle) return;
@@ -189,6 +191,7 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
       engine.loadModelFromXml(xml);
       if (physicalModel) physics.current = new PhysxSimulation(nativeRuntime, physicalModel, engine);
       runner.current = new PolicyReplay(engine, profile, policy, physics.current ?? undefined);
+      runner.current.setJointSpeedLimit(jointSpeedLimit);
       if (profile.commands) runner.current.setCommands(commands);
       setLoadedName(name); update();
     } catch (err) {
@@ -199,22 +202,29 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
   const play = () => {
     if (!runner.current) return;
     if (runningRef.current) { pause(); return; }
-    if (runner.current.controlSteps * runner.current.controlDt >= 20 - 1e-8) runner.current.reset();
     runningRef.current = true; setRunning(true);
   };
-  const singleStep = () => { pause(); try { if (runner.current && runner.current.controlSteps * runner.current.controlDt < 20 - 1e-8) runner.current.step(); update(); } catch (err) { setError((err as Error).message); } };
+  const singleStep = () => { pause(); try { runner.current?.step(); update(); } catch (err) { setError((err as Error).message); } };
   const changeProfile = (id: string) => {
     if (id === importedProfile?.id) return;
     clearSelection();
     setImportedBundle(null); setSource('example'); setFile(null);
     const selected = REPLAY_PROFILES.find(p => p.id === id)!;
     setProfileId(id); setCommands([...(selected.commands ?? [0, 0, 0])]);
+    setJointSpeedLimit(selected.jointSpeedLimit ?? JOINT_SPEED_LIMIT);
     if (selected.mujocoCompatible === false) setBackend('physx');
   };
   const changeCommand = (index: number, value: number) => {
     const next = [...commands] as [number, number, number]; next[index] = value;
     setCommands(next);
     if (runner.current) runner.current.setCommands(next);
+  };
+  const hasJointSpeedObservation = profile.jointNames.length === 6
+    && profile.observation !== 'velocity' && profile.observation !== 'imu';
+  const changeJointSpeedLimit = (value: number) => {
+    if (!Number.isFinite(value) || value < .1 || value > 5) return;
+    setJointSpeedLimit(value);
+    runner.current?.setJointSpeedLimit(value);
   };
 
   return <div className="fixed inset-0 z-40 bg-slate-950 flex flex-col" role="dialog" aria-modal="true" aria-label="强化学习回放">
@@ -239,9 +249,16 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
           </label>)}
           <button onClick={() => { setCommands([0, 0, 0]); runner.current?.setCommands([0, 0, 0]); }} className="px-2 py-1 rounded bg-slate-800">速度归零</button>
         </fieldset>}
+        {hasJointSpeedObservation && <label className="block rounded border border-sky-900 bg-sky-950/20 p-3 text-xs">
+          策略关节速度参数
+          <span className="ml-2 font-mono text-sky-300">{jointSpeedLimit.toFixed(2)}</span>
+          <span className="block mt-1 text-slate-400">写入策略观测，并用于动作积分；训练默认值为 2。</span>
+          <input aria-label="策略关节速度参数" type="number" min="0.1" max="5" step="0.1" value={jointSpeedLimit}
+            onChange={e => changeJointSpeedLimit(e.target.valueAsNumber)} className="mt-2 w-full rounded border border-slate-700 bg-slate-900 p-2" />
+        </label>}
         <div className="grid grid-cols-3 gap-2">
           <button disabled={!loadedName || loading || !!error} onClick={play} className="flex items-center justify-center gap-1 rounded bg-emerald-700 px-2 py-2 text-xs disabled:opacity-40">{running ? <Pause size={14} /> : <Play size={14} />}{running ? '暂停' : 'Play'}</button>
-          <button disabled={!loadedName || loading || !!error || running || metrics.time >= 20 - 1e-8} onClick={singleStep} className="flex items-center justify-center gap-1 rounded bg-slate-800 p-2 text-xs disabled:opacity-40"><SkipForward size={14} />单步</button>
+          <button disabled={!loadedName || loading || !!error || running} onClick={singleStep} className="flex items-center justify-center gap-1 rounded bg-slate-800 p-2 text-xs disabled:opacity-40"><SkipForward size={14} />单步</button>
           <button disabled={!loadedName || loading} onClick={reset} className="flex items-center justify-center gap-1 rounded bg-slate-800 p-2 text-xs disabled:opacity-40"><RotateCcw size={14} />重置</button>
         </div>
         <label className="block text-xs">播放速度<select aria-label="播放速度" value={speed} onChange={e => setSpeed(Number(e.target.value))} className="ml-3 bg-slate-900 border border-slate-700 rounded p-1">{[.25, .5, 1, 2].map(n => <option key={n} value={n}>{n}×</option>)}</select></label>
@@ -249,14 +266,14 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
         <div className="border-t border-slate-800 pt-4 text-xs text-slate-400 space-y-2 leading-5">
           {profile.origin === 'mjlab' ? <p>此结果来自 mjlab，按结果包保存的 MuJoCo 模型、物理步长和积分速度回放。短训练仅证明流程可运行，运动质量仍需评估。</p> : <><p>已收录训练目录的 {REPLAY_PROFILES.length} 组权重，按所选任务加载机器人及观测／动作定义；策略控制 30 Hz。</p>
           {backend === 'physx' ? <p>PhysX 使用原训练的 TGS 求解器、60 Hz 步长和隐式电机驱动。各权重按自身任务回放，实验权重保留原生表现；具体轨迹仍可能不同。</p> : <p className="text-amber-300">MuJoCo 使用 600 Hz 子步，仅用于迁移对照。接触与驱动响应尚不等价，原策略可能跌倒；默认回放推荐使用 PhysX。</p>}</>}
-          <p>每次运行 20 秒后暂停，不复现训练环境的跌倒自动重置。</p>
+          <p>策略会持续推理，直到手动暂停、重置、切换任务或关闭回放；不复现训练环境的跌倒自动重置。</p>
           {profile.note && <p className="text-amber-200">{profile.note}</p>}
           {profile.commands && <p>速度命令可在播放时调整。回放使用固定 1.2 Hz 步频和初始相位，以便重复比较。</p>}
         </div>
       </section>
       <section className="flex-1 min-w-0 flex flex-col min-h-[540px]">
         <div className="px-4 py-3 text-xs text-slate-400 flex flex-wrap gap-4 border-b border-slate-800" role="status">
-          <span className="text-sky-300">{loading ? '加载中' : running ? '策略运行中' : loadedName ? metrics.time >= 20 - 1e-8 ? '20 秒回放结束' : '策略已就绪 · 已暂停' : '等待加载策略'}</span>
+          <span className="text-sky-300">{loading ? '加载中' : running ? '策略持续运行中' : loadedName ? '策略已就绪 · 已暂停' : '等待加载策略'}</span>
           <span>时间 {metrics.time.toFixed(2)} s</span><span>控制步 {steps}</span><span>动作峰值 {actionPeak.toFixed(3)}</span>
         </div>
         <div className="flex-1 min-h-[440px] relative"><SimulationViewport engine={engine} config={displayConfig} simMetrics={metrics} physicsLabel={`${backend === 'physx' ? 'PhysX' : 'MuJoCo'} WASM 动力学仿真器`} onApplyImpulse={backend === 'mujoco' ? (x, y, z) => engine.applyImpulse(x, y, z) : undefined} /></div>
