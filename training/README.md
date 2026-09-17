@@ -10,8 +10,8 @@ the worker after this snapshot has been copied.
 
 Use an existing Python environment with `mjlab==1.3.0` and
 `rsl-rl-lib==5.2.0`, or install `requirements.txt` into a dedicated environment.
-The verified environment uses MuJoCo/MuJoCo-Warp 3.8.1, Warp 1.12.1 and Torch
-2.9.1. CPU training is supported; CUDA training additionally needs a compatible
+The verified environment uses MuJoCo/MuJoCo-Warp 3.8.1, Warp 1.12.1, Torch
+2.9.1 and SciPy 1.15.3. CPU training is supported; CUDA training additionally needs a compatible
 GPU and driver. `requirements.txt` pins those tested versions. Select the matching
 Torch 2.9.1 wheel for the machine: the verified GPU environment uses `2.9.1+cu128`,
 while a CPU-only environment can use the CPU wheel. No global environment is
