@@ -1,0 +1,14 @@
+[Unit]
+Description=ZBotWorkBench local reinforcement-learning service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/yhzhu/LoongEnv_GitLocal/ZBotWorkBench
+ExecStart=/usr/bin/npm run training
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=default.target
