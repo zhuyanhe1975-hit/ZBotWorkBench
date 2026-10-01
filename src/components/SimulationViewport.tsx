@@ -753,12 +753,13 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
       const namedIndex = /^visual_[ab]_(\d+)(?:_\d+)?$/.exec(geomName);
       const isPartA = namedIndex ? geomName.startsWith('visual_a_') : visualGeomIndex % 2 === 0;
       const modIndex = namedIndex ? Number(namedIndex[1]) : Math.floor(visualGeomIndex / 2);
-      visualGeomIndex++;
+      if (geomName !== 'visual_cube' && geomName !== 'visual_tetrahedron') visualGeomIndex++;
       const palette = moduleColors[modIndex % moduleColors.length] || { colorA: '#2563eb', colorB: '#38bdf8' };
 
-      const baseColor = isPartA ? palette.colorA : palette.colorB;
+      const baseColor = (geomName === 'visual_cube' || geomName === 'visual_tetrahedron') ? '#d9dee6' : isPartA ? palette.colorA : palette.colorB;
       const mat = new THREE.MeshStandardMaterial({
         color: baseColor,
+        flatShading: geomName === 'visual_tetrahedron',
         metalness: 0.4,
         roughness: 0.35,
         envMapIntensity: 1.0,
@@ -768,7 +769,9 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
       let meshName = '';
       if (meshId >= 0) for (let k = model.name_meshadr[meshId]; k >= 0 && model.names[k]; k++) meshName += String.fromCharCode(model.names[k]);
       const compiledMesh = meshId >= 0 && meshName !== 'ma' && meshName !== 'mb';
-      const geometry = compiledMesh ? compiledMeshGeometry(model, meshId) : model.geom_type[g] === 5
+      const geometry = model.geom_type[g] === 6
+        ? new THREE.BoxGeometry(2 * model.geom_size[g*3], 2 * model.geom_size[g*3+1], 2 * model.geom_size[g*3+2])
+        : compiledMesh ? compiledMeshGeometry(model, meshId) : model.geom_type[g] === 5
         ? new THREE.CylinderGeometry(model.geom_size[g*3], model.geom_size[g*3], 2*model.geom_size[g*3+1], 32).rotateX(Math.PI/2)
         : isPartA ? geomA.clone() : geomB.clone();
       // Compiler centers and aligns source meshes, composing that offset into geom_xpose.

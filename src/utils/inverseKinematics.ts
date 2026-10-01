@@ -20,7 +20,7 @@ export function getEndEffectorPose(config: ZbotConfiguration, q?: number[]): End
 
 /** All validated serial geometries can use IK with a fixed base. */
 export function supportsEndEffectorControl(config: ZbotConfiguration): boolean {
-  return !validateConfiguration(config).length &&
+  return !config.rootConnector && !validateConfiguration(config).length &&
     (config.baseMode ?? (config.category === 'arm' ? 'fixed' : 'free')) === 'fixed';
 }
 

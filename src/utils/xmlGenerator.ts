@@ -1,6 +1,8 @@
 import { ZbotConfiguration, ZbotModule } from '../types/zbot';
 import { Euler, Quaternion, Vector3 } from 'three';
 import { mechanicalGeoms } from './mechanicalGeometry';
+import { TETRAHEDRON_VERTICES, TETRAHEDRON_FACES } from './tetrahedronGeometry';
+import { moduleMount } from './moduleMount';
 import { validateConfiguration } from './configuration';
 
 export interface XmlGeneratorOptions {
@@ -42,7 +44,7 @@ export function generateMujocoXML(
   const errors = validateConfiguration(config);
   if (errors.length) throw new Error(errors.join('；'));
   const mechanical = config.geometryMode === 'mechanical';
-  const envelope = config.geometryMode === 'envelope' || mechanical;
+  const envelope = config.geometryMode === 'envelope' || mechanical || config.modules.length === 0;
   const kp = options.kp ?? 80;
   const kv = options.kv ?? 8;
   const friction = options.friction ?? 1.2;
@@ -78,6 +80,7 @@ export function generateMujocoXML(
   lines.push(`  </default>`);
   lines.push(``);
   lines.push(`  <asset>`);
+  if (config.rootConnector?.type === 'tetrahedron') lines.push(`    <mesh name="tetrahedron" vertex="${TETRAHEDRON_VERTICES.flat().join(' ')}" face="${TETRAHEDRON_FACES.flat().join(' ')}"/>`);
   if (!envelope) lines.push(`    <mesh name="ma" file="ma.obj"/>`);
   if (!envelope) lines.push(`    <mesh name="mb" file="mb.obj"/>`);
   lines.push(`    <texture name="plane_tex" type="2d" builtin="checker" rgb1=".22 .26 .32" rgb2=".14 .17 .22" width="512" height="512" mark="cross" markrgb=".7 .7 .7"/>`);
@@ -89,20 +92,19 @@ export function generateMujocoXML(
   lines.push(`    <geom name="floor" type="plane" size="20 20 0.1" material="plane_mat" condim="3" friction="${friction} 0.05 0.001" contype="1" conaffinity="1"/>`);
 
   const modules = config.modules;
-  if (!modules || modules.length === 0) {
+  if ((!modules || modules.length === 0) && !config.rootConnector) {
     lines.push(`  </worldbody>`);
     lines.push(`</mujoco>`);
     return lines.join('\n');
   }
 
   // Map children
-  const childrenMap = new Map<string, ZbotModule[]>();
+  const childrenMap = new Map<string | null, ZbotModule[]>();
   for (const mod of modules) {
-    if (mod.parentId) {
-      if (!childrenMap.has(mod.parentId)) {
-        childrenMap.set(mod.parentId, []);
-      }
-      childrenMap.get(mod.parentId)!.push(mod);
+    const parent = mod.parentId;
+    if (parent !== null || config.rootConnector) {
+      if (!childrenMap.has(parent)) childrenMap.set(parent, []);
+      childrenMap.get(parent)!.push(mod);
     }
   }
 
@@ -116,8 +118,8 @@ export function generateMujocoXML(
   const jointNames: string[] = [];
 
   // Recursive tree builder matching authentic Zbot MJCF structure
-  function buildModuleChildren(parentMod: ZbotModule, indent: string) {
-    const children = childrenMap.get(parentMod.id) || [];
+  function buildModuleChildren(parentId: string | null, indent: string) {
+    const children = childrenMap.get(parentId) || [];
     for (const child of children) {
       const childIdx = modules.findIndex((m) => m.id === child.id);
       const childJointName = `joint_${childIdx}`;
@@ -126,20 +128,22 @@ export function generateMujocoXML(
       const childAxis = child.jointAxis || [0, -1, 1];
       const childAxisStr = `${childAxis[0]} ${childAxis[1]} ${childAxis[2]}`;
       const childRange = child.jointRange || [-180, 180];
-      const childEuler = child.customEuler || [0, 0, child.dockAngle || 0];
-      const childEulerStr = `${childEuler[0]} ${childEuler[1]} ${childEuler[2]}`;
-      const childAPos = envelope ? new Vector3(0,0,.0265).applyEuler(new Euler(...childEuler.map(v=>v*Math.PI/180) as [number,number,number], 'XYZ')).add(new Vector3(0,0,.106)).toArray().join(' ') : '0 0 0.106';
+      const mount = moduleMount(config, child);
+      const mountPos = new Vector3().setFromMatrixPosition(mount).toArray().join(' ');
+      const mountQuat = new Quaternion().setFromRotationMatrix(mount);
+      const orientation = `quat="${mountQuat.w} ${mountQuat.x} ${mountQuat.y} ${mountQuat.z}"`;
+      const childAPos = new Vector3(0, 0, envelope ? .0265 : 0).applyMatrix4(mount).toArray().join(' ');
 
-      lines.push(`${indent}<!-- Module ${childIdx}: Part A fixed to parent docking port at z=0.106 with euler="${childEulerStr}" -->`);
+      lines.push(`${indent}<!-- Module ${childIdx}: Part A fixed to parent docking port -->`);
       if (mechanical) {
-        lines.push(`${indent}<body pos="0 0 0.106" euler="${childEulerStr}">`, ...mechanicalGeoms(childAxis, 'a', childIdx).map(g => indent + g), `${indent}</body>`);
+        lines.push(`${indent}<body pos="${mountPos}" ${orientation}>`, ...mechanicalGeoms(childAxis, 'a', childIdx).map(g => indent + g), `${indent}</body>`);
       } else {
-      lines.push(`${indent}<geom name="visual_a_${childIdx}" class="visual_a" pos="${childAPos}" euler="${childEulerStr}"/>`);
-      lines.push(`${indent}<geom class="coliision_a" pos="${childAPos}" euler="${childEulerStr}"/>`);
+      lines.push(`${indent}<geom name="visual_a_${childIdx}" class="visual_a" pos="${childAPos}" ${orientation}/>`);
+      lines.push(`${indent}<geom class="coliision_a" pos="${childAPos}" ${orientation}/>`);
 
       }
       lines.push(`${indent}<!-- Module ${childIdx}: Body & Joint ${childJointName} -->`);
-      lines.push(`${indent}<body name="body_${childIdx}" pos="0 0 0.106" euler="${childEulerStr}">`);
+      lines.push(`${indent}<body name="body_${childIdx}" pos="${mountPos}" ${orientation}>`);
       lines.push(`${indent}  <joint name="${childJointName}" type="hinge" pos="0 0 0.053" axis="${childAxisStr}" range="${childRange[0]} ${childRange[1]}"/>`);
       if (mechanical) lines.push(...mechanicalGeoms(childAxis, 'b', childIdx).map(g => indent + g));
       else {
@@ -149,12 +153,21 @@ export function generateMujocoXML(
       }
       if (!childrenMap.has(child.id)) lines.push(`${indent}  <site name="tip_${childIdx}" pos="0 0 0.106" size="0.008" rgba="0.2 0.9 0.7 1"/>`);
       // Recurse for deeper children
-      buildModuleChildren(child, indent + '  ');
+      buildModuleChildren(child.id, indent + '  ');
 
       lines.push(`${indent}</body>`);
     }
   }
 
+  if (config.rootConnector) {
+    lines.push(`    <body name="base" pos="${posStr}" euler="${eulerStr}">`);
+    if (!isFixedBase) lines.push('      <freejoint/>');
+    const rootShape = config.rootConnector.type === 'tetrahedron' ? 'type="mesh" mesh="tetrahedron"' : 'type="box" size="0.05 0.05 0.05"';
+    lines.push(`      <geom name="visual_${config.rootConnector.type}" ${rootShape} group="1" contype="0" conaffinity="0" mass="0" rgba="0.85 0.87 0.9 1"/>`);
+    lines.push(`      <geom name="collision_${config.rootConnector.type}" ${rootShape} group="4" mass="1" contype="1" conaffinity="${options.selfCollision ? 1 : 0}" friction="${friction} 0.05 0.001"/>`);
+    buildModuleChildren(null, '      ');
+    lines.push('    </body>');
+  } else {
   // Base Body containing Part A of root module
   const rootModIdx = modules.findIndex((m) => m.id === rootModule.id);
   const rootJointName = `joint_${rootModIdx}`;
@@ -185,10 +198,11 @@ export function generateMujocoXML(
 
   }
   if (!childrenMap.has(rootModule.id)) lines.push(`        <site name="tip_${rootModIdx}" pos="0 0 0.106" size="0.008"/>`);
-  buildModuleChildren(rootModule, '        ');
+  buildModuleChildren(rootModule.id, '        ');
 
   lines.push(`      </body>`);
   lines.push(`    </body>`);
+  }
   lines.push(`  </worldbody>`);
   lines.push(``);
 

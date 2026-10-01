@@ -236,7 +236,15 @@ export class MujocoEngine {
       for (let g = 0; g < this.model.ngeom; g++) {
         if (this.model.geom_bodyid[g] === 0 || !this.model.geom_contype[g]) continue;
         const mesh = this.model.geom_dataid[g];
-        if (mesh < 0) continue;
+        if (mesh < 0) {
+          const type = this.model.geom_type[g];
+          const z = this.data.geom_xpos[g * 3 + 2];
+          const row = Array.from(this.data.geom_xmat.slice(g * 9 + 6, g * 9 + 9)) as number[];
+          const size = Array.from(this.model.geom_size.slice(g * 3, g * 3 + 3)) as number[];
+          if (type === 6) lowest = Math.min(lowest, z - row.reduce((sum, v, i) => sum + Math.abs(v) * size[i], 0));
+          else if (type === 5) lowest = Math.min(lowest, z - size[0] * Math.hypot(row[0], row[1]) - size[1] * Math.abs(row[2]));
+          continue;
+        }
         const start = this.model.mesh_vertadr[mesh], count = this.model.mesh_vertnum[mesh];
         for (let v = start; v < start + count; v++) {
           const z = this.data.geom_xpos[g * 3 + 2] + this.data.geom_xmat[g * 9 + 6] * this.model.mesh_vert[v * 3]

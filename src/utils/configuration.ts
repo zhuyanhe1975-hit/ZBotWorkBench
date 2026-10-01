@@ -1,4 +1,7 @@
-import { ZbotConfiguration, ZbotModule } from '../types/zbot';
+import { ConnectorFace, RootConnectorType, ZbotConfiguration, ZbotModule } from '../types/zbot';
+
+import { connectorFaces } from './moduleMount';
+import { TETRAHEDRON_EDGE } from './tetrahedronGeometry';
 
 const finite = (v: unknown, min: number, max: number): v is number => typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max;
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -17,15 +20,30 @@ export function validateConfiguration(config: unknown): string[] {
   if (config.geometryMode !== undefined && (typeof config.geometryMode !== 'string' || !['cad', 'envelope', 'mechanical'].includes(config.geometryMode))) errors.push('未知几何模型');
   if (!vector(config.rootPos, 3, -100, 100)) errors.push('基座位置必须是 ±100 米内的三个有限数');
   if (!vector(config.rootEuler, 3, -360, 360)) errors.push('基座角度必须是 ±360° 内的三个有限数');
-  if (!Array.isArray(config.modules) || config.modules.length < 1 || config.modules.length > 24) return [...errors, '仅支持 1–24 个模块的串联链'];
+  const connector = config.rootConnector !== undefined;
+  if (connector && (!object(config.rootConnector) || !['cube', 'tetrahedron'].includes(String(config.rootConnector.type)) || config.rootConnector.size !== (config.rootConnector.type === 'tetrahedron' ? TETRAHEDRON_EDGE : 0.1))) errors.push('连接件须为边长 100 mm 的立方体或边长 180 mm 的正四面体');
+  if (!Array.isArray(config.modules) || config.modules.length < (connector ? 0 : 1) || config.modules.length > 24) return [...errors, '最多支持 24 个模块，单链至少需要 1 个模块'];
+  const faces = new Set<string>();
+  const parents = new Set<string>();
   const ids = new Set<string>();
   config.modules.forEach((m: unknown, i: number) => {
     if (!object(m)) { errors.push(`模块 ${i + 1} 必须为对象`); return; }
     if (!label(m.id) || !/^[A-Za-z0-9_-]+$/.test(String(m.id)) || ids.has(String(m.id))) errors.push(`模块 ${i + 1} ID 非法或重复`);
-    if (typeof m.id === 'string') ids.add(m.id);
+
     if (!label(m.name)) errors.push(`模块 ${i + 1} 名称无效`);
     const preceding = (config.modules as unknown[])[i - 1];
-    if (m.parentId !== (i === 0 ? null : object(preceding) ? preceding.id : undefined)) errors.push(`模块 ${i + 1} 必须连接前一模块（不支持分支、循环或乱序）`);
+    if (connector) {
+      if (m.parentId === null) {
+        if (typeof m.mountFace !== 'string' || !connectorFaces(object(config.rootConnector) ? config.rootConnector.type as RootConnectorType : undefined).includes(m.mountFace as ConnectorFace) || faces.has(m.mountFace)) errors.push(`模块 ${i + 1} 必须连接未占用的连接件表面`);
+        else faces.add(m.mountFace);
+      } else if (typeof m.parentId !== 'string' || !ids.has(m.parentId) || parents.has(m.parentId)) errors.push(`模块 ${i + 1} 必须连接前面的模块空闲输出端（不支持循环）`);
+      if (typeof m.parentId === 'string') parents.add(m.parentId);
+      if (m.parentId !== null && m.mountFace !== undefined) errors.push(`模块 ${i + 1} 仅在连接根结构件时指定表面`);
+    } else {
+      if (m.parentId !== (i === 0 ? null : object(preceding) ? preceding.id : undefined)) errors.push(`模块 ${i + 1} 必须连接前一模块（不支持分支、循环或乱序）`);
+      if (m.mountFace !== undefined) errors.push('只有连接件根构型可指定连接面');
+    }
+    if (typeof m.id === 'string') ids.add(m.id);
     if (!finite(m.dockAngle, -360, 360)) errors.push(`模块 ${i + 1} σ 必须在 ±360° 内`);
     if (!vector(m.jointAxis, 3, -100, 100) || Math.hypot(...m.jointAxis as number[]) < 1e-8) errors.push(`模块 ${i + 1} 关节轴必须为非零有限向量`);
     if (!vector(m.jointRange, 2, -180, 180) || (m.jointRange as number[])[0] >= (m.jointRange as number[])[1]) errors.push(`模块 ${i + 1} 关节范围必须递增且在 ±180° 内`);
@@ -49,6 +67,7 @@ export function validateConfiguration(config: unknown): string[] {
 export function parseConfiguration(text: string): ZbotConfiguration {
   if (text.length > 200_000) throw new Error('构型文件不得超过 200 KB');
   const value: unknown = JSON.parse(text);
+  if (object(value) && object(value.rootConnector) && value.rootConnector.type === 'tetrahedron' && value.rootConnector.size === .1) value.rootConnector = { ...value.rootConnector, size: TETRAHEDRON_EDGE };
   const errors = validateConfiguration(value);
   if (errors.length) throw new Error(errors.join('；'));
   const config = value as ZbotConfiguration;
@@ -78,6 +97,7 @@ export function createConfiguration(): ZbotConfiguration {
 
 /** Insert into the serial chain using IDs that also work on LAN HTTP pages. */
 export function insertModule(config: ZbotConfiguration, after: number, copy = false): ZbotConfiguration {
+  if (config.rootConnector) return appendConnectorModule(config, config.modules[after]?.id, undefined, copy);
   if (config.modules.length >= 24) throw new Error('最多支持 24 个模块');
   if (!Number.isInteger(after) || after < 0 || after >= config.modules.length) throw new Error('请选择要连接的模块');
   let suffix = config.modules.length;
@@ -91,4 +111,63 @@ export function insertModule(config: ZbotConfiguration, after: number, copy = fa
   const modules = [...config.modules];
   modules.splice(after + 1, 0, module);
   return withSerialModules(config, modules);
+}
+
+/** Reindex manual targets by stable module identity without changing branch connections. */
+export function withTreeModules(config: ZbotConfiguration, modules: ZbotModule[]): ZbotConfiguration {
+  const targets = new Map(config.modules.map((m, i) => [m.id, config.defaultGait.manualAngles[`joint_${i}`] ?? m.initialAngle ?? 0]));
+  return { ...config, modules, defaultGait: { ...config.defaultGait, manualAngles: Object.fromEntries(modules.map((m, i) => [`joint_${i}`, targets.get(m.id) ?? m.initialAngle ?? 0])) } };
+}
+
+export function createCubeConfiguration(): ZbotConfiguration {
+  return { ...createConfiguration(), name: '立方体根构型', rootConnector: { type: 'cube', size: 0.1 }, modules: [], rootPos: [0, 0, .35], defaultGait: { ...createConfiguration().defaultGait, manualAngles: {} } };
+}
+
+export function appendConnectorModule(config: ZbotConfiguration, parentId?: string, face?: ConnectorFace, copy = false): ZbotConfiguration {
+  if (!config.rootConnector) throw new Error('需要连接件根构型');
+  if (config.modules.length >= 24) throw new Error('最多支持 24 个模块');
+  const parent = config.modules.find(m => m.id === parentId);
+  if (parentId && !parent) throw new Error('请选择有效父模块');
+  if (parent && config.modules.some(m => m.parentId === parent.id)) throw new Error('此模块输出端已连接，请选择分支末端');
+  if (!parent && (!face || !connectorFaces(config.rootConnector.type).includes(face) || config.modules.some(m => m.parentId === null && m.mountFace === face))) throw new Error('请选择未占用的连接件表面');
+  let suffix = config.modules.length;
+  while (config.modules.some(m => m.id === `mod_${suffix}`)) suffix++;
+  const module: ZbotModule = { ...(copy && parent ? parent : createConfiguration().modules[0]), id: `mod_${suffix}`, name: `模块 ${suffix + 1}`, parentId: parent?.id ?? null, mountFace: parent ? undefined : face, dockAngle: 0 };
+  if (parent) delete module.mountFace;
+  return withTreeModules(config, [...config.modules, module]);
+}
+
+export function removeConnectorBranch(config: ZbotConfiguration, id: string): ZbotConfiguration {
+  const removed = new Set([id]);
+  for (const m of config.modules) if (m.parentId && removed.has(m.parentId)) removed.add(m.id);
+  return withTreeModules(config, config.modules.filter(m => !removed.has(m.id)));
+}
+
+export function createCubeQuadruped(): ZbotConfiguration {
+  let config = createCubeConfiguration();
+  config.name = '立方体四足 · 8 模块'; config.category = 'walker'; config.baseMode = 'free';
+  config.description = '100 mm立方体中心连接件，四个侧面各连接两模块腿。候选静态四足结构，运动能力需实验验证。';
+  config.rootPos = [0, 0, .12];
+  for (const face of ['+x', '-x', '+y', '-y'] as const) {
+    config = appendCubeModule(config, undefined, face);
+    const parent = config.modules[config.modules.length - 1];
+    parent.colorA = '#646b73'; parent.colorB = '#757d86';
+    // The OBJ mating-plane normal is [0,-1,1]. Preserve that physical hinge;
+    // docking twists align the bent leg radially, and the knee output points down.
+    parent.name = `${face} 髋模块`; parent.dockAngle = 16.324949936895234; parent.initialAngle = -45;
+    config = appendCubeModule(config, parent.id);
+    const child = config.modules[config.modules.length - 1];
+    child.colorA = '#646b73'; child.colorB = '#757d86';
+    child.name = `${face} 足模块`; child.dockAngle = 50.46219115757686; child.initialAngle = -87.5922517865766;
+  }
+  config.defaultGait.manualAngles = Object.fromEntries(config.modules.map((m, i) => [`joint_${i}`, m.initialAngle ?? 0]));
+  return config;
+}
+
+/** Preserve the cube helper API for existing callers. */
+export const appendCubeModule = appendConnectorModule;
+export const removeCubeBranch = removeConnectorBranch;
+
+export function createTetrahedronConfiguration(): ZbotConfiguration {
+  return { ...createCubeConfiguration(), name: '正四面体根构型', rootConnector: { type: 'tetrahedron', size: TETRAHEDRON_EDGE } };
 }

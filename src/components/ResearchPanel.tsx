@@ -33,9 +33,11 @@ export function ResearchPanel({ config, gait, metrics, friction, kp, selfCollisi
   const [records, setRecords] = useState<Experiment[]>([]);
   const [tab, setTab] = useState<'analysis' | 'records'>('analysis');
   const kinematics = useMemo(() => forwardKinematics(config), [config]);
-  const axisAngles = kinematics.joints.slice(1).map((joint, i) => {
-    const previous = kinematics.joints[i].axis;
-    return Math.acos(Math.max(-1, Math.min(1, joint.axis.reduce((sum, x, j) => sum + x * previous[j], 0)))) * 180 / Math.PI;
+  const axisAngles = config.modules.flatMap((module, i) => {
+    if (module.parentId === null) return [];
+    const joint = kinematics.joints[i];
+    const previous = kinematics.joints[config.modules.findIndex(m => m.id === module.parentId)].axis;
+    return [Math.acos(Math.max(-1, Math.min(1, joint.axis.reduce((sum, x, j) => sum + x * previous[j], 0)))) * 180 / Math.PI];
   });
   const record = () => {
     const item: Experiment = structuredClone({ id: crypto.randomUUID(), recordedAt: new Date().toISOString(), config, gait, physics: { friction, kp, selfCollision }, metrics, xml });
@@ -59,7 +61,7 @@ export function ResearchPanel({ config, gait, metrics, friction, kp, selfCollisi
       </div>
       <div className="rounded-lg border border-slate-700 p-3 space-y-2">
         <h3 className="font-medium text-blue-300">末端与接触</h3>
-        <p className="text-slate-400">设计末端 / m <span className="block text-slate-200 font-mono">{formatVector(kinematics.tip)}</span></p>
+        <p className="text-slate-400">{config.rootConnector ? '最后一条分支末端 / m' : '设计末端 / m'} <span className="block text-slate-200 font-mono">{formatVector(kinematics.tip)}</span></p>
         <p className="text-slate-400">当前仿真末端 / m <span className="block text-emerald-300 font-mono">{formatVector(metrics.endEffectorPos)}</span></p>
         <p className="text-slate-400">当前接触点 <span className="float-right text-slate-200">{metrics.contactCount ?? '—'}</span></p>
         <p className="text-slate-400">当前最大 |τ| <span className="float-right text-slate-200">{Math.max(0, ...Object.values(metrics.jointTorques).map(Math.abs)).toFixed(3)} N·m</span></p>
