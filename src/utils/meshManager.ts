@@ -64,7 +64,7 @@ export class MeshManager {
   public async init(): Promise<{ maText: string; mbText: string }> {
     await Promise.all((['ma', 'mb'] as const).map(async part => {
       try {
-        const response = await fetch(`/assets/${part}.obj`);
+        const response = await fetch(`${import.meta.env?.BASE_URL ?? '/'}assets/${part}.obj`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         this.replace(part, await response.text(), true);
       } catch {

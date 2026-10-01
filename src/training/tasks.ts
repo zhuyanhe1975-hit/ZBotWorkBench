@@ -10,8 +10,8 @@ const rewards: Pick<TrainingTaskCard, 'stage1Rewards' | 'stage2Rewards' | 'termi
 const card = (initialStage: 1 | 2, jointSpeedRange: [number, number], stage2Rewards = rewards.stage2Rewards): TrainingTaskCard => ({ physicsHz: 240, controlHz: 30, contactHistory: 8, initialStage, jointSpeedRange, ...rewards, stage2Rewards });
 const quasistaticRewards = { base_vel_forward: 0, slow_speed_tracking: 2, feet_downward: -2, feet_forward: -1, similar_to_default: -1.5, base_heading_x: -2, base_heading_x_sum: -1, support_stability: 4, base_tilt: -2, step_length: .5, small_step: -2, step_cadence: -1, airtime_balance: -3, airtime_sum: -.5, double_flight: -10, action_rate: -2, body_shake: -5, joint_velocity: -.5, joint_acceleration: -.2, torques: -.2, energy_consumption: -.05, feet_slide: -20, base_pos_y_err: -2 };
 export const TRAINING_TASKS: TrainingTask[] = [
-  { id: WALKING_FINETUNE_TASK, label: '6DOF 已有行走策略微调（推荐）', description: '从参考工程 model_801 初始化：240 Hz 物理 / 30 Hz 控制、第二阶段奖励。奖励权重可在训练前或运行中修改。', referenceBundleUrl: '/rl/training/walking-reference.json', taskCard: card(2, [.8, 1.2]) },
-  { id: QUASISTATIC_TASK, label: '6DOF 准静态慢走（实验）', description: '从model_801初始化，目标速度0.04 m/s，强调支撑稳定、低抖动、低能耗、低滑移与慢步频。', referenceBundleUrl: '/rl/training/walking-reference.json', taskCard: card(2, [.2, .4], quasistaticRewards) },
+  { id: WALKING_FINETUNE_TASK, label: '6DOF 已有行走策略微调（推荐）', description: '从参考工程 model_801 初始化：240 Hz 物理 / 30 Hz 控制、第二阶段奖励。奖励权重可在训练前或运行中修改。', referenceBundleUrl: `${import.meta.env?.BASE_URL ?? '/'}rl/training/walking-reference.json`, taskCard: card(2, [.8, 1.2]) },
+  { id: QUASISTATIC_TASK, label: '6DOF 准静态慢走（实验）', description: '从model_801初始化，目标速度0.04 m/s，强调支撑稳定、低抖动、低能耗、低滑移与慢步频。', referenceBundleUrl: `${import.meta.env?.BASE_URL ?? '/'}rl/training/walking-reference.json`, taskCard: card(2, [.2, .4], quasistaticRewards) },
   { id: 'Mjlab-Zbot-6dof-Bipedal-Walking', label: '6DOF 从零训练（240 Hz）', description: '从随机权重开始：240 Hz物理 / 30 Hz控制、8步接触历史和两阶段课程。GPU建议4096环境、至少300次更新。', taskCard: card(1, [.2, 2]) },
 ];
 

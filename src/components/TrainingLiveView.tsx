@@ -7,7 +7,7 @@ import type { TrainingLiveFrame, TrainingReplayBundle } from '../training/types'
 import type { TrainingClient } from '../training/client';
 import { compiledMeshGeometry } from '../utils/compiledMeshGeometry';
 
-const MODEL_URL = '/rl/training/walking-reference.json';
+const MODEL_URL = `${import.meta.env?.BASE_URL ?? '/'}rl/training/walking-reference.json`;
 const MAX_ENVIRONMENTS = 9;
 export const trainingDisplayPosition = (pose: [number, number, number], origin: [number, number, number], tileX: number, tileY: number): [number, number, number] =>
   [pose[0] - origin[0] + tileX, pose[1] - origin[1] + tileY, pose[2] - origin[2]];
