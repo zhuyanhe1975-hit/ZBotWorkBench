@@ -1,17 +1,20 @@
 import assert from 'node:assert/strict';
 import { before, test } from 'node:test';
 import loadMujoco from '@mujoco/mujoco';
-import { createCubeConfiguration, createTetrahedronConfiguration, parseConfiguration } from '../src/utils/configuration';
+import { createConfiguration, createCubeConfiguration, createCubeQuadruped, createTetrahedronConfiguration, parseConfiguration } from '../src/utils/configuration';
+import { PRESET_CONFIGURATIONS } from '../src/data/presets';
+import { SEVEN_DOF_PRESETS } from '../src/data/sevenDofPresets';
+import { generateZbotOBJ } from '../src/utils/zbotMeshGenerator';
 import { generateMujocoXML } from '../src/utils/xmlGenerator';
 import { generateUrdf } from '../src/utils/urdfGenerator';
 import { saveConfigurationToLibrary, readConfigurationLibrary } from '../src/utils/configurationLibrary';
 
 let mj: Awaited<ReturnType<typeof loadMujoco>>;
-before(async () => { mj = await loadMujoco(); });
+before(async () => { mj = await loadMujoco(); mj.FS.writeFile('ma.obj', generateZbotOBJ('ma')); mj.FS.writeFile('mb.obj', generateZbotOBJ('mb')); });
 
-for (const create of [createCubeConfiguration, createTetrahedronConfiguration]) {
+for (const create of [createConfiguration, createCubeConfiguration, createTetrahedronConfiguration, createCubeQuadruped, ...PRESET_CONFIGURATIONS.map(config => () => structuredClone(config)), ...SEVEN_DOF_PRESETS.map(config => () => structuredClone(config))]) {
   for (const mode of ['fixed', 'free'] as const) {
-    test(`${create().rootConnector!.type} root ${mode} preserves mode and obeys root dynamics`, () => {
+    test(`${create().name} root ${mode} preserves mode and obeys root dynamics`, () => {
       const config = create(); config.baseMode = mode; config.rootPos = [0, 0, 1];
       assert.equal(parseConfiguration(JSON.stringify(config)).baseMode, mode);
       const values = new Map<string, string>();
@@ -23,8 +26,8 @@ for (const create of [createCubeConfiguration, createTetrahedronConfiguration]) 
       assert.match(generateUrdf(config), new RegExp(`<joint name="base_joint" type="${mode === 'free' ? 'floating' : 'fixed'}">`));
       const model = mj.MjModel.from_xml_string(xml), data = new mj.MjData(model);
       try {
-        assert.equal(model.nq, mode === 'free' ? 7 : 0);
-        assert.equal(model.nv, mode === 'free' ? 6 : 0);
+        assert.equal(model.nq, config.modules.length + (mode === 'free' ? 7 : 0));
+        assert.equal(model.nv, config.modules.length + (mode === 'free' ? 6 : 0));
         mj.mj_forward(model, data);
         const height = data.xpos[5];
         for (let i = 0; i < 50; i++) mj.mj_step(model, data);

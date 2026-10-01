@@ -198,7 +198,7 @@ export default function App() {
       </header>
       <div className="px-4 py-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] border-b border-slate-800 text-slate-400">
         <span className={errorMessage ? 'text-rose-400' : isMujocoReady ? 'text-emerald-400' : 'text-amber-400'}>{errorMessage ? '模型异常 · 已暂停' : !isMujocoReady ? '物理引擎加载中…' : isRunning ? '动力学运行中' : simMetrics.time === 0 ? '构型预览 · 可编辑初始姿态' : '动力学已暂停'}</span>
-        <span>{config.baseMode === 'fixed' ? '固定基座' : '自由基座'} · {config.modules.length} 模块{config.rootConnector ? ` · ${config.rootConnector.type === 'tetrahedron' ? '正四面体根 · 面内切圆 Ø103.92 mm' : '100 mm立方体根'}` : ''}</span>
+        <span>{config.baseMode === 'fixed' ? '固定基座' : '浮动基座'} · {config.modules.length} 模块{config.rootConnector ? ` · ${config.rootConnector.type === 'tetrahedron' ? '正四面体根 · 面内切圆 Ø103.92 mm' : '100 mm立方体根'}` : ''}</span>
         <span>{config.geometryMode === 'mechanical' ? '关节壳体 + 叉架 + 法兰 · 标称1 kg/模块' : config.geometryMode === 'envelope' ? '圆柱包络 · Ø100 × 106 mm · 标称1 kg/模块' : meshManager.hasCadMeshA() && meshManager.hasCadMeshB() ? 'OBJ 网格已载入' : '使用程序网格 / 等待资产'}</span>
         <label className="flex gap-1.5 items-center"><input type="checkbox" checked={selfCollision} disabled={!!customXmlOverride} onChange={e => setSelfCollision(e.target.checked)} />启用非相邻自碰撞</label>
         <span>{customXmlOverride ? '自定义 XML 模式：物理参数以 XML 为准' : config.geometryMode === 'mechanical' ? '关节圆柱轴线 = 转轴 · 概念连接结构' : config.geometryMode === 'envelope' ? '等包络轴系抽象 · 非实物承载模型' : '候选构型 · 接触采用凸包近似 · 功能需实验验证'}</span>
@@ -232,7 +232,7 @@ export default function App() {
       {isHelpOpen && <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4"><div role="dialog" aria-label="使用指南" className="bg-slate-900 border border-slate-700 rounded-xl max-w-2xl p-6 text-sm space-y-4 max-h-[85vh] overflow-y-auto">
         <div className="flex justify-between"><h2 className="font-semibold">从构型设计到可复现实验</h2><button aria-label="关闭指南" onClick={() => setIsHelpOpen(false)}><X size={18}/></button></div>
         <p>1. 选择六类预设，查看五个连接角 σ 与六个初始关节角 q。σ 绕输出端局部 z 轴；q 绕模块内部 [0, −1, 1] 斜轴。0° / 90° / 180° / 270° 接口旋转对应标准相邻轴夹角 0° / 60° / 90° / 60°。</p>
-        <p>2. 在右侧“构型创建”点击“新建构型（1 模块）”，逐个增加或删除模块，调整连接方位 σ 和关节角度 q。编辑区顶部可命名、保存、读取或导出导入 JSON，并保存 MJCF / URDF 模型压缩包。初始状态暂停，可直接预览 q；编辑连接角、初始姿态或基座模式会重建模型。固定基座用于关节与末端研究，自由基座用于地面接触实验。自由基座初始化会整体抬升以避免初始穿地。</p>
+        <p>2. 在右侧“构型创建”点击“新建构型（1 模块）”，逐个增加或删除模块，调整连接方位 σ 和关节角度 q。编辑区顶部可命名、保存、读取或导出导入 JSON，并保存 MJCF / URDF 模型压缩包。初始状态暂停，可直接预览 q；编辑连接角、初始姿态或基座模式会重建模型。固定基座用于关节与末端研究，浮动基座用于地面接触实验。浮动基座初始化会整体抬升以避免初始穿地。</p>
         <p>3. 启动动力学后，手动角度成为伺服目标。波形控制围绕 q 偏置振荡，不保证移动成功。重置恢复保存的初始构型。摩擦、增益和碰撞开关变化将暂停并重置实验。</p>
         <p>4. 在“分析与实验记录”中记录状态、导出 CSV 和含构型、控制参数、XML 的 JSON。比较时保持模块数、基座、控制、时间与物理参数一致。</p>
         <p className="text-amber-200">腿型为单腿链；未建立闭环或多足机器人。候选功能不等于已验证性能。OBJ碰撞使用凸包近似；质量、摩擦、驱动力矩尚未按实物标定，不能直接作承载结论。接口方位能否锁定也需实物确认。</p>

@@ -103,7 +103,7 @@ export const ConfigurationEditor: React.FC<ConfigurationEditorProps> = ({ curren
         <button className={button} onClick={() => { const next = createCubeQuadruped(); apply(next, false); setSelectedId(next.modules[0]?.id); setTab('modules'); setName(next.name); }}>立方体四足示例</button>
         <button className={`${button} col-span-2`} onClick={() => { const next = createTetrahedronConfiguration(); apply(next, false); setSelectedId(undefined); setTab('modules'); setName(next.name); }}>新建正四面体根（面内切圆 Ø103.92 mm）</button>
       </div>
-      {config.rootConnector && <label className="block text-xs text-slate-400">根节点模式<select aria-label="根节点模式" className={`${field} mt-1`} value={config.baseMode ?? (config.category === 'arm' ? 'fixed' : 'free')} onChange={e => apply({ ...config, baseMode: e.target.value as 'fixed' | 'free' })}><option value="fixed">fixed · 固定根节点</option><option value="free">floating · 六自由度浮动根节点</option></select><span className="block mt-1 text-[11px] text-slate-500">浮动根可在重力、接触和关节驱动下平移与旋转，用于移动机器人仿真。</span></label>}
+      <label className="block text-xs text-slate-400">基座模式<select aria-label="基座模式" className={`${field} mt-1`} value={config.baseMode ?? (config.category === 'arm' ? 'fixed' : 'free')} onChange={e => apply({ ...config, baseMode: e.target.value as 'fixed' | 'free' })}><option value="fixed">固定基座 · 姿态与操作实验</option><option value="free">浮动基座 · 六自由度接触与运动实验</option></select><span className="block mt-1 text-[11px] text-slate-500">所有构型均可切换；切换会暂停并重建模型。浮动基座可在重力、接触和关节驱动下平移与旋转。</span></label>
       <p className="text-[11px] text-slate-400 leading-relaxed">从模块或连接件根开始，增加或删除模块，调整连接方位与关节角度，实时查看三维构型。</p>
       <label className="block text-xs text-slate-400">构型名称<input className={`${field} mt-1`} maxLength={200} value={name} onChange={e => setName(e.target.value)} onBlur={() => run(namedConfiguration)}/></label>
       <div className="grid grid-cols-2 gap-2">
@@ -127,7 +127,7 @@ export const ConfigurationEditor: React.FC<ConfigurationEditorProps> = ({ curren
         {savedConfigurations.map(saved => <div key={saved.id} className="flex gap-2 items-center rounded-lg border border-slate-700 bg-slate-800/60 p-2">
           <button className="flex-1 min-w-0 text-left p-1" onClick={() => { apply(saved, false); setName(saved.name); setSelectedId(saved.modules[0]?.id); setTab('modules'); setMessage(`已读取“${saved.name}”`); }}>
             <span className="block text-xs font-semibold break-words">{saved.name}</span>
-            <span className="block text-[11px] text-slate-400 mt-1">{saved.modules.length} 模块 · {saved.rootConnector ? connectorName(saved.rootConnector.type) : '单链'} · {saved.baseMode === 'fixed' ? '固定基座' : '自由基座'}</span>
+            <span className="block text-[11px] text-slate-400 mt-1">{saved.modules.length} 模块 · {saved.rootConnector ? connectorName(saved.rootConnector.type) : '单链'} · {saved.baseMode === 'fixed' ? '固定基座' : '浮动基座'}</span>
           </button>
           <button className={button} aria-label={`删除已保存构型 ${saved.name}`} onClick={() => run(() => { setSavedConfigurations(deleteConfigurationFromLibrary(localStorage, saved.id)); setMessage(`已从列表删除“${saved.name}”`); })}><Trash2 className="w-3 h-3"/></button>
         </div>)}
@@ -144,7 +144,7 @@ export const ConfigurationEditor: React.FC<ConfigurationEditorProps> = ({ curren
         <p className="text-xs text-slate-400">统一7模块、106 mm安装节距；ZBot原始网格，蛇形/YuMi风格使用关节壳体与连接件。ZBot全部±180°；YuMi纵轴±180°、横轴±90°；蛇形全部±90°。三个预设从相同末端目标开始。</p>
         {SEVEN_DOF_PRESETS.map(p => <button key={p.id} onClick={() => apply(p, false)} className={`w-full text-left p-3 rounded-lg border transition-colors ${config.id === p.id ? 'border-cyan-500 bg-cyan-950/50' : 'border-slate-700 bg-slate-800/60 hover:border-cyan-600'}`}>
           <span className="block text-xs font-semibold">{p.name}</span><span className="block text-[11px] text-slate-400 mt-1 leading-relaxed">{p.hypothesis}</span>
-          <span className="block text-[11px] text-cyan-300 mt-2">7 DOF · 固定基座 · {p.geometryMode === 'cad' ? 'ZBot OBJ' : '关节与连接结构'}</span>
+          <span className="block text-[11px] text-cyan-300 mt-2">7 DOF · 默认固定基座（可切换） · {p.geometryMode === 'cad' ? 'ZBot OBJ' : '关节与连接结构'}</span>
         </button>)}
         <p className="text-[11px] text-amber-200/80 leading-relaxed">前四类按轴系排列，后两类按任务组织，分类可交叉。所有功能仍为待验证假设。</p>
       </>}
@@ -188,7 +188,6 @@ export const ConfigurationEditor: React.FC<ConfigurationEditorProps> = ({ curren
           <p className="text-[11px] text-slate-400">切换会暂停并重建；超出新范围的初始角会截断。概念结构每模块标称1 kg，ZBot沿用网格密度估算；均非实测质量。YuMi风格不代表ABB原机。</p>
         </div>}
 
-        {!config.rootConnector && <label className="block text-xs text-slate-400">基座模式<select className={`${field} mt-1`} value={config.baseMode ?? 'free'} onChange={e => apply({ ...config, baseMode: e.target.value as 'fixed' | 'free' })}><option value="fixed">固定基座 · 姿态与操作实验</option><option value="free">自由基座 · 接触与运动实验</option></select></label>}
         {(['rootPos', 'rootEuler'] as const).map(key => <div key={key} className="text-xs text-slate-400">{key === 'rootPos' ? '基座位置 X / Y / Z（m）' : '基座姿态 Roll / Pitch / Yaw（°）'}<div className="grid grid-cols-3 gap-2 mt-1">{config[key].map((v, i) => <input key={i} className={field} aria-label={`${key} ${'XYZ'[i]}`} type="number" step={key === 'rootPos' ? .01 : 5} value={v} onChange={e => { const vec = [...config[key]] as [number, number, number]; vec[i] = e.target.valueAsNumber; apply({ ...config, [key]: vec }); }}/>)}</div></div>)}
         <label className="block text-xs text-slate-400">研究假设<textarea rows={3} className={`${field} mt-1`} value={config.hypothesis ?? config.description} onChange={e => apply({ ...config, hypothesis: e.target.value })}/></label>
         <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-800">
