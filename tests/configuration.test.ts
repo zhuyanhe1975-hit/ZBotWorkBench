@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PRESET_CONFIGURATIONS } from '../src/data/presets';
-import { parseConfiguration, validateConfiguration, withSerialModules } from '../src/utils/configuration';
+import { createConfiguration, insertModule, parseConfiguration, validateConfiguration, withSerialModules } from '../src/utils/configuration';
 import { forwardKinematics } from '../src/utils/kinematics';
 
 const clone = () => structuredClone(PRESET_CONFIGURATIONS[1]);
@@ -61,4 +61,66 @@ test('legacy JSON imports retain manual pose and base semantics', () => {
   const restored = parseConfiguration(JSON.stringify(legacy));
   assert.equal(restored.baseMode, 'free');
   assert.deepEqual(restored.modules.map(m => m.initialAngle), [0,35,35,35,35,0]);
+});
+
+
+test('new designs start with an independent single ZBot module', () => {
+  const config = createConfiguration();
+  assert.deepEqual(validateConfiguration(config), []);
+  assert.equal(config.modules.length, 1);
+  assert.equal(config.modules[0].parentId, null);
+  assert.equal(config.modules[0].initialAngle, 0);
+  assert.equal(config.baseMode, 'fixed');
+  assert.equal(config.defaultGait.type, 'manual');
+  config.modules[0].jointAxis[1] = 5;
+  config.defaultGait.manualAngles.joint_0 = 40;
+  const other = createConfiguration();
+  assert.deepEqual(other.modules[0].jointAxis, [0, -1, 1]);
+  assert.equal(other.defaultGait.manualAngles.joint_0, 0);
+});
+
+test('creation, insertion, orientation, pose and deletion survive a saved JSON round trip', () => {
+  let config = insertModule(createConfiguration(), 0);
+  config.modules[1].dockAngle = 270;
+  config.modules[1].initialAngle = -45;
+  config.defaultGait.manualAngles.joint_1 = -45;
+  const editedId = config.modules[1].id;
+  config = insertModule(config, 0);
+  assert.equal(config.modules[2].id, editedId);
+  assert.equal(config.modules[2].parentId, config.modules[1].id);
+  assert.equal(config.defaultGait.manualAngles.joint_2, -45);
+  config = withSerialModules(config, [config.modules[0], config.modules[2]]);
+  config.name = '我的两模块构型';
+  const restored = parseConfiguration(JSON.stringify(config));
+  assert.deepEqual(restored, config);
+  assert.equal(restored.modules[1].dockAngle, 270);
+  assert.equal(restored.modules[1].initialAngle, -45);
+  assert.equal(restored.defaultGait.manualAngles.joint_1, -45);
+  assert.deepEqual(validateConfiguration(restored), []);
+  const single = withSerialModules(restored, [restored.modules[1]]);
+  assert.equal(single.modules[0].parentId, null);
+  assert.equal(single.modules[0].dockAngle, 0);
+  assert.equal(single.defaultGait.manualAngles.joint_0, -45);
+});
+
+test('module insertion supports LAN HTTP without UUIDs, avoids ID collisions and enforces the limit', () => {
+  let config = createConfiguration();
+  config.modules[0].id = 'mod_1';
+  const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
+  try {
+    Object.defineProperty(globalThis, 'crypto', { value: undefined, configurable: true });
+    config = insertModule(config, 0, true);
+  } finally {
+    if (cryptoDescriptor) Object.defineProperty(globalThis, 'crypto', cryptoDescriptor);
+    else Reflect.deleteProperty(globalThis, 'crypto');
+  }
+  assert.equal(config.modules[0].id, 'mod_1');
+  assert.notEqual(config.modules[0].id, config.modules[1].id);
+  assert.equal(config.modules[1].name, '模块 1 副本');
+  assert.throws(() => insertModule(config, -1), /请选择/);
+  assert.throws(() => insertModule(config, 0.5), /请选择/);
+  while (config.modules.length < 24) config = insertModule(config, config.modules.length - 1);
+  assert.deepEqual(validateConfiguration(config), []);
+  assert.equal(new Set(config.modules.map(module => module.id)).size, 24);
+  assert.throws(() => insertModule(config, 23), /24/);
 });

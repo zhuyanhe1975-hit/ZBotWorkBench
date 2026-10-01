@@ -63,3 +63,32 @@ export function withSerialModules(config: ZbotConfiguration, modules: ZbotModule
     modules: modules.map((m, i) => ({ ...m, parentId: i ? modules[i - 1].id : null, dockAngle: i ? m.dockAngle : 0 })),
     defaultGait: { ...config.defaultGait, manualAngles: Object.fromEntries(modules.map((m, i) => [`joint_${i}`, targets.get(m.id) ?? m.initialAngle ?? 0])) } };
 }
+
+/** Start a fixed-base ZBot design with one module and zero joint angle. */
+export function createConfiguration(): ZbotConfiguration {
+  return {
+    id: 'custom', name: '新建 ZBot 构型', category: 'custom', description: '',
+    baseMode: 'fixed', geometryMode: 'cad', rootPos: [0, 0, 0.35], rootEuler: [0, 0, 0],
+    modules: [{ id: 'mod_0', name: '模块 1', parentId: null, dockAngle: 0, initialAngle: 0,
+      jointAxis: [0, -1, 1], jointRange: [-180, 180], colorA: '#3687b4', colorB: '#57ab98' }],
+    defaultGait: { type: 'manual', frequency: 0.7, amplitude: 35, phaseLag: 60,
+      steering: 0, speed: 1, manualAngles: { joint_0: 0 } },
+  };
+}
+
+/** Insert into the serial chain using IDs that also work on LAN HTTP pages. */
+export function insertModule(config: ZbotConfiguration, after: number, copy = false): ZbotConfiguration {
+  if (config.modules.length >= 24) throw new Error('最多支持 24 个模块');
+  if (!Number.isInteger(after) || after < 0 || after >= config.modules.length) throw new Error('请选择要连接的模块');
+  let suffix = config.modules.length;
+  while (config.modules.some(module => module.id === `mod_${suffix}`)) suffix++;
+  const source = config.modules[after];
+  const module: ZbotModule = {
+    ...(copy ? source : createConfiguration().modules[0]),
+    id: `mod_${suffix}`, name: copy ? `${source.name} 副本` : `模块 ${suffix + 1}`,
+    dockAngle: copy ? source.dockAngle : 180,
+  };
+  const modules = [...config.modules];
+  modules.splice(after + 1, 0, module);
+  return withSerialModules(config, modules);
+}

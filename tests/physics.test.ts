@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { before, test } from 'node:test';
 import loadMujoco from '@mujoco/mujoco';
 import { MujocoEngine } from '../src/mujoco/MujocoEngine';
+import { createConfiguration, insertModule, parseConfiguration } from '../src/utils/configuration';
 import { generateMujocoXML } from '../src/utils/xmlGenerator';
 import { generateZbotOBJ } from '../src/utils/zbotMeshGenerator';
 import type { ZbotConfiguration } from '../src/types/zbot';
@@ -236,4 +237,32 @@ test('actual CAD meshes: six candidates, both bases, collision settings and boun
     mujoco.FS.writeFile('ma.obj', generateZbotOBJ('ma'));
     mujoco.FS.writeFile('mb.obj', generateZbotOBJ('mb'));
   }
+});
+
+
+test('single-module creation and saved two-module poses load in real MuJoCo', () => {
+  const single = createConfiguration();
+  single.modules[0].initialAngle = 35;
+  single.defaultGait.manualAngles.joint_0 = 35;
+  const initial = engine(single);
+  try {
+    assert.equal(initial.getModel().nu, 1);
+    close(initial.getMetrics().jointAngles.joint_0, 35);
+    assert.ok(initial.getMetrics().endEffectorPos!.every(Number.isFinite));
+  } finally { initial.destroy(); }
+  const pair = insertModule(single, 0);
+  pair.modules[1].dockAngle = 90;
+  pair.modules[1].initialAngle = -60;
+  pair.defaultGait.manualAngles.joint_1 = -60;
+  const saved = parseConfiguration(JSON.stringify(pair));
+  const loaded = engine(saved);
+  try {
+    assert.equal(loaded.getModel().nu, 2);
+    close(loaded.getMetrics().jointAngles.joint_0, 35);
+    close(loaded.getMetrics().jointAngles.joint_1, -60);
+    loaded.step(10, saved.defaultGait);
+    assert.ok(loaded.getMetrics().endEffectorPos!.every(Number.isFinite));
+    loaded.resetSimulation(saved);
+    close(loaded.getMetrics().jointAngles.joint_1, -60);
+  } finally { loaded.destroy(); }
 });
