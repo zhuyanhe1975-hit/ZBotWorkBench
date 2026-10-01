@@ -1,0 +1,13 @@
+{
+  "sourceProject": "/home/yhzhu/myWorks/zbot_evo_isaacgym",
+  "sourceCheckpoint": "pth/ZBotSnakeAndBipedal_cpg.pth",
+  "sourceSha256": "1c0792bf937a2dc576eec708246386f325bb1583a1e42871bd393fbd1cd4e7e4",
+  "exportedCheckpoint": "ZBotSnakeAndBipedal_cpg.pt",
+  "exportedSha256": "edb92095f9efbefb4abf0af5ee3909315c63d9ab4b2b77035f3a196c7558eba4",
+  "network": {
+    "inputSize": 29,
+    "outputSize": 6,
+    "activation": "elu"
+  },
+  "conversion": "scripts/export-legacy-isaacgym.py"
+}

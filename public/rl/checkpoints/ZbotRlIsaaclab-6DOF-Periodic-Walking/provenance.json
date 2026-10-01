@@ -1,0 +1,23 @@
+{
+  "task": "ZbotRlIsaaclab-6DOF-Periodic-Walking",
+  "sourceRun": "zbot_rl_isaaclab/logs/rsl_rl/zbot_6dof_periodic_walking/2026-09-26_13-00-49",
+  "iterationsCompleted": 1500,
+  "checkpointFile": "model_1499.pt",
+  "checkpointSha256": "eaa59b1542a0292929f6174de4dc845365f609d135954ea84cc15652d6651e39",
+  "sourceUsdSha256": "4552508fd31c1045172e82b509e7c752c1665bf103e48e4654ef25871a8c1a71",
+  "network": {
+    "inputSize": 45,
+    "outputSize": 6,
+    "activation": "elu"
+  },
+  "physicsBackend": "isaacsim_physx",
+  "replay": {
+    "physicsDt": 0.005,
+    "controlDt": 0.02,
+    "defaultFrequencyHz": 1.5,
+    "frequencyRangeHz": [
+      0.5,
+      2.0
+    ]
+  }
+}

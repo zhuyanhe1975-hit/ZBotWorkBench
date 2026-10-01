@@ -15,7 +15,8 @@ import { CONTROL_DT, REPLAY_PROFILES, type ReplayProfile } from '../src/rl/profi
 import { PolicyReplay } from '../src/rl/replay';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const steps = 600;
+const currentDurationSeconds = 20;
+const migrationDurationSeconds = 2;
 let output = resolve(root, 'results/sim-to-sim/validation.json');
 let referenceDirectory: string | undefined;
 for (let i = 2; i < process.argv.length; i++) {
@@ -32,6 +33,8 @@ const sourceHashes = Object.fromEntries(['src/rl/checkpoint.ts', 'src/rl/replay.
   .map(path => [path, hash(readFileSync(resolve(root, path)))]));
 
 const mujoco = await loadMujoco();
+mujoco.FS.writeFile('ma.obj', readFileSync(resolve(root, 'public/assets/ma.obj')));
+mujoco.FS.writeFile('mb.obj', readFileSync(resolve(root, 'public/assets/mb.obj')));
 const originalProcess = globalThis.process;
 const hadWindow = Object.hasOwn(globalThis, 'window');
 const originalWindow = (globalThis as any).window;
@@ -50,6 +53,8 @@ try {
 }
 
 const experimentalIds = new Set(['Zbot-Direct-8dof-bipedal-v3', 'Zbot-Direct-6dof-bipedal-velocity-v0', 'Zbot-Direct-8dof-bipedal-velocity-v0']);
+const migratedIds = new Set(REPLAY_PROFILES.filter(profile => profile.origin === 'isaacgym').map(profile => profile.id));
+const numericalOnlyIds = new Set([...experimentalIds, ...migratedIds]);
 const motionRequirements: Record<string, { minHeight?: number; maxHeight?: number; xDirection?: number; minX?: number; minXY?: number; transition?: boolean }> = {
   'Zbot-Direct-8dof-bipedal-v0': { minHeight: .30, xDirection: -1, minX: 5 },
   'Zbot-Direct-8dof-snake-v0': { minHeight: .025, maxHeight: .12, minXY: 2 },
@@ -63,9 +68,11 @@ const motionRequirements: Record<string, { minHeight?: number; maxHeight?: numbe
   'Zbot-Direct-8dof-wheel-v0': { minHeight: .02, maxHeight: .5, minXY: 2 },
   'Zbot-Direct-6dof-bipedal-velocity-imu-v0': { minHeight: .22, minXY: .5 },
   'Zbot-Direct-8dof-bipedal-run-v0': { minHeight: .30, xDirection: -1, minX: 5 },
+  'ZbotRlIsaaclab-6DOF-Periodic-Walking': { minHeight: .22, xDirection: 1, minX: 2 },
+  'IsaacGym-ZBotSingleLeg': { minHeight: .18, minXY: .8 },
 };
 function walkingThreshold(profile: ReplayProfile): number | null {
-  return motionRequirements[profile.id]?.minHeight ?? (experimentalIds.has(profile.id) ? .15 : null);
+  return motionRequirements[profile.id]?.minHeight ?? (numericalOnlyIds.has(profile.id) ? .15 : null);
 }
 
 function summarize(positions: number[][], threshold: number | null) {
@@ -132,10 +139,17 @@ function run(profile: ReplayProfile, engine: 'physx' | 'mujoco') {
   const started = performance.now();
   try {
     (display as any).mujoco = mujoco;
-    display.loadModelFromXml(readFileSync(resolve(root, `public/rl/models/${profile.model}.xml`), 'utf8'));
+    display.loadModelFromXml(readFileSync(resolve(root, `public/rl/models/${profile.displayModel ?? profile.model}.xml`), 'utf8'));
     if (engine === 'physx') {
       const model: PhysxModel = JSON.parse(readFileSync(resolve(root, `public/rl/physx/${profile.model}.json`), 'utf8'));
-      dynamics = new PhysxSimulation(physx, model, display);
+      model.simulation = { ...model.simulation, ...profile.physxSimulation };
+      if (profile.origin === 'isaacgym') model.defaultQ = [...profile.defaultAngles];
+      model.displayJointNames = profile.displayJointNames;
+      model.displayJointSigns = profile.displayJointSigns;
+      model.displayRootQuaternionOffset = profile.displayRootQuaternionOffset;
+      dynamics = new PhysxSimulation(physx, model, display,
+        { physicsDt: profile.physicsDt, controlDt: profile.controlDt,
+          rootPosition: profile.initialRootPosition, rootQuaternion: profile.initialRootQuaternion });
     }
     const bytes = readFileSync(resolve(root, `public/rl/checkpoints/${profile.id}/${profile.checkpoint}`));
     const policy = loadCheckpoint(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
@@ -146,10 +160,12 @@ function run(profile: ReplayProfile, engine: 'physx' | 'mujoco') {
       for (let i = address; i >= 0 && i < model.names.length && model.names[i]; i++) name += String.fromCharCode(model.names[i]);
       return name;
     };
-    const base = Array.from(model.name_bodyadr as Int32Array).findIndex(address => nameAt(address) === 'base');
-    if (base < 0) throw new Error('Missing base body');
+    const base = dynamics ? -1 : Array.from(model.name_bodyadr as Int32Array).findIndex(address => nameAt(address) === 'base');
+    if (!dynamics && base < 0) throw new Error('Missing base body');
     const position = () => dynamics?.getBasePosition() ?? Array.from(display.getData().xpos.slice(3 * base, 3 * base + 3)) as number[];
     positions.push(position());
+    const durationSeconds = profile.origin === 'isaacgym' ? migrationDurationSeconds : currentDurationSeconds;
+    const steps = Math.round(durationSeconds / (profile.controlDt ?? CONTROL_DT));
     for (let i = 0; i < steps; i++) {
       replay.step();
       const point = position();
@@ -172,12 +188,15 @@ function run(profile: ReplayProfile, engine: 'physx' | 'mujoco') {
     display.destroy();
   }
   const metrics = positions.length ? summarize(positions, walkingThreshold(profile)) : null;
-  let accepted = completedSteps === steps && error === null && Number.isFinite(simulationTime)
-    && Math.abs(simulationTime - steps * CONTROL_DT) < 1e-7;
+  const durationSeconds = profile.origin === 'isaacgym' ? migrationDurationSeconds : currentDurationSeconds;
+  const controlDt = profile.controlDt ?? CONTROL_DT;
+  const expectedSteps = Math.round(durationSeconds / controlDt);
+  let accepted = completedSteps === expectedSteps && error === null && Number.isFinite(simulationTime)
+    && Math.abs(simulationTime - expectedSteps * controlDt) < 1e-7;
   const failures: string[] = [];
   if (!accepted) failures.push(error ?? 'Incomplete or invalid simulation');
   const requirement = motionRequirements[profile.id];
-  if (!requirement && !experimentalIds.has(profile.id)) failures.push('Task has no explicit validation classification');
+  if (!requirement && !numericalOnlyIds.has(profile.id)) failures.push('Task has no explicit validation classification');
   if (metrics && requirement) {
     if (requirement.minHeight !== undefined && metrics.minBaseHeight <= requirement.minHeight) failures.push(`Base height must stay above ${requirement.minHeight}m`);
     if (requirement.maxHeight !== undefined && metrics.maxBaseHeight >= requirement.maxHeight) failures.push(`Base height must stay below ${requirement.maxHeight}m`);
@@ -186,8 +205,8 @@ function run(profile: ReplayProfile, engine: 'physx' | 'mujoco') {
     if (requirement.transition && !(metrics.initialBasePosition[2] > .22 && metrics.finalBasePosition[2] > .025 && metrics.finalBasePosition[2] < .12)) failures.push('Transition must start upright and finish with base height between .025m and .12m');
   }
   accepted &&= failures.length === 0;
-  return { engine, completedSteps, simulationTime, elapsedMs: performance.now() - started,
-    acceptanceScope: requirement ? 'motion-validated' : 'experimental-numerical-only',
+  return { engine, completedSteps, controlDt: profile.controlDt ?? CONTROL_DT, simulationTime, elapsedMs: performance.now() - started,
+    acceptanceScope: requirement ? 'motion-validated' : migratedIds.has(profile.id) ? 'migration-numerical-only' : 'experimental-numerical-only',
     motionRequirement: requirement ?? null, nativeWarning: profile.note ?? null,
     accepted, failures, error, mujocoWarnings: warnings, metrics };
 }
@@ -196,27 +215,31 @@ const results = REPLAY_PROFILES.map(profile => {
   const checkpoint = `public/rl/checkpoints/${profile.id}/${profile.checkpoint}`;
   const physxResult = run(profile, 'physx');
   const mujocoResult = profile.mujocoCompatible === false ? { engine: 'mujoco', accepted: false, skipped: true, reason: 'Task requires PhysX velocity/contact state', metrics: null } : run(profile, 'mujoco');
-  console.log(`${profile.label}: PhysX ${physxResult.accepted ? physxResult.acceptanceScope === 'experimental-numerical-only' ? 'COMPLETE (experimental; motion ungraded)' : 'PASS' : 'FAIL'}, MuJoCo ${'skipped' in mujocoResult ? 'N/A' : mujocoResult.accepted ? mujocoResult.acceptanceScope === 'experimental-numerical-only' ? 'COMPLETE (experimental)' : 'PASS' : 'FAIL'}; `
+  const physxLabel = physxResult.accepted ? physxResult.acceptanceScope === 'motion-validated' ? 'PASS'
+    : `COMPLETE (${physxResult.acceptanceScope === 'migration-numerical-only' ? 'migration' : 'experimental'}; motion ungraded)` : 'FAIL';
+  console.log(`${profile.label}: PhysX ${physxLabel}, MuJoCo ${'skipped' in mujocoResult ? 'N/A' : mujocoResult.accepted ? mujocoResult.acceptanceScope === 'experimental-numerical-only' ? 'COMPLETE (experimental)' : 'PASS' : 'FAIL'}; `
     + `PhysX x=${physxResult.metrics?.xProgress.toFixed(3)}, min height=${physxResult.metrics?.minBaseHeight.toFixed(3)}`);
   return { task: profile.id, checkpoint, checkpointSha256: hash(readFileSync(resolve(root, checkpoint))),
     physxModelSha256: hash(readFileSync(resolve(root, `public/rl/physx/${profile.model}.json`))),
-    mujocoModelSha256: hash(readFileSync(resolve(root, `public/rl/models/${profile.model}.xml`))),
+    mujocoModelSha256: hash(readFileSync(resolve(root, `public/rl/models/${profile.displayModel ?? profile.model}.xml`))),
     runs: [physxResult, mujocoResult], optionalNativeReferences: nativeEvidence(profile) };
 });
 const passed = results.every(result => result.runs[0].accepted);
 const artifact = {
-  schemaVersion: 2, generatedAt: new Date().toISOString(), passed,
+  schemaVersion: 3, generatedAt: new Date().toISOString(), passed,
   summary: { totalPolicies: results.length, motionValidated: results.filter(r => r.runs[0].accepted && 'acceptanceScope' in r.runs[0] && r.runs[0].acceptanceScope === 'motion-validated').length,
-    experimental: results.filter(r => experimentalIds.has(r.task)).length },
+    experimental: results.filter(r => experimentalIds.has(r.task)).length,
+    migrated: results.filter(r => migratedIds.has(r.task)).length },
   command: 'node --import tsx scripts/validate-rl-motion.ts [--output FILE] [--reference-dir DIR]',
-  controlSteps: steps, controlDt: CONTROL_DT, durationSeconds: steps * CONTROL_DT,
+  durations: { currentPoliciesSeconds: currentDurationSeconds, migratedPoliciesSeconds: migrationDurationSeconds }, variableControlTiming: true,
   runtimes: { node: process.version, physxPackage: JSON.parse(readFileSync(resolve(root, 'node_modules/physx-js-webidl/package.json'), 'utf8')).version,
     physxSdk: [24, 16, 8].map(shift => (physx.PHYSICS_VERSION >> shift) & 255).join('.'),
     mujocoPackage: JSON.parse(readFileSync(resolve(root, 'node_modules/@mujoco/mujoco/package.json'), 'utf8')).version },
   sourceHashes,
   acceptance: {
-    motion: '12 tasks must pass their explicit per-task height and displacement requirements, recorded with each run. Existing five baselines retain their original motion thresholds.',
+    motion: '14 tasks must pass their explicit per-task height and displacement requirements, including IsaacLab periodic walking and native-aligned SingleLeg. Existing five baselines retain their original motion thresholds.',
     experimental: 'Three source checkpoints (8DOF v3, 6DOF velocity, 8DOF velocity) are graded for finite complete 20-second replay only. Native instability warnings remain visible; this is not a motion success claim. Their .15m height fraction is descriptive only.',
+    migrated: 'Legacy Isaac Gym checkpoints are graded for actor dimensions, exact family-level network inference, and finite 2-second migration replay only until their original importer-level dynamics are captured.',
     comparison: 'MuJoCo results are diagnostic and do not gate exit status. Only PhysX acceptance gates exit status.',
   },
   limitations: ['A deterministic 20-second check is not a guarantee over arbitrary starts, checkpoints, or longer horizons.',

@@ -54,6 +54,38 @@ test('contact impulse sensor reports upward support force and clears history on 
   } finally { f.dispose(); }
 });
 
+test('viewer diagnostics expose PhysX contacts, forces and mass-weighted center without policy contact observations', () => {
+  const f = fixture(false);
+  try {
+    assert.deepEqual(f.sim.getDiagnostics().forceLines, []);
+    f.sim.setDebugVisualization(true);
+    for (let i = 0; i < 90; i++) f.sim.step(f.targets);
+    const diagnostics = f.sim.getDiagnostics();
+    assert.ok(diagnostics.contacts.length > 0, 'settled robot should report viewer contacts');
+    for (const contact of diagnostics.contacts) {
+      assert.ok(contact.position.every(Number.isFinite));
+      assert.ok(contact.force.every(Number.isFinite));
+      assert.ok(Number.isFinite(contact.magnitude) && contact.magnitude >= 0);
+      assert.ok(Math.abs(contact.magnitude - Math.hypot(...contact.force)) < 1e-9);
+    }
+    assert.ok(diagnostics.contacts.some(contact => contact.magnitude > 1));
+    assert.ok(diagnostics.centerOfMass.every(Number.isFinite));
+    assert.ok(diagnostics.centerOfMass[2] > 0);
+    assert.ok(diagnostics.contacts.some(contact => contact.force[2] > 1), 'ground point force should support the robot upward');
+    assert.ok(diagnostics.forceLines.some(line => line.kind === 'normal'), 'native normal impulse lines should be available');
+    assert.ok(diagnostics.forceLines.some(line => line.kind === 'friction'), 'native friction impulse lines should be available');
+    for (const line of diagnostics.forceLines) assert.ok([...line.start, ...line.end].every(Number.isFinite));
+    assert.ok(diagnostics.groundResultant, 'ground impulse lines should produce one foot-contact resultant');
+    assert.ok(Math.abs(diagnostics.groundResultant.start[2]) < .02, 'resultant starts at the ground center of pressure');
+    for (let axis = 0; axis < 3; axis++) {
+      const expected = diagnostics.forceLines.filter(line => Math.abs(line.start[2]) < .02)
+        .reduce((sum, line) => sum + line.end[axis] - line.start[axis], 0);
+      assert.ok(Math.abs(diagnostics.groundResultant.end[axis] - diagnostics.groundResultant.start[axis] - expected) < 1e-8);
+    }
+    assert.deepEqual(f.sim.state().footContactForces, [0, 0]);
+  } finally { f.dispose(); }
+});
+
 test('air timer advances without contact and resets from actual landing impulses', () => {
   const f = fixture(true, 1);
   try {

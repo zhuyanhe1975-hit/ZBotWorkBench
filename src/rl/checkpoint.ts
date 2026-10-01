@@ -1,7 +1,7 @@
 /** Restricted data-only reader for torch.save ZIP state dictionaries. Never executes pickle code. */
 export type Activation = 'elu' | 'relu' | 'tanh';
 export interface PolicyLayer { inputSize: number; outputSize: number; weights: Float32Array; bias: Float32Array }
-export interface PolicyNormalization { mean: Float32Array; std: Float32Array; epsilon: number }
+export interface PolicyNormalization { mean: Float32Array; std: Float32Array; epsilon: number; clip?: number }
 export interface PolicyNetwork { normalization?: PolicyNormalization; layers: PolicyLayer[]; activation: Activation; inputSize: number; outputSize: number }
 const MAX_FILE = 128 * 1024 * 1024;
 const MAX_VALUES = 8_000_000;
@@ -152,7 +152,9 @@ export function loadCheckpoint(buffer: ArrayBuffer, activation: Activation = 'el
   const state = containers.length ? root.get(containers[0]) : root;
   if (!(state instanceof Map)) fail('策略 state_dict 无效');
   if ([...state.keys()].some(k => typeof k === 'string' && /rnn|lstm|gru|memory/i.test(k))) fail('暂不支持循环网络');
-  if ([...root.keys()].some(k => typeof k === 'string' && /norm/i.test(k))) fail('暂不支持外置观测归一化检查点');
+  const normalizationType = root.get('normalization_type');
+  if (normalizationType !== undefined && normalizationType !== 'rl_games') fail('不支持的观测归一化类型');
+  if ([...root.keys()].some(k => typeof k === 'string' && /norm/i.test(k) && k !== 'normalization_type')) fail('暂不支持外置观测归一化检查点');
   if (!modern && [...state.keys()].some(k => typeof k === 'string' && /norm|student/i.test(k))) fail('暂不支持此格式的归一化或学生网络');
   const layerPrefix = modern ? 'mlp' : 'actor';
   const pattern = new RegExp(`^${layerPrefix}\\.\\d+\\.weight$`);
@@ -193,7 +195,9 @@ export function loadCheckpoint(buffer: ArrayBuffer, activation: Activation = 'el
     const bytes = count?.tensor && entries.get(`${prefix}data/${count.storage.storage}`);
     if (!count?.tensor || count.shape.length !== 0 || count.storage.dtype !== 'torch.LongStorage' || !bytes || bytes.length !== count.storage.count * 8 || count.offset >= count.storage.count || new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getBigInt64(count.offset * 8, true) < 0n) fail('归一化样本计数无效');
     // RSL-RL EmpiricalNormalization default: (x - mean) / (std + 1e-2), no clipping.
-    normalization = { mean, std, epsilon: 1e-2 };
+    normalization = normalizationType === 'rl_games'
+      ? { mean, std, epsilon: 0, clip: 5 }
+      : { mean, std, epsilon: 1e-2 };
   }
   return { layers, activation, inputSize, outputSize: layers.at(-1)!.outputSize, ...(normalization ? { normalization } : {}) };
 }
@@ -204,7 +208,11 @@ export function inferPolicy(policy: PolicyNetwork, observations: ArrayLike<numbe
   if (policy.normalization) {
     const { mean, std, epsilon } = policy.normalization;
     // Round the intermediate subtraction/addition exactly as PyTorch Float32 does.
-    input = input.map((value, i) => Math.fround(value - mean[i]) / Math.fround(std[i] + epsilon));
+    input = input.map((value, i) => {
+      const normalized = Math.fround(value - mean[i]) / Math.fround(std[i] + epsilon);
+      return policy.normalization!.clip === undefined ? normalized
+        : Math.max(-policy.normalization!.clip, Math.min(policy.normalization!.clip, normalized));
+    });
     if (!input.every(Number.isFinite)) fail('归一化观测包含非有限数值');
   }
   for (let l = 0; l < policy.layers.length; l++) {

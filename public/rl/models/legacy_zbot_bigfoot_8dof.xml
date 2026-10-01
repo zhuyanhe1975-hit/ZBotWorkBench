@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<mujoco model="zbot">
+    <compiler inertiafromgeom="true" angle="degree" autolimits="true" fusestatic="false" />
+    <default>
+        <geom density="670" />
+        <default class="coliision">
+            <geom contype="1" conaffinity="0" group="4" type="mesh" mesh="mb" />
+            <default class="coliision_a">
+                <geom mesh="ma" />
+            </default>
+
+            <default class="coliision_b">
+                <geom mesh="mb" />
+            </default>
+        </default>
+        <default class="visual">
+            <geom contype="0" conaffinity="0" group="1" type="mesh" mesh="mb" />
+            <default class="visual_a">
+                <geom mesh="ma" />
+            </default>
+
+            <default class="visual_b">
+                <geom mesh="mb" />
+            </default>
+        </default>
+        <joint range="-180 180" limited="true" />
+    </default>
+
+    <asset>
+        <mesh name="ma" file="ma.obj" />
+        <mesh name="mb" file="mb.obj" />
+        <material name="floor" reflectance=".1" />
+    </asset>
+
+
+    <worldbody>
+        <geom type="plane" size="5 5 .01" rgba="1 1 1 1" material="floor" contype="127" conaffinity="127" />
+        <body name="body_0" pos="0 0 0.02" euler="0 0 0">
+            <freejoint />
+            <geom class="visual_a" pos="0 0 0" />
+            <geom type="cylinder" size="0.060 0.02" pos="0.0 0.0 -0.02" density="400" contype="0" conaffinity="0" group="1" />
+
+            <body name="body_1" pos="0 0 0.106">
+                <joint name="joint_0" type="hinge" pos="0 0 -0.053" axis="0 -1 1" />
+                <geom class="visual_b" pos="0 0 -0.106" />
+                <geom class="visual_a" pos="0 0 0.0" euler="0 0 180" />
+                <body name="body_2" pos="0 0 0.106" euler="0 0 180">
+                    <joint name="joint_1" type="hinge" pos="0 0 -0.053" axis="0 -1 1" />
+                    <geom class="visual_b" pos="0 0 -0.106" />
+                    <geom class="visual_a" pos="0 0 0.0" euler="0 0 180" />
+                    <body name="body_3" pos="0 0 0.106" euler="0 0 180">
+                        <joint name="joint_2" type="hinge" pos="0 0 -0.053" axis="0 -1 1" />
+                        <geom class="visual_b" pos="0 0 -0.106" />
+                        <geom class="visual_a" pos="0 0 0.0" euler="0 0 180" />
+                        <body name="body_4" pos="0 0 0.106" euler="0 0 180">
+                            <joint name="joint_3" type="hinge" pos="0 0 -0.053" axis="0 -1 1" />
+                            <geom class="visual_b" pos="0 0 -0.106" />
+                            <geom class="visual_a" pos="0 0 0.0" euler="0 0 180" />
+                            <body name="body_5" pos="0 0 0.106" euler="0 0 180">
+                                <joint name="joint_4" type="hinge" pos="0 0 -0.053" axis="0 -1 1" />
+                                <geom class="visual_b" pos="0 0 -0.106" />
+                                <geom class="visual_a" pos="0 0 0.0" euler="0 0 180" />
+                                <body name="body_6" pos="0 0 0.106" euler="0 0 180">
+                                    <joint name="joint_5" type="hinge" pos="0 0 -0.053" axis="0 -1 1" />
+                                    <geom class="visual_b" pos="0 0 -0.106" />
+                                    <geom class="visual_a" pos="0 0 0.0" euler="0 0 180" />
+                                    <body name="body_7" pos="0 0 0.106" euler="0 0 180">
+                                        <joint name="joint_6" type="hinge" pos="0 0 -0.053" axis="0 -1 1" />
+                                        <geom class="visual_b" pos="0 0 -0.106" />
+                                        <geom class="visual_a" pos="0 0 0.0" euler="0 0 180" />
+                                        <body name="body_8" pos="0 0 0.106" euler="0 0 180">
+                                            <joint name="joint_7" type="hinge" pos="0 0 -0.053" axis="0 -1 1" />
+                                            <geom class="visual_b" pos="0 0 -0.106" />
+                                            <geom type="cylinder" size="0.060 0.02" pos="0.0 0.0 0.02" density="400" contype="0" conaffinity="0" group="1" />
+                                        </body>
+                                    </body>
+                                </body>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+<option timestep="0.0166" gravity="0 0 -9.81" integrator="implicitfast" /><actuator><position name="joint_0" joint="joint_0" kp="10" forcelimited="false" ctrllimited="false" /><position name="joint_1" joint="joint_1" kp="10" forcelimited="false" ctrllimited="false" /><position name="joint_2" joint="joint_2" kp="10" forcelimited="false" ctrllimited="false" /><position name="joint_3" joint="joint_3" kp="10" forcelimited="false" ctrllimited="false" /><position name="joint_4" joint="joint_4" kp="10" forcelimited="false" ctrllimited="false" /><position name="joint_5" joint="joint_5" kp="10" forcelimited="false" ctrllimited="false" /><position name="joint_6" joint="joint_6" kp="10" forcelimited="false" ctrllimited="false" /><position name="joint_7" joint="joint_7" kp="10" forcelimited="false" ctrllimited="false" /></actuator><sensor><framequat name="rl_base_quat" objtype="xbody" objname="body_4" /><frameangvel name="rl_base_angvel" objtype="xbody" objname="body_4" /><framepos name="rl_base_pos" objtype="xbody" objname="body_4" /><framelinvel name="rl_base_linvel" objtype="xbody" objname="body_4" /></sensor><keyframe><key name="initial" qpos="-0.10413286834955215 0.004252854734659195 0.041615262627601624 0.9999383091926575 -4.2684208892751485e-05 0.00891477894037962 -0.006627199240028858 0.5203649997711182 0.28371500968933105 -1.346060037612915 1.237149953842163 -1.2321900129318237 1.3736300468444824 -0.27039799094200134 -0.5447099804878235" ctrl="0.5203649997711182 0.28371500968933105 -1.346060037612915 1.237149953842163 -1.2321900129318237 1.3736300468444824 -0.27039799094200134 -0.5447099804878235" /></keyframe></mujoco>

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { mujocoEngine, MujocoEngine } from '../mujoco/MujocoEngine';
+import type { PhysxDiagnostics, PhysxRenderBody } from '../rl/physx';
 import { ZbotConfiguration } from '../types/zbot';
 import { meshManager } from '../utils/meshManager';
 import { compiledMeshGeometry } from '../utils/compiledMeshGeometry';
@@ -38,6 +39,11 @@ interface SimulationViewportProps {
   armValid?: boolean;
   onArmTargetChange?: (target: EndEffectorTarget) => void;
   onApplyImpulse?: (fx: number, fy: number, fz: number) => void;
+  physicalEntity?: { getRenderBodies(): PhysxRenderBody[]; getDiagnostics(): PhysxDiagnostics } | null;
+  showDisplayEntity?: boolean;
+  showPhysicalEntity?: boolean;
+  enablePhysicsDiagnostics?: boolean;
+  onDiagnosticsChange?: (value: { contacts: boolean; forces: boolean; centerOfMass: boolean }) => void;
 }
 
 export const SimulationViewport: React.FC<SimulationViewportProps> = ({
@@ -48,11 +54,18 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
   config,
   simMetrics,
   onApplyImpulse,
+  physicalEntity = null,
+  showDisplayEntity = true,
+  showPhysicalEntity = false,
+  enablePhysicsDiagnostics = false,
+  onDiagnosticsChange,
   armTarget = null, armMode = 'translate', armValid = true, onArmTargetChange,
 }) => {
   const armControlRef = useRef<ReturnType<typeof createArmTargetControl> | null>(null);
   const armChangeRef = useRef(onArmTargetChange);
   armChangeRef.current = onArmTargetChange;
+  const diagnosticsChangeRef = useRef(onDiagnosticsChange);
+  diagnosticsChangeRef.current = onDiagnosticsChange;
   const wrapperRef = useRef<HTMLDivElement>(null);
   const configRef = useRef(config);
   configRef.current = config;
@@ -65,6 +78,10 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
   const visibilityRef = useRef<() => void>(() => {});
   const activeRef = useRef(active);
   activeRef.current = active;
+  const physicalEntityRef = useRef(physicalEntity);
+  physicalEntityRef.current = physicalEntity;
+  const entityVisibilityRef = useRef({ showDisplayEntity, showPhysicalEntity });
+  entityVisibilityRef.current = { showDisplayEntity, showPhysicalEntity };
   const armTargetRef = useRef(armTarget);
   armTargetRef.current = armTarget;
   const poseDirtyRef = useRef(true);
@@ -73,8 +90,13 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
   const [showGrid, setShowGrid] = useState(true);
   const [showTrail, setShowTrail] = useState(false);
   const [showAxes, setShowAxes] = useState(false);
-  const optionsRef = useRef({ followRobot, showGrid, showTrail, showAxes });
-  optionsRef.current = { followRobot, showGrid, showTrail, showAxes };
+  const [showContactPoints, setShowContactPoints] = useState(false);
+  const [showContactForces, setShowContactForces] = useState(false);
+  const [showCenterOfMass, setShowCenterOfMass] = useState(false);
+  const optionsRef = useRef({ followRobot, showGrid, showTrail, showAxes,
+    showContactPoints, showContactForces, showCenterOfMass, enablePhysicsDiagnostics });
+  optionsRef.current = { followRobot, showGrid, showTrail, showAxes,
+    showContactPoints, showContactForces, showCenterOfMass, enablePhysicsDiagnostics };
   const jointAxesRef = useRef<THREE.Group | null>(null);
   const tipMarkerRef = useRef<THREE.Mesh | null>(null);
   const frameRobotRef = useRef<() => void>(() => {});
@@ -88,8 +110,13 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
   const geomMeshesRef = useRef<Map<number, THREE.Mesh>>(new Map());
   const trailPointsRef = useRef<THREE.Vector3[]>([]);
   const trailLineRef = useRef<THREE.Line | null>(null);
-  const rootMarkerRef = useRef<THREE.Mesh | null>(null);
+  const centerOfMassMarkerRef = useRef<THREE.Mesh | null>(null);
+  const contactPointsGroupRef = useRef<THREE.Group | null>(null);
+  const contactForcesGroupRef = useRef<THREE.Group | null>(null);
   const robotGroupRef = useRef<THREE.Group | null>(null);
+  const physicalGroupRef = useRef<THREE.Group | null>(null);
+  const physicalMeshesRef = useRef<Map<string, THREE.Points[]>>(new Map());
+  const lastPhysicalEntityRef = useRef<typeof physicalEntity>(null);
   const gridHelperRef = useRef<THREE.Object3D | null>(null);
   const axesHelperRef = useRef<THREE.AxesHelper | null>(null);
   const lastModelRef = useRef<any>(null);
@@ -128,7 +155,7 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.shadowMap.autoUpdate = false;
     renderer.shadowMap.needsUpdate = true;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -200,6 +227,11 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
     scene.add(robotGroup);
     robotGroupRef.current = robotGroup;
 
+    const physicalGroup = new THREE.Group();
+    physicalGroup.name = 'physx-collision-entity';
+    scene.add(physicalGroup);
+    physicalGroupRef.current = physicalGroup;
+
     // Axes helper
     const axes = new THREE.AxesHelper(0.2);
     axes.position.set(0, 0, 0.005);
@@ -207,12 +239,26 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
     axesHelperRef.current = axes;
     axes.visible = false;
 
-    // Root body marker (not center of mass)
-    const comGeo = new THREE.SphereGeometry(0.015, 16, 16);
-    const comMat = new THREE.MeshBasicMaterial({ color: '#f59e0b', wireframe: true });
-    const rootMarker = new THREE.Mesh(comGeo, comMat);
-    scene.add(rootMarker);
-    rootMarkerRef.current = rootMarker;
+    const centerOfMassMarker = new THREE.Mesh(
+      new THREE.SphereGeometry(0.014, 16, 16),
+      new THREE.MeshBasicMaterial({ color: '#c084fc', depthTest: false }),
+    );
+    centerOfMassMarker.renderOrder = 12;
+    centerOfMassMarker.visible = false;
+    scene.add(centerOfMassMarker);
+    centerOfMassMarkerRef.current = centerOfMassMarker;
+
+    const contactPointsGroup = new THREE.Group();
+    contactPointsGroup.name = 'mujoco-contact-points';
+    contactPointsGroup.visible = false;
+    scene.add(contactPointsGroup);
+    contactPointsGroupRef.current = contactPointsGroup;
+
+    const contactForcesGroup = new THREE.Group();
+    contactForcesGroup.name = 'mujoco-contact-forces';
+    contactForcesGroup.visible = false;
+    scene.add(contactForcesGroup);
+    contactForcesGroupRef.current = contactForcesGroup;
 
     const jointAxes = new THREE.Group();
     scene.add(jointAxes);
@@ -302,8 +348,7 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
         const data = engine.getData();
 
         if (model && data && robotGroupRef.current) {
-          robotGroupRef.current.visible = true;
-          if (rootMarkerRef.current) rootMarkerRef.current.visible = true;
+          robotGroupRef.current.visible = entityVisibilityRef.current.showDisplayEntity;
           const ngeom = model.ngeom;
           const geomPos = data.geom_xpos;
           const geomMat = data.geom_xmat;
@@ -378,8 +423,62 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
           if (trackGroundShadow(dirLight, floorMesh, rootX, rootY, [grid])) renderer.shadowMap.needsUpdate = true;
           anchorGroundGrid(gridTexture, rootX, rootY);
 
-          if (rootMarkerRef.current) {
-            rootMarkerRef.current.position.set(rootX, rootY, rootZ);
+          const diagnosticsEnabled = optionsRef.current.enablePhysicsDiagnostics;
+          const physicalDiagnostics = physicalEntityRef.current?.getDiagnostics();
+          const showPoints = diagnosticsEnabled && optionsRef.current.showContactPoints;
+          const showForces = diagnosticsEnabled && optionsRef.current.showContactForces;
+          contactPointsGroup.visible = showPoints;
+          contactForcesGroup.visible = showForces;
+          if (showPoints || showForces) {
+            const contacts = (physicalDiagnostics?.contacts ?? engine.getContactDiagnostics())
+              .filter(contact => contact.magnitude > .05)
+              .sort((a, b) => b.magnitude - a.magnitude)
+              .slice(0, 24);
+            const forceLines = physicalDiagnostics?.groundResultant ? [physicalDiagnostics.groundResultant] : [];
+            const forceContacts = physicalDiagnostics ? forceLines.map(line => {
+              const force = line.end.map((value, axis) => value - line.start[axis]) as [number, number, number];
+              return { position: line.start, force, magnitude: Math.hypot(...force), kind: line.kind };
+            }) : contacts;
+            while (contactPointsGroup.children.length < contacts.length) {
+              const marker = new THREE.Mesh(
+                new THREE.SphereGeometry(0.008, 12, 12),
+                new THREE.MeshBasicMaterial({ color: 0xfb7185, depthTest: false }),
+              );
+              marker.renderOrder = 13;
+              contactPointsGroup.add(marker);
+            }
+            while (contactForcesGroup.children.length < forceContacts.length) {
+              const arrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), .05, 0x22d3ee, .018, .01);
+              (arrow.line.material as THREE.Material).depthTest = false;
+              (arrow.cone.material as THREE.Material).depthTest = false;
+              arrow.line.renderOrder = 13;
+              arrow.cone.renderOrder = 13;
+              contactForcesGroup.add(arrow);
+            }
+            contactPointsGroup.children.forEach((marker, index) => {
+              marker.visible = showPoints && index < contacts.length;
+              if (index < contacts.length) marker.position.fromArray(contacts[index].position);
+            });
+            contactForcesGroup.children.forEach((object, index) => {
+              const arrow = object as THREE.ArrowHelper;
+              const contact = forceContacts[index];
+              arrow.visible = showForces && !!contact && contact.magnitude > 1e-6;
+              if (arrow.visible) {
+                arrow.position.fromArray(contact.position);
+                arrow.setDirection(new THREE.Vector3(...contact.force).normalize());
+                const length = physicalDiagnostics ? contact.magnitude : Math.min(.3, .025 + Math.log1p(contact.magnitude) * .025);
+                arrow.setColor(new THREE.Color('kind' in contact && contact.kind === 'friction' ? 0xf59e0b : 0x22d3ee));
+                arrow.setLength(length, Math.min(.018, length * .35), Math.min(.01, length * .2));
+              }
+            });
+          } else {
+            contactPointsGroup.children.forEach(child => { child.visible = false; });
+            contactForcesGroup.children.forEach(child => { child.visible = false; });
+          }
+
+          centerOfMassMarker.visible = diagnosticsEnabled && optionsRef.current.showCenterOfMass;
+          if (centerOfMassMarker.visible) {
+            centerOfMassMarker.position.fromArray(physicalDiagnostics?.centerOfMass ?? data.subtree_com, physicalDiagnostics ? 0 : rootOffset);
           }
 
           // subtree_com is mass-weighted over the entire robot, even when the
@@ -415,12 +514,70 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
         }
       } else {
         if (robotGroupRef.current) robotGroupRef.current.visible = false;
-        if (rootMarkerRef.current) rootMarkerRef.current.visible = false;
+        centerOfMassMarker.visible = false;
+        contactPointsGroup.visible = false;
+        contactForcesGroup.visible = false;
         jointAxes.visible = false;
         tipMarker.visible = false;
         if (lastModelRef.current) {
           clearTrail(); lastTrailTime = -Infinity;
           lastModelRef.current = null;
+        }
+      }
+
+
+      const physicalEntity = physicalEntityRef.current;
+      const physicalGroup = physicalGroupRef.current;
+      if (physicalGroup) {
+        const shouldShowPhysical = !!physicalEntity && entityVisibilityRef.current.showPhysicalEntity;
+        physicalGroup.visible = shouldShowPhysical;
+        if (!physicalEntity && lastPhysicalEntityRef.current) {
+          physicalMeshesRef.current.clear();
+          while (physicalGroup.children.length) {
+            const mesh = physicalGroup.children[0] as THREE.Points;
+            physicalGroup.remove(mesh);
+            mesh.geometry.dispose();
+            (mesh.material as THREE.Material).dispose();
+          }
+          lastPhysicalEntityRef.current = null;
+        }
+        // Use the exact cooked-collider vertices as a diagnostic point cloud.
+        // Reconstructing convex faces with QuickHull blocked the browser for
+        // high-resolution archived assets and made policy loading appear stuck.
+        if (shouldShowPhysical) {
+          const renderBodies = physicalEntity.getRenderBodies();
+          if (lastPhysicalEntityRef.current !== physicalEntity) {
+            physicalMeshesRef.current.clear();
+            while (physicalGroup.children.length) {
+              const mesh = physicalGroup.children[0] as THREE.Points;
+              physicalGroup.remove(mesh);
+              mesh.geometry.dispose();
+              (mesh.material as THREE.Material).dispose();
+            }
+            for (const body of renderBodies) {
+              const meshes = body.hulls.map((vertices, hullIndex) => {
+                const geometry = new THREE.BufferGeometry().setFromPoints(vertices.map(point => new THREE.Vector3(...point)));
+                const material = new THREE.PointsMaterial({ color: 0xf43f5e, size: .004,
+                  sizeAttenuation: true, transparent: true, opacity: .9, depthTest: true, depthWrite: false });
+                const mesh = new THREE.Points(geometry, material);
+                mesh.name = `physx-${body.name}-${hullIndex}`;
+                mesh.renderOrder = 5;
+                mesh.matrixAutoUpdate = false;
+                physicalGroup.add(mesh);
+                return mesh;
+              });
+              physicalMeshesRef.current.set(body.name, meshes);
+            }
+            lastPhysicalEntityRef.current = physicalEntity;
+          }
+          for (const body of renderBodies) {
+            const matrix = new THREE.Matrix4().compose(
+              new THREE.Vector3(...body.position),
+              new THREE.Quaternion(body.quaternion[1], body.quaternion[2], body.quaternion[3], body.quaternion[0]),
+              new THREE.Vector3(1, 1, 1),
+            );
+            physicalMeshesRef.current.get(body.name)?.forEach(mesh => mesh.matrix.copy(matrix));
+          }
         }
       }
 
@@ -473,6 +630,12 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
       lastModelRef.current = null;
       trailPointsRef.current = [];
       geomMeshesRef.current.clear();
+      physicalMeshesRef.current.clear();
+      physicalGroupRef.current = null;
+      centerOfMassMarkerRef.current = null;
+      contactPointsGroupRef.current = null;
+      contactForcesGroupRef.current = null;
+      lastPhysicalEntityRef.current = null;
       frameRobotRef.current = () => {};
     };
   }, [engine]);
@@ -486,9 +649,40 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
   }, [simMetrics, revision]);
 
   useEffect(() => {
+    if (robotGroupRef.current) robotGroupRef.current.visible = showDisplayEntity;
+    if (physicalGroupRef.current) physicalGroupRef.current.visible = !!physicalEntity && showPhysicalEntity;
+    poseDirtyRef.current = true;
+    invalidateRef.current();
+  }, [physicalEntity, showDisplayEntity, showPhysicalEntity]);
+
+  useEffect(() => {
     if (gridHelperRef.current) gridHelperRef.current.visible = showGrid;
     invalidateRef.current();
-  }, [followRobot, showGrid, showTrail, showAxes]);
+  }, [followRobot, showGrid, showTrail, showAxes, showContactPoints, showContactForces, showCenterOfMass, enablePhysicsDiagnostics]);
+
+  useEffect(() => {
+    if (!enablePhysicsDiagnostics) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) return;
+      const target = event.target as HTMLElement | null;
+      const textInput = target instanceof HTMLInputElement
+        && !['button', 'checkbox', 'file', 'radio', 'range', 'reset', 'submit'].includes(target.type);
+      if (target?.isContentEditable || target instanceof HTMLTextAreaElement || textInput) return;
+      switch (event.key.toLowerCase()) {
+        case 'c': setShowContactPoints(value => !value); break;
+        case 'f': setShowContactForces(value => !value); break;
+        case 'm': setShowCenterOfMass(value => !value); break;
+        default: return;
+      }
+      event.preventDefault();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [enablePhysicsDiagnostics]);
+
+  useEffect(() => {
+    diagnosticsChangeRef.current?.({ contacts: showContactPoints, forces: showContactForces, centerOfMass: showCenterOfMass });
+  }, [showContactPoints, showContactForces, showCenterOfMass]);
 
   useEffect(() => {
     armControlRef.current?.setTarget(armTarget, armMode, armValid);
@@ -745,6 +939,15 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
       <button onClick={() => setShowAxes(!showAxes)} aria-pressed={showAxes} className={`absolute right-3 top-36 sm:top-24 z-10 rounded-lg border px-3 py-1.5 text-xs ${showAxes ? 'bg-amber-900/90 border-amber-500 text-amber-200' : 'bg-slate-900/90 border-slate-700 text-slate-300'}`} title="显示实时关节旋转轴与世界坐标轴">
         <Compass className="inline w-3.5 h-3.5 mr-1" />关节轴 {showAxes ? '开' : '关'}
       </button>
+      {enablePhysicsDiagnostics && <div aria-label="物理可视化快捷键" className="absolute bottom-20 left-3 z-10 flex flex-wrap gap-1.5 rounded-lg border border-slate-700/70 bg-slate-900/90 p-1.5 text-xs shadow-lg backdrop-blur-md">
+        {([
+          ['C', '接触点', showContactPoints, () => setShowContactPoints(value => !value)],
+          ['F', physicalEntity ? '脚底合力' : '接触力', showContactForces, () => setShowContactForces(value => !value)],
+          ['M', '质心', showCenterOfMass, () => setShowCenterOfMass(value => !value)],
+        ] as const).map(([key, label, pressed, toggle]) => <button key={key} aria-pressed={pressed} onClick={toggle}
+          className={`rounded border px-2 py-1 transition ${pressed ? 'border-cyan-400 bg-cyan-900/80 text-cyan-100' : 'border-slate-700 bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+          title={`快捷键 ${key}：显示${label}`}><kbd className="mr-1 font-mono text-[10px] text-slate-400">{key}</kbd>{label}</button>)}
+      </div>}
       {/* Bottom Interactive Perturbation Bar (Force Nudge) */}
       <div className="absolute bottom-9 left-3 right-3 hidden sm:flex flex-wrap items-center gap-2 z-10">
         {onApplyImpulse && <div className="bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-700/70 shadow-lg flex flex-wrap items-center gap-2 text-xs text-slate-300">
@@ -799,7 +1002,7 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
 
       {/* Bottom Right Coordinates / Scale Indicator */}
       <div className="absolute bottom-3 right-3 bg-slate-900/80 backdrop-blur-md px-2.5 py-1 rounded border border-slate-800 text-[11px] font-mono text-slate-400 pointer-events-none">
-        橙色：根节点 · 绿色：末端 | Z↑ · 网格 0.5m
+        绿色：末端{showCenterOfMass && enablePhysicsDiagnostics ? ' · 紫色：质心' : ''}{showContactPoints && enablePhysicsDiagnostics ? ' · 红点：接触' : ''}{showContactForces && enablePhysicsDiagnostics ? ` · ${physicalEntity ? '青色：脚底合力' : '青色：接触力'}` : ''}{showPhysicalEntity && physicalEntity ? ' · 红点：物理碰撞体' : ''} | Z↑ · 网格 0.5m
       </div>
     </div>
   );

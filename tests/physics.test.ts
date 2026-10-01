@@ -80,6 +80,21 @@ test('fixed root impulse does not corrupt hinge velocities; free root impulse ta
   free.destroy();
 });
 
+test('contact diagnostics expose world-space contact positions and solver forces', () => {
+  const e = new MujocoEngine();
+  (e as any).mujoco = mujoco;
+  e.loadModelFromXml('<mujoco><option timestep="0.002"/><worldbody><geom type="plane" size="2 2 .1"/><body pos="0 0 .2"><freejoint/><geom type="sphere" size=".1" mass="1"/></body></worldbody></mujoco>');
+  e.step(300);
+  const contacts = e.getContactDiagnostics();
+  assert.equal(contacts.length, 1);
+  assert.ok(contacts[0].position.every(Number.isFinite));
+  assert.ok(Math.abs(contacts[0].magnitude - 9.81) < .02);
+  assert.ok(Math.abs(contacts[0].force[0]) < 1e-6);
+  assert.ok(Math.abs(contacts[0].force[1]) < 1e-6);
+  assert.ok(Math.abs(contacts[0].force[2] - 9.81) < .02);
+  e.destroy();
+});
+
 test('invalid XML leaves previous simulation live', () => {
   const e = engine();
   const xml = e.getCurrentXml();

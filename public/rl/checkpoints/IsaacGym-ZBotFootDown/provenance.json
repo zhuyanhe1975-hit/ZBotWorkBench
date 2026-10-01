@@ -1,0 +1,13 @@
+{
+  "sourceProject": "/home/yhzhu/myWorks/zbot_evo_isaacgym",
+  "sourceCheckpoint": "pth/ZBotFootDown.pth",
+  "sourceSha256": "24d969aec3f89bbcd766c37ac523ff9e2f80293643c3d53489a5bb1b01ff6cd0",
+  "exportedCheckpoint": "ZBotFootDown.pt",
+  "exportedSha256": "b69f28a9a62a7c589188cc50febe29542624e3214f56dc5fdcfb0a61baa3afe4",
+  "network": {
+    "inputSize": 17,
+    "outputSize": 24,
+    "activation": "elu"
+  },
+  "conversion": "scripts/export-legacy-isaacgym.py"
+}

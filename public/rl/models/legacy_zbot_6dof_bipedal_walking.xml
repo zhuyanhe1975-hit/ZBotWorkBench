@@ -1,0 +1,73 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<mujoco model="zbot">
+    <compiler inertiafromgeom="true" angle="degree" autolimits="true" fusestatic="false" />
+    <default>
+        <geom density="670" />
+        <default class="coliision">
+            <geom contype="1" conaffinity="0" group="4" type="mesh" mesh="mb" />
+            <default class="coliision_a">
+                <geom mesh="ma" />
+            </default>
+
+            <default class="coliision_b">
+                <geom mesh="mb" />
+            </default>
+        </default>
+        <default class="visual">
+            <geom contype="0" conaffinity="0" group="1" type="mesh" mesh="mb" />
+            <default class="visual_a">
+                <geom mesh="ma" />
+            </default>
+
+            <default class="visual_b">
+                <geom mesh="mb" />
+            </default>
+        </default>
+        <joint range="-180 180" limited="true" />
+    </default>
+
+    <asset>
+        <mesh name="ma" file="ma.obj" />
+        <mesh name="mb" file="mb.obj" />
+        <material name="floor" reflectance=".1" />
+    </asset>
+
+
+    <worldbody>
+        <geom type="plane" size="5 5 .01" rgba="1 1 1 1" material="floor" contype="127" conaffinity="127" />
+
+        <body name="body_0" pos="0 0 0.0" euler="0 0 0">
+            <freejoint />
+            <geom class="visual_a" pos="0 0 0" />
+            <body name="body_1" pos="0 0 0.106">
+                <joint name="joint_0" type="hinge" pos="0 0 -0.053" axis="0 -1 1" />
+                <geom class="visual_b" pos="0 0 -0.106" />
+                <geom class="visual_a" pos="0 0 0.0" euler="0 0 180" />
+                <body name="body_2" pos="0 0 0.106" euler="0 0 180">
+                    <joint name="joint_1" type="hinge" pos="0 0 -0.053" axis="0 -1 1" />
+                    <geom class="visual_b" pos="0 0 -0.106" />
+                    <geom class="visual_a" pos="0 0 0.0" euler="0 0 180" />
+                    <body name="body_3" pos="0 0 0.106" euler="0 0 180">
+                        <joint name="joint_2" type="hinge" pos="0 0 -0.053" axis="0 -1 1" />
+                        <geom class="visual_b" pos="0 0 -0.106" />
+                        <geom class="visual_a" pos="0 0 0.0" euler="0 0 180" />
+                        <body name="body_4" pos="0 0 0.106" euler="0 0 180">
+                            <joint name="joint_3" type="hinge" pos="0 0 -0.053" axis="0 -1 1" />
+                            <geom class="visual_b" pos="0 0 -0.106" />
+                            <geom class="visual_a" pos="0 0 0.0" euler="0 0 180" />
+                            <body name="body_5" pos="0 0 0.106" euler="0 0 180">
+                                <joint name="joint_4" type="hinge" pos="0 0 -0.053" axis="0 -1 1" />
+                                <geom class="visual_b" pos="0 0 -0.106" />
+                                <geom class="visual_a" pos="0 0 0.0" euler="0 0 180" />
+                                <body name="body_6" pos="0 0 0.106" euler="0 0 180">
+                                    <joint name="joint_5" type="hinge" pos="0 0 -0.053" axis="0 -1 1" />
+                                    <geom class="visual_b" pos="0 0 -0.106" />
+                                    </body>
+                            </body>
+                        </body>
+                    </body>
+                </body>
+            </body>
+        </body>
+    </worldbody>
+<option timestep="0.0166" gravity="0 0 -9.81" integrator="implicitfast" /><actuator><position name="joint_0" joint="joint_0" kp="10" forcelimited="false" ctrllimited="false" /><position name="joint_1" joint="joint_1" kp="10" forcelimited="false" ctrllimited="false" /><position name="joint_2" joint="joint_2" kp="10" forcelimited="false" ctrllimited="false" /><position name="joint_3" joint="joint_3" kp="10" forcelimited="false" ctrllimited="false" /><position name="joint_4" joint="joint_4" kp="10" forcelimited="false" ctrllimited="false" /><position name="joint_5" joint="joint_5" kp="10" forcelimited="false" ctrllimited="false" /></actuator><sensor><framequat name="rl_base_quat" objtype="xbody" objname="body_3" /><frameangvel name="rl_base_angvel" objtype="xbody" objname="body_3" /><framepos name="rl_base_pos" objtype="xbody" objname="body_3" /><framelinvel name="rl_base_linvel" objtype="xbody" objname="body_3" /></sensor><keyframe><key name="initial" qpos="0.060039203613996506 4.108063876628876e-06 2.8498470783233643e-06 0.9999998807907104 -0.0001561969256727025 -0.00032950445893220603 -0.0004151310713496059 -0.312 -0.837 2.02 -2.02 0.837 0.312" ctrl="-0.312 -0.837 2.02 -2.02 0.837 0.312" /></keyframe></mujoco>

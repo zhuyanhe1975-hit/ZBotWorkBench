@@ -1,11 +1,30 @@
+import { LEGACY_ISAACGYM_PROFILES } from './legacyProfiles';
+
+export type LegacyObservation = 'footdown' | 'body-joints' | 'speed-body-joints' | 'body-com-joints'
+  | 'command-body-com-joints' | 'posture' | 'scalar-posture' | 'body-com-joints-contact'
+  | 'scalar-posture-contact' | 'scalar-posture-contact-step' | 'kinematic-contact';
+export interface LegacyController {
+  kind: 'direct' | 'cpg3' | 'cpg4';
+  velocityScale: number;
+  omegaScale?: number;
+  omegaBias?: number;
+  usesJointSpeed?: boolean;
+  timeOffsetSteps?: number;
+  loopDecayRate?: number;
+  loopDecayMinimum?: number;
+}
 export interface ReplayProfile {
   id: string;
   label: string;
   model: string;
+  displayModel?: string;
   checkpoint: string;
-  observation: 'bipedal' | 'snake' | 'quaternion' | 'velocity' | 'imu' | 'run';
+  observation: 'bipedal' | 'snake' | 'quaternion' | 'velocity' | 'imu' | 'run' | 'isaacgym' | 'isaaclab-periodic';
   inputSize: number;
   jointNames: string[];
+  displayJointNames?: string[];
+  displayJointSigns?: number[];
+  displayRootQuaternionOffset?: [number, number, number, number];
   defaultAngles: number[];
   actionScale?: number;
   deltaLimit?: number;
@@ -18,7 +37,39 @@ export interface ReplayProfile {
   controlDt?: number;
   physicsDt?: number;
   jointSpeedLimit?: number;
-  origin?: 'mjlab';
+  jointSigns?: number[];
+  actionTransform?: 'tanh' | 'clamp';
+  policyOutputSize?: number;
+  legacyObservation?: LegacyObservation;
+  legacyBodyIndex?: number;
+  legacyController?: LegacyController;
+  legacyCommand?: number;
+  initialRootPosition?: [number, number, number];
+  initialRootQuaternion?: [number, number, number, number];
+  zeroInitialObservation?: boolean;
+  bootstrapResetObservations?: number[][];
+  bootstrapResetTargets?: 'preserve' | 'defaults';
+  legacyAutoReset?: {
+    fallingBaseHeight?: number;
+    minimumBaseHeight?: number;
+    maximumBaseHeight?: number;
+    minimumExtremityDistance?: number;
+    maximumAbsBaseX?: number;
+    minimumLastExtremityHeight?: number;
+    maximumAbsFirstExtremityY?: number;
+  };
+  legacyForcedResetSteps?: number[];
+  physxSimulation?: {
+    stiffness?: number;
+    damping?: number;
+    maxVelocity?: number;
+    contactObservations?: boolean;
+    legacyObservations?: boolean;
+    periodicObservations?: boolean;
+    footNames?: [string, string];
+    disableSelfCollision?: boolean;
+  };
+  origin?: 'mjlab' | 'isaacgym' | 'isaaclab';
   policyFeatures?: 'quat-gravity-heading-v1';
 }
 
@@ -45,6 +96,15 @@ export const REPLAY_PROFILES: ReplayProfile[] = [
   { id: 'Zbot-Direct-8dof-bipedal-velocity-v0', label: '8DOF 全向速度（实验）', model: 'zbot_8s_human_v1', checkpoint: 'model_latest.pt', observation: 'velocity', inputSize: 39, jointNames: eightJoints, defaultAngles: humanV1, targetLimit: Math.PI / 2, commands: [.2, 0, 0], phaseFrequency: 1.2, mujocoCompatible: false, motion: 'velocity', note: '该历史速度权重在固定前进 0.2 m/s 的原生测试中也会失稳；保持原权重，未把跌倒隐藏为自动重置。' },
   { id: 'Zbot-Direct-6dof-bipedal-velocity-imu-v0', label: '6DOF IMU 学生策略', model: 'zbot_6s_new', checkpoint: 'model_latest.pt', observation: 'imu', inputSize: 34, jointNames: sixJoints, defaultAngles: sixAngles, commands: [.2, 0, 0], phaseFrequency: 1.2, mujocoCompatible: false, motion: 'velocity' },
   { id: 'Zbot-Direct-8dof-bipedal-run-v0', label: '8DOF 跑步', model: 'zbot_8s_run', checkpoint: 'model_latest.pt', observation: 'run', inputSize: 40, jointNames: eightJoints, defaultAngles: [0, ...sixAngles, 0], actionScale: 1.2, mujocoCompatible: false, motion: 'run' },
+  { id: 'ZbotRlIsaaclab-6DOF-Periodic-Walking', label: '6DOF 周期行走 · IsaacLab 3.0 · 1500代',
+    model: 'zbot_6s_new', checkpoint: 'model_1499.pt', observation: 'isaaclab-periodic', inputSize: 45,
+    jointNames: sixJoints, defaultAngles: sixAngles, deltaLimit: Math.PI / 2,
+    controlDt: .02, physicsDt: .005, jointSpeedLimit: 2, phaseFrequency: 1.5,
+    mujocoCompatible: false, motion: 'walking', origin: 'isaaclab',
+    physxSimulation: { contactObservations: true, periodicObservations: true,
+      footNames: ['foot_0', 'foot_1'], maxVelocity: 2 * Math.PI },
+    note: 'IsaacLab 3.0 第 1500 代策略；浏览器 PhysX WASM 使用相同 USD 几何与 200 Hz/50 Hz 步长。1.0 Hz 在浏览器复现中可能跌倒，原生与浏览器接触数值不完全相同。' },
+  ...LEGACY_ISAACGYM_PROFILES,
 ];
 
 export const CONTROL_DT = 1 / 30;

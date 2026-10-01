@@ -1,0 +1,13 @@
+{
+  "sourceProject": "/home/yhzhu/myWorks/zbot_evo_isaacgym",
+  "sourceCheckpoint": "pth/ZBotBipedalWalking_ChangeSpeedLimit_v1.pth",
+  "sourceSha256": "d51c5fb464e665917dbd1deee9d0a31c24a3cd90cf4e9323434e7468ec57dfcc",
+  "exportedCheckpoint": "ZBotBipedalWalking_ChangeSpeedLimit_v1.pt",
+  "exportedSha256": "e300576e38a56719b81bb279d9a505502b0ab4de7e5aff35a5868d3117b30b78",
+  "network": {
+    "inputSize": 32,
+    "outputSize": 24,
+    "activation": "elu"
+  },
+  "conversion": "scripts/export-legacy-isaacgym.py"
+}

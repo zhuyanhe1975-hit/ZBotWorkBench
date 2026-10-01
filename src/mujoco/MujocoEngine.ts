@@ -16,6 +16,12 @@ export interface GeomTransform {
   mat: number[]; // 3x3 rotation matrix
 }
 
+export interface ContactDiagnostic {
+  position: [number, number, number];
+  force: [number, number, number];
+  magnitude: number;
+}
+
 export class MujocoEngine {
   private mujoco: any = null;
   private model: any = null;
@@ -30,6 +36,7 @@ export class MujocoEngine {
   private freeQpos = -1;
   private rootBodyId = 1;
   private initPromise: Promise<void> | null = null;
+  private contactForceBuffer: any = null;
 
   public async init(): Promise<void> {
     if (this.initPromise) return this.initPromise;
@@ -283,6 +290,32 @@ export class MujocoEngine {
     return this.model ? this.model.nu : 0;
   }
 
+  /** Contact positions and solver forces in world coordinates for viewer diagnostics. */
+  public getContactDiagnostics(limit = 64): ContactDiagnostic[] {
+    if (!this.isLoaded || !this.model || !this.data || !this.mujoco) return [];
+    if (!this.contactForceBuffer) this.contactForceBuffer = new this.mujoco.DoubleBuffer(6);
+    const result: ContactDiagnostic[] = [];
+    const count = Math.min(this.data.ncon, this.data.contact.size(), Math.max(0, limit));
+    for (let index = 0; index < count; index++) {
+      const contact = this.data.contact.get(index);
+      if (!contact) continue;
+      this.mujoco.mj_contactForce(this.model, this.data, index, this.contactForceBuffer);
+      const local = this.contactForceBuffer.GetView();
+      // mjContact.frame stores the world-space contact axes in rows. The first
+      // axis is the contact normal; mj_contactForce returns components in that frame.
+      const force: [number, number, number] = [0, 1, 2].map(axis =>
+        contact.frame[axis] * local[0]
+        + contact.frame[3 + axis] * local[1]
+        + contact.frame[6 + axis] * local[2]) as [number, number, number];
+      const magnitude = Math.hypot(...force);
+      const position = Array.from(contact.pos) as [number, number, number];
+      if (position.every(Number.isFinite) && force.every(Number.isFinite) && Number.isFinite(magnitude)) {
+        result.push({ position, force, magnitude });
+      }
+    }
+    return result;
+  }
+
   public getBodyTransforms(): BodyTransform[] {
     if (!this.isLoaded || !this.model || !this.data) return [];
     const nbody = this.model.nbody;
@@ -397,6 +430,8 @@ export class MujocoEngine {
 
   public destroy(): void {
     this.cleanupModel();
+    this.contactForceBuffer?.delete();
+    this.contactForceBuffer = null;
   }
 }
 

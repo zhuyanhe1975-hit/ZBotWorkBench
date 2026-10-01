@@ -1,0 +1,13 @@
+{
+  "sourceProject": "/home/yhzhu/myWorks/zbot_evo_isaacgym",
+  "sourceCheckpoint": "pth/ZBotBipedalWalking_BigFoot_8DOF_Best.pth",
+  "sourceSha256": "f91968383ce7af7c164a71475a76d7ecc6d4bc9fca94a20fb8ecb10462a5de85",
+  "exportedCheckpoint": "ZBotBipedalWalking_BigFoot_8DOF_Best.pt",
+  "exportedSha256": "9e87a626dd3888f00312a6a7d3c049260ff59c498f325bb28db63939a97d7999",
+  "network": {
+    "inputSize": 42,
+    "outputSize": 8,
+    "activation": "elu"
+  },
+  "conversion": "scripts/export-legacy-isaacgym.py"
+}

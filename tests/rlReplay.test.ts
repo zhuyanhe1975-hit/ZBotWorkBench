@@ -5,7 +5,7 @@ import loadMujoco from '@mujoco/mujoco';
 import { MujocoEngine } from '../src/mujoco/MujocoEngine';
 import { compiledMeshGeometry } from '../src/utils/compiledMeshGeometry';
 import { loadCheckpoint, inferPolicy, type PolicyNetwork } from '../src/rl/checkpoint';
-import { buildObservation, integrateActions, policyFeatures, PolicyReplay, velocityObservationRaw, type PolicyState, type ReplayDynamics } from '../src/rl/replay';
+import { buildObservation, integrateActions, integrateLegacyActions, policyFeatures, PolicyReplay, velocityObservationRaw, type PolicyState, type ReplayDynamics } from '../src/rl/replay';
 import { CONTROL_DT, REPLAY_PROFILES, type ReplayProfile } from '../src/rl/profiles';
 
 let mujoco: Awaited<ReturnType<typeof loadMujoco>>;
@@ -13,6 +13,7 @@ before(async () => { mujoco = await loadMujoco(); });
 const human = REPLAY_PROFILES.find(p => p.id === 'Zbot-Direct-8dof-bipedal-v0')!;
 const snake = REPLAY_PROFILES.find(p => p.id === 'Zbot-Direct-8dof-snake-v0')!;
 const quaternion = REPLAY_PROFILES.find(p => p.id === 'Zbot-Direct-6dof-bipedal-quat-v0')!;
+const periodic = REPLAY_PROFILES.find(p => p.id === 'ZbotRlIsaaclab-6DOF-Periodic-Walking')!;
 const xmlFor = (profile: ReplayProfile) => readFileSync(new URL(`../public/rl/models/${profile.model}.xml`, import.meta.url), 'utf8');
 function engine(xml: string) {
   const result = new MujocoEngine();
@@ -56,6 +57,26 @@ test('observation uses base world angular velocity and task-specific gravity/hea
   for (let i = 0; i < 7; i++) close(obs[i], [...rotation, 2, 3, 7][i]);
   assert.equal(obs.length, 26);
   assert.throws(() => buildObservation(human, { quaternion: [NaN, 0, 0, 1], angularVelocity: [0, 0, 0], positions: human.defaultAngles, velocities: Array(8).fill(0) }, new Float32Array(8)), /观测/);
+});
+
+test('IsaacLab periodic walking observation preserves its 45-field training order and phase direction', () => {
+  const state: PolicyState = {
+    quaternion: [1, 0, 0, 0], angularVelocity: [.1, .2, .3], linearVelocity: [1, 2, 3],
+    positions: [...periodic.defaultAngles], velocities: Array(6).fill(0),
+    bodyComPositions: Array.from({ length: 12 }, () => [0, -.05, 1]), bodyMasses: Array(12).fill(1),
+    extremityPositions: [[0, -.1, 0], [0, .1, 0]],
+    extremityContactForces: [[0, 0, 80], [0, 0, 20]],
+  };
+  const previous = [.1, .2, .3, .4, .5, .6];
+  const first = buildObservation(periodic, state, previous, { frequency: 1.5, phase: .25 });
+  assert.equal(first.length, 45);
+  [1, 2, 3, .1, .2, .3, 0, 0, -1].forEach((value, index) => close(first[index], value));
+  previous.forEach((value, index) => close(first[21 + index], value));
+  [0, 0, .8, 0, 0, .2].forEach((value, index) => close(first[27 + index], value));
+  [0, .05, 1, 0, -.15, 1].forEach((value, index) => close(first[33 + index], value));
+  [1.5, 1, 1, 0, -.5, 0].forEach((value, index) => close(first[39 + index], value));
+  const other = buildObservation(periodic, state, previous, { frequency: 1.5, phase: .75 });
+  [1.5, -1, -1, 0, .5, 0].forEach((value, index) => close(other[39 + index], value));
 });
 
 test('actions apply tanh, integrate clamped deltas, and preserve default-plus-delta beyond pi', () => {
@@ -175,6 +196,7 @@ test('static model inertias, sensors and visual meshes survive WASM compilation'
 const velocity6 = REPLAY_PROFILES.find(p => p.id === 'Zbot-Direct-6dof-bipedal-velocity-v0')!;
 const imu = REPLAY_PROFILES.find(p => p.observation === 'imu')!;
 const run = REPLAY_PROFILES.find(p => p.observation === 'run')!;
+const legacy = REPLAY_PROFILES.find(p => p.id === 'IsaacGym-ZBotBipedalWalking_20250527')!;
 function syntheticState(profile: ReplayProfile): PolicyState {
   return { quaternion: [Math.SQRT1_2, 0, Math.SQRT1_2, 0], rootQuaternion: [1, 0, 0, 0],
     angularVelocity: [2, 3, 7], linearVelocity: [1, 2, 3], basePosition: [0, 0, .35],
@@ -212,6 +234,33 @@ test('run observation includes absolute joints, unnormalized direction, contact 
   close(tilted[0], -1); close(tilted[3], -1.5); close(tilted[9], .5); // run keeps forward magnitude sin(30°)
   assert.throws(() => buildObservation(run, { ...state, footContactForces: undefined }, new Float32Array(8)), /接触/);
 });
+test('legacy Isaac Gym observation preserves its 36-value world-state contract', () => {
+  const state: PolicyState = {
+    quaternion: [1, 0, 0, 0], angularVelocity: [4, 5, 6], linearVelocity: [1, 2, 3], basePosition: [.1, .2, .3],
+    positions: legacy.defaultAngles.map((_, i) => (i + 1) * .1), velocities: legacy.jointNames.map((_, i) => i + 1),
+    bodyComPositions: [[0, 0, 0], [2, 0, 0]], bodyMasses: [1, 3],
+    extremityPositions: [[0, 1, 0], [2, 0, 0]], extremityContactForces: [[7, 8, 9], [10, 11, 12]],
+    legacyBodies: Array.from({ length: 7 }, () => ({ position: [.1, .2, .3], quaternion: [1, 0, 0, 0],
+      linearVelocity: [1, 2, 3], angularVelocity: [4, 5, 6], mass: 1 })),
+  };
+  const obs = buildObservation(legacy, state, new Float32Array(6));
+  assert.equal(obs.length, 36);
+  [legacy.jointSpeedLimit, .1, .2, .3, 0, 0, 1, 1, 2, 3, 4, 5, 6, 1.5, 0, 0,
+    Math.hypot(1.5, -1), .5].forEach((value, i) => close(obs[i], value!));
+  state.positions.forEach((value, i) => close(obs[18 + i], legacy.jointSigns![i] * value / Math.PI));
+  state.velocities.forEach((value, i) => close(obs[24 + i], legacy.jointSigns![i] * value * .2));
+  [7, 8, 9, 10, 11, 12].forEach((value, i) => close(obs[30 + i], value));
+  assert.throws(() => buildObservation(legacy, { ...state, bodyMasses: undefined }, new Float32Array(6)), /质心/);
+});
+test('converted legacy checkpoint matches rl_games CPU inference', () => {
+  const bytes = readFileSync(new URL(`../public/rl/checkpoints/${legacy.id}/${legacy.checkpoint}`, import.meta.url));
+  const policy = loadCheckpoint(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
+  const observation = Float32Array.from({ length: 36 }, (_, i) => -.5 + i / 35);
+  const expected = [-3.9074974060058594, -3.5163440704345703, -1.797161340713501,
+    -8.801865577697754, -.38750961422920227, 1.27094566822052];
+  inferPolicy(policy, observation).forEach((value, i) => close(value, expected[i], 5e-6));
+  assert.equal(policy.normalization?.clip, 5);
+});
 test('wheel delta, velocity target bounds and run action scaling match task controllers', () => {
   const wheel = REPLAY_PROFILES.find(p => p.motion === 'wheel')!;
   const velocity8 = REPLAY_PROFILES.find(p => p.id === 'Zbot-Direct-8dof-bipedal-velocity-v0')!;
@@ -223,6 +272,36 @@ test('wheel delta, velocity target bounds and run action scaling match task cont
   }
   const result = integrateActions([.5], new Float64Array(1), [.2], run);
   close(result.targets[0], .2 + Math.PI * 2 * 1.2 * Math.tanh(.5) * CONTROL_DT);
+});
+test('legacy direct, three-parameter and four-parameter controllers produce bounded joint targets', () => {
+  for (const [id, time, tuple] of [
+    ['IsaacGym-ZBotBipedalWalking_20250527', 0, [2]],
+    ['IsaacGym-zbot_rolling', 0, [0, 1, .25]],
+    ['IsaacGym-ZBotFootDown', .5, [0, 1, 0, 0]],
+  ] as const) {
+    const profile = REPLAY_PROFILES.find(value => value.id === id)!;
+    const raw = Float32Array.from({ length: profile.policyOutputSize! }, (_, i) => tuple[i % tuple.length]);
+    const result = integrateLegacyActions(raw, new Float64Array(profile.jointNames.length),
+      Array(profile.jointNames.length).fill(0), profile, time);
+    assert.equal(result.actions.length, profile.policyOutputSize);
+    assert.equal(result.targets.length, profile.jointNames.length);
+    assert.ok(result.targets.every(Number.isFinite));
+    assert.ok(result.targets.some(value => Math.abs(value) > 1e-6));
+    assert.ok(result.actions.every(value => value >= -1 && value <= 1));
+    assert.ok(result.targets.every(value => Math.abs(value) <= profile.deltaLimit! + 1e-9));
+  }
+  assert.equal(REPLAY_PROFILES.find(value => value.id === 'IsaacGym-zbot_rolling')!.deltaLimit, Math.PI / 2);
+  assert.equal(REPLAY_PROFILES.find(value => value.id === 'IsaacGym-ZBotFootDown')!.deltaLimit, .75 * Math.PI);
+  assert.equal(REPLAY_PROFILES.find(value => value.id === 'IsaacGym-ZBotBipedalWalking_20250527')!.deltaLimit, Math.PI);
+  assert.deepEqual(REPLAY_PROFILES.find(value => value.id === 'IsaacGym-ZBotSingleLeg')!.defaultAngles, [0, 0, 0, 0, 0, 0]);
+  const rolling = REPLAY_PROFILES.find(value => value.id === 'IsaacGym-zbot_rolling')!;
+  assert.deepEqual(rolling.defaultAngles, [0, 0, 0, 0, 0, 0]);
+  assert.equal(rolling.model, 'legacy_zbot_rolling');
+  assert.equal(rolling.initialRootPosition, undefined);
+  assert.equal(rolling.initialRootQuaternion, undefined);
+  assert.equal(rolling.bootstrapResetObservations?.[0].length, 25);
+  assert.deepEqual(REPLAY_PROFILES.find(value => value.id === 'IsaacGym-ZBotBipedalWalking_BigFoot')!.defaultAngles,
+    [0, -Math.PI / 4, Math.PI / 2, -Math.PI / 2, Math.PI / 4, 0]);
 });
 test('runtime joint speed parameter changes the policy observation and action integration', () => {
   const e = engine(xmlFor(quaternion));

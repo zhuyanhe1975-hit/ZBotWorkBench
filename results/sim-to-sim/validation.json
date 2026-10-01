@@ -1,16 +1,19 @@
 {
-  "schemaVersion": 2,
-  "generatedAt": "2026-09-11T02:33:03.734Z",
+  "schemaVersion": 3,
+  "generatedAt": "2026-09-26T07:41:07.764Z",
   "passed": true,
   "summary": {
-    "totalPolicies": 15,
-    "motionValidated": 12,
-    "experimental": 3
+    "totalPolicies": 61,
+    "motionValidated": 14,
+    "experimental": 3,
+    "migrated": 45
   },
   "command": "node --import tsx scripts/validate-rl-motion.ts [--output FILE] [--reference-dir DIR]",
-  "controlSteps": 600,
-  "controlDt": 0.03333333333333333,
-  "durationSeconds": 20,
+  "durations": {
+    "currentPoliciesSeconds": 20,
+    "migratedPoliciesSeconds": 2
+  },
+  "variableControlTiming": true,
   "runtimes": {
     "node": "v20.19.6",
     "physxPackage": "2.7.3",
@@ -18,15 +21,16 @@
     "mujocoPackage": "3.12.0"
   },
   "sourceHashes": {
-    "src/rl/checkpoint.ts": "761abbf1525b5bc914d4d57629735f38dfd7f3bc05510a730a06561a90ea6ba5",
-    "src/rl/replay.ts": "3e1106058119dbccc7caafa226c128bae6fa0959f8569e6d916637e7a47939ad",
-    "src/rl/physx.ts": "d979972629dcd4dd607f537be882a2a3bb58a110efb81812b9f09578b3dcd5ef",
-    "src/rl/profiles.ts": "d4fb6816eabde07a59ffd36a5a9b0bd8d9f371b2c9f54191a6ffce34db2d7681",
-    "scripts/validate-rl-motion.ts": "0d0b2887434e783dee5b358ca6e15f549310985df8a93be67eca63020a713006"
+    "src/rl/checkpoint.ts": "1bd56e29b6457242df69bc571009d3d396679efc01dc7deab04998b3d7178a53",
+    "src/rl/replay.ts": "ccc0b349975727a977b8d80c7222ebfa8aa83830edd15e04e3ce2da2546e10cc",
+    "src/rl/physx.ts": "39a8b109bef8a83b3e39c1aaf3aa37dce7106d44d68eb81b86f549f342194e5d",
+    "src/rl/profiles.ts": "5b41b05486c00e81edc00921eeca04a668bb0777c572a584aa473b1ce2f6c80f",
+    "scripts/validate-rl-motion.ts": "325eb8a8f22877941e0e4cd623865a0afe15a8864641be0d4f4dcde8c231be81"
   },
   "acceptance": {
-    "motion": "12 tasks must pass their explicit per-task height and displacement requirements, recorded with each run. Existing five baselines retain their original motion thresholds.",
+    "motion": "14 tasks must pass their explicit per-task height and displacement requirements, including IsaacLab periodic walking and native-aligned SingleLeg. Existing five baselines retain their original motion thresholds.",
     "experimental": "Three source checkpoints (8DOF v3, 6DOF velocity, 8DOF velocity) are graded for finite complete 20-second replay only. Native instability warnings remain visible; this is not a motion success claim. Their .15m height fraction is descriptive only.",
+    "migrated": "Legacy Isaac Gym checkpoints are graded for actor dimensions, exact family-level network inference, and finite 2-second migration replay only until their original importer-level dynamics are captured.",
     "comparison": "MuJoCo results are diagnostic and do not gate exit status. Only PhysX acceptance gates exit status."
   },
   "limitations": [
@@ -45,8 +49,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 312.97474,
+          "elapsedMs": 444.87817499999994,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.3,
@@ -80,8 +85,9 @@
         {
           "engine": "mujoco",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.00000000400206,
-          "elapsedMs": 274.083389,
+          "elapsedMs": 283.1990850000001,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.3,
@@ -116,56 +122,7 @@
           }
         }
       ],
-      "optionalNativeReferences": [
-        {
-          "externalFile": "/tmp/zbot-isaac-human-cpu.json",
-          "sha256": "331bbdec0bbd261c002971d463696a3c010637ce966981adcbd94c5265884716",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            0.011224105954170227,
-            0.017297830432653427,
-            0.3608003258705139
-          ],
-          "finalBasePosition": [
-            -9.765772819519043,
-            -0.3670752942562103,
-            0.3783297538757324
-          ],
-          "minBaseHeight": 0.34670472145080566,
-          "maxBaseHeight": 0.38287410140037537,
-          "standHeightThreshold": 0.3,
-          "standFraction": 1,
-          "netXYDisplacement": 9.784549636017783,
-          "xProgress": -9.776996925473213
-        },
-        {
-          "externalFile": "/tmp/zbot-isaac-human.json",
-          "sha256": "caf10f631b911537c94ea2774e972814d2975dda378733466e423b2565fbab26",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            0.011224081739783287,
-            0.017297785729169846,
-            0.36080029606819153
-          ],
-          "finalBasePosition": [
-            -9.778159141540527,
-            0.07748402655124664,
-            0.36927613615989685
-          ],
-          "minBaseHeight": 0.3433089852333069,
-          "maxBaseHeight": 0.3812238276004791,
-          "standHeightThreshold": 0.3,
-          "standFraction": 1,
-          "netXYDisplacement": 9.789568237456967,
-          "xProgress": -9.78938322328031
-        }
-      ]
+      "optionalNativeReferences": []
     },
     {
       "task": "Zbot-Direct-8dof-snake-v0",
@@ -177,8 +134,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 269.07342399999993,
+          "elapsedMs": 431.776071,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.025,
@@ -193,27 +151,28 @@
           "metrics": {
             "initialBasePosition": [
               -0.42400527000427246,
-              -9.38861788313261e-9,
+              -9.388639199414683e-9,
               0.05299607664346695
             ],
             "finalBasePosition": [
-              -6.31882381439209,
-              8.912537574768066,
-              0.05877577140927315
+              -8.52991008758545,
+              6.191379070281982,
+              0.05306056886911392
             ],
-            "minBaseHeight": 0.04737558588385582,
-            "maxBaseHeight": 0.06987762451171875,
+            "minBaseHeight": 0.04424630478024483,
+            "maxBaseHeight": 0.0887431651353836,
             "standHeightThreshold": 0.025,
             "standFraction": 1,
-            "netXYDisplacement": 10.685607697284418,
-            "xProgress": -5.894818544387817
+            "netXYDisplacement": 10.199944500822971,
+            "xProgress": -8.105904817581177
           }
         },
         {
           "engine": "mujoco",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.00000000400206,
-          "elapsedMs": 353.9946590000002,
+          "elapsedMs": 369.91425900000013,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.025,
@@ -245,56 +204,7 @@
           }
         }
       ],
-      "optionalNativeReferences": [
-        {
-          "externalFile": "/tmp/zbot-isaac-snake-cpu.json",
-          "sha256": "e21299f30da64964aff37e2f18321156ab28282f79a589352210d4ae98929ccf",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            -0.42398911714553833,
-            -9.322874916506407e-9,
-            0.05299392715096474
-          ],
-          "finalBasePosition": [
-            -4.076084613800049,
-            10.081033706665039,
-            0.053023021668195724
-          ],
-          "minBaseHeight": 0.049621306359767914,
-          "maxBaseHeight": 0.07052896916866302,
-          "standHeightThreshold": 0.025,
-          "standFraction": 1,
-          "netXYDisplacement": 10.722175259692841,
-          "xProgress": -3.6520954966545105
-        },
-        {
-          "externalFile": "/tmp/zbot-isaac-snake.json",
-          "sha256": "870fc5b87faffeff87f1515372cc58b9074b33fbd85aa268b57618d58f181b26",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            -0.423988938331604,
-            -1.1946745814839232e-8,
-            0.05299391970038414
-          ],
-          "finalBasePosition": [
-            7.78970193862915,
-            1.5199897289276123,
-            0.055786944925785065
-          ],
-          "minBaseHeight": 0.04951886087656021,
-          "maxBaseHeight": 0.06872716546058655,
-          "standHeightThreshold": 0.025,
-          "standFraction": 1,
-          "netXYDisplacement": 8.353148306754264,
-          "xProgress": 8.213690876960754
-        }
-      ]
+      "optionalNativeReferences": []
     },
     {
       "task": "Zbot-Direct-6dof-bipedal-quat-v0",
@@ -306,8 +216,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 193.1670919999999,
+          "elapsedMs": 309.9643860000001,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.22,
@@ -341,8 +252,9 @@
         {
           "engine": "mujoco",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.00000000400206,
-          "elapsedMs": 246.47642399999995,
+          "elapsedMs": 259.73106499999994,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.22,
@@ -377,32 +289,7 @@
           }
         }
       ],
-      "optionalNativeReferences": [
-        {
-          "externalFile": "/tmp/zbot-isaac-quat.json",
-          "sha256": "bb84fb151ce277a560888fbb1e052446ac85c75ba715f5acff0bd211f7ea56cd",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            -0.024447496980428696,
-            -0.000039944425225257874,
-            0.2544737756252289
-          ],
-          "finalBasePosition": [
-            3.9844443798065186,
-            -0.1441792994737625,
-            0.2578778564929962
-          ],
-          "minBaseHeight": 0.2544737756252289,
-          "maxBaseHeight": 0.2707938849925995,
-          "standHeightThreshold": 0.22,
-          "standFraction": 1,
-          "netXYDisplacement": 4.0114822987821075,
-          "xProgress": 4.008891876786947
-        }
-      ]
+      "optionalNativeReferences": []
     },
     {
       "task": "Zbot-Direct-6dof-bipedal-to-snake-v0",
@@ -414,8 +301,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 141.44442499999968,
+          "elapsedMs": 251.55801299999985,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "transition": true
@@ -447,8 +335,9 @@
         {
           "engine": "mujoco",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.00000000400206,
-          "elapsedMs": 217.08370400000013,
+          "elapsedMs": 222.90316800000028,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "transition": true
@@ -490,8 +379,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 168.97197700000015,
+          "elapsedMs": 283.87046299999975,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "transition": true,
@@ -524,8 +414,9 @@
         {
           "engine": "mujoco",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.00000000400206,
-          "elapsedMs": 223.90611099999978,
+          "elapsedMs": 232.80306599999994,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "transition": true,
@@ -568,8 +459,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 165.75145999999995,
+          "elapsedMs": 266.9230140000004,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.22,
@@ -603,8 +495,9 @@
         {
           "engine": "mujoco",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.00000000400206,
-          "elapsedMs": 283.68471,
+          "elapsedMs": 298.26824899999974,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.22,
@@ -651,8 +544,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 228.8551010000001,
+          "elapsedMs": 352.0149529999999,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.3,
@@ -686,8 +580,9 @@
         {
           "engine": "mujoco",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.00000000400206,
-          "elapsedMs": 258.89407200000005,
+          "elapsedMs": 271.8060009999999,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.3,
@@ -722,32 +617,7 @@
           }
         }
       ],
-      "optionalNativeReferences": [
-        {
-          "externalFile": "/tmp/zbot-isaac-human_v1.json",
-          "sha256": "0eafc27f87f43712410ba1c7dd467b3e7bbeea54dc99565b8684f753d788f143",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            0.06573861837387085,
-            -0.0342063345015049,
-            0.36784812808036804
-          ],
-          "finalBasePosition": [
-            -9.27850341796875,
-            0.8605760931968689,
-            0.36853718757629395
-          ],
-          "minBaseHeight": 0.3449370563030243,
-          "maxBaseHeight": 0.3781513571739197,
-          "standHeightThreshold": 0.3,
-          "standFraction": 1,
-          "netXYDisplacement": 9.386985396104027,
-          "xProgress": -9.34424203634262
-        }
-      ]
+      "optionalNativeReferences": []
     },
     {
       "task": "Zbot-Direct-8dof-bipedal-v2",
@@ -759,8 +629,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 278.1662660000002,
+          "elapsedMs": 461.58230900000035,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.3,
@@ -794,8 +665,9 @@
         {
           "engine": "mujoco",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.00000000400206,
-          "elapsedMs": 344.2536060000002,
+          "elapsedMs": 354.09614299999976,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.3,
@@ -830,32 +702,7 @@
           }
         }
       ],
-      "optionalNativeReferences": [
-        {
-          "externalFile": "/tmp/zbot-isaac-human_v2.json",
-          "sha256": "8507db0b5203e225299d28fce0168ead3fd086ceb20aad2076e008513c0137b8",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            0.04924669861793518,
-            -0.12363561987876892,
-            0.3664221167564392
-          ],
-          "finalBasePosition": [
-            5.9575629234313965,
-            0.25432831048965454,
-            0.36960917711257935
-          ],
-          "minBaseHeight": 0.36259132623672485,
-          "maxBaseHeight": 0.3802197575569153,
-          "standHeightThreshold": 0.3,
-          "standFraction": 1,
-          "netXYDisplacement": 5.920393343778227,
-          "xProgress": 5.908316224813461
-        }
-      ]
+      "optionalNativeReferences": []
     },
     {
       "task": "Zbot-Direct-8dof-bipedal-v3",
@@ -867,8 +714,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 205.0632459999997,
+          "elapsedMs": 371.26051800000005,
           "acceptanceScope": "experimental-numerical-only",
           "motionRequirement": null,
           "nativeWarning": "该历史权重在原生 Isaac 的当前姿态及历史初始朝向下也会倒地；此处提供原样回放，不代表已学会稳定行走。",
@@ -898,8 +746,9 @@
         {
           "engine": "mujoco",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.00000000400206,
-          "elapsedMs": 310.49544700000024,
+          "elapsedMs": 316.83130900000015,
           "acceptanceScope": "experimental-numerical-only",
           "motionRequirement": null,
           "nativeWarning": "该历史权重在原生 Isaac 的当前姿态及历史初始朝向下也会倒地；此处提供原样回放，不代表已学会稳定行走。",
@@ -927,80 +776,7 @@
           }
         }
       ],
-      "optionalNativeReferences": [
-        {
-          "externalFile": "/tmp/zbot-isaac-human_v3.json",
-          "sha256": "32d735f1678420ce2e83063c9a054f137e0a9fa2d419d61e9c5ad5cae1131499",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            0.11325987428426743,
-            -0.09999363869428635,
-            0.364109605550766
-          ],
-          "finalBasePosition": [
-            -0.08486524224281311,
-            -0.4422087073326111,
-            0.04999563843011856
-          ],
-          "minBaseHeight": 0.04979303479194641,
-          "maxBaseHeight": 0.364109605550766,
-          "standHeightThreshold": 0.15,
-          "standFraction": 0.02666666666666667,
-          "netXYDisplacement": 0.3954297851730475,
-          "xProgress": -0.19812511652708054
-        },
-        {
-          "externalFile": "/tmp/zbot-isaac-human_v3-historical.json",
-          "sha256": "8def242b0e922e74f9f754066734c0d578c6c465052a467826e6d712c6818057",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            0.042051348835229874,
-            -0.17251215875148773,
-            0.364109605550766
-          ],
-          "finalBasePosition": [
-            -0.02396475523710251,
-            -0.24778957664966583,
-            0.04975312575697899
-          ],
-          "minBaseHeight": 0.04962960630655289,
-          "maxBaseHeight": 0.3674621284008026,
-          "standHeightThreshold": 0.15,
-          "standFraction": 0.021666666666666667,
-          "netXYDisplacement": 0.10012400132988077,
-          "xProgress": -0.06601610407233238
-        },
-        {
-          "externalFile": "/tmp/zbot-isaac-human_v3-historical-exact.json",
-          "sha256": "32e91f8314db3a874b8257a9350f307b735c0ad57b918278718c394444dfe6e2",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            0.0420580729842186,
-            -0.17250962555408478,
-            0.3641096353530884
-          ],
-          "finalBasePosition": [
-            -0.12019086629152298,
-            -0.059017445892095566,
-            0.04993946850299835
-          ],
-          "minBaseHeight": 0.04974474012851715,
-          "maxBaseHeight": 0.367389440536499,
-          "standHeightThreshold": 0.15,
-          "standFraction": 0.023333333333333334,
-          "netXYDisplacement": 0.19800301295821868,
-          "xProgress": -0.16224893927574158
-        }
-      ]
+      "optionalNativeReferences": []
     },
     {
       "task": "Zbot-Direct-8dof-bird-v0",
@@ -1012,8 +788,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 197.57319199999984,
+          "elapsedMs": 325.7157019999995,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.25,
@@ -1047,8 +824,9 @@
         {
           "engine": "mujoco",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.00000000400206,
-          "elapsedMs": 394.05616700000064,
+          "elapsedMs": 406.77704599999925,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.25,
@@ -1083,32 +861,7 @@
           }
         }
       ],
-      "optionalNativeReferences": [
-        {
-          "externalFile": "/tmp/zbot-isaac-bird.json",
-          "sha256": "95007f81663be2a836cd78ecc562c2ebeda8f3caec8c2d916fbdb6db61329d83",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            -0.0244474895298481,
-            -0.00003992393612861633,
-            0.3604738712310791
-          ],
-          "finalBasePosition": [
-            -12.162322998046875,
-            -0.9127352833747864,
-            0.31914153695106506
-          ],
-          "minBaseHeight": 0.3085010051727295,
-          "maxBaseHeight": 0.38925179839134216,
-          "standHeightThreshold": 0.25,
-          "standFraction": 1,
-          "netXYDisplacement": 12.172141745781566,
-          "xProgress": -12.137875508517027
-        }
-      ]
+      "optionalNativeReferences": []
     },
     {
       "task": "Zbot-Direct-8dof-wheel-v0",
@@ -1120,8 +873,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 221.16240799999923,
+          "elapsedMs": 368.79960500000016,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.02,
@@ -1135,28 +889,29 @@
           "mujocoWarnings": [],
           "metrics": {
             "initialBasePosition": [
-              -0.12949247658252716,
-              0.020566292107105255,
-              0.20575106143951416
+              -0.12949244678020477,
+              0.020566267892718315,
+              0.20575104653835297
             ],
             "finalBasePosition": [
-              -1.3037511110305786,
-              18.79728126525879,
-              0.051769860088825226
+              -0.5062065124511719,
+              18.829418182373047,
+              0.09864362329244614
             ],
-            "minBaseHeight": 0.04849593713879585,
-            "maxBaseHeight": 0.2733316421508789,
+            "minBaseHeight": 0.04900646209716797,
+            "maxBaseHeight": 0.2849162220954895,
             "standHeightThreshold": 0.02,
             "standFraction": 1,
-            "netXYDisplacement": 18.81339704900618,
-            "xProgress": -1.1742586344480515
+            "netXYDisplacement": 18.81262405482352,
+            "xProgress": -0.3767140656709671
           }
         },
         {
           "engine": "mujoco",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.00000000400206,
-          "elapsedMs": 258.4955380000001,
+          "elapsedMs": 267.6401619999997,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.02,
@@ -1188,32 +943,7 @@
           }
         }
       ],
-      "optionalNativeReferences": [
-        {
-          "externalFile": "/tmp/zbot-isaac-wheel.json",
-          "sha256": "7dab1ae58e081de7eb16bc82945058c84307217a8a88b466184cb76fd2c775fb",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            -0.12948232889175415,
-            0.020574817433953285,
-            0.20574641227722168
-          ],
-          "finalBasePosition": [
-            0.3971889913082123,
-            18.86801528930664,
-            0.08658118546009064
-          ],
-          "minBaseHeight": 0.049282461404800415,
-          "maxBaseHeight": 0.2863439917564392,
-          "standHeightThreshold": 0.02,
-          "standFraction": 1,
-          "netXYDisplacement": 18.854797665854324,
-          "xProgress": 0.5266713201999664
-        }
-      ]
+      "optionalNativeReferences": []
     },
     {
       "task": "Zbot-Direct-6dof-bipedal-velocity-v0",
@@ -1225,8 +955,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 195.95249200000035,
+          "elapsedMs": 318.32297800000015,
           "acceptanceScope": "experimental-numerical-only",
           "motionRequirement": null,
           "nativeWarning": "该历史速度权重的跟踪稳定性有限：固定前进 0.2 m/s 的原生测试中也会失稳。可用速度命令比较其原有行为。",
@@ -1261,32 +992,7 @@
           "metrics": null
         }
       ],
-      "optionalNativeReferences": [
-        {
-          "externalFile": "/tmp/zbot-isaac-velocity6-commanded.json",
-          "sha256": "8fa72d8ea663163747ce93f5376aeb518fe90794d886efb6a3a1af5544b1e794",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            -0.024447504431009293,
-            -0.00003993138670921326,
-            0.2544737756252289
-          ],
-          "finalBasePosition": [
-            0.08913350105285645,
-            -0.9137408137321472,
-            0.07086655497550964
-          ],
-          "minBaseHeight": 0.049710314720869064,
-          "maxBaseHeight": 0.2804636061191559,
-          "standHeightThreshold": 0.15,
-          "standFraction": 0.8333333333333334,
-          "netXYDisplacement": 0.9207333746560715,
-          "xProgress": 0.11358100548386574
-        }
-      ]
+      "optionalNativeReferences": []
     },
     {
       "task": "Zbot-Direct-8dof-bipedal-velocity-v0",
@@ -1298,8 +1004,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 238.48994200000016,
+          "elapsedMs": 371.22570899999937,
           "acceptanceScope": "experimental-numerical-only",
           "motionRequirement": null,
           "nativeWarning": "该历史速度权重在固定前进 0.2 m/s 的原生测试中也会失稳；保持原权重，未把跌倒隐藏为自动重置。",
@@ -1334,32 +1041,7 @@
           "metrics": null
         }
       ],
-      "optionalNativeReferences": [
-        {
-          "externalFile": "/tmp/zbot-isaac-velocity8-commanded.json",
-          "sha256": "3fa4f65a88b9172b7fbab324abf0daacd73018d744ee15507affce643d49c723",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            0.06573861837387085,
-            -0.0342063345015049,
-            0.36784812808036804
-          ],
-          "finalBasePosition": [
-            1.5002635717391968,
-            -0.9874136447906494,
-            0.05043623596429825
-          ],
-          "minBaseHeight": 0.04624298959970474,
-          "maxBaseHeight": 0.36784812808036804,
-          "standHeightThreshold": 0.15,
-          "standFraction": 0.20333333333333334,
-          "netXYDisplacement": 1.7223431766684756,
-          "xProgress": 1.434524953365326
-        }
-      ]
+      "optionalNativeReferences": []
     },
     {
       "task": "Zbot-Direct-6dof-bipedal-velocity-imu-v0",
@@ -1371,8 +1053,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 207.22689300000002,
+          "elapsedMs": 317.8345760000011,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.22,
@@ -1410,32 +1093,7 @@
           "metrics": null
         }
       ],
-      "optionalNativeReferences": [
-        {
-          "externalFile": "/tmp/zbot-isaac-imu-commanded.json",
-          "sha256": "006dda700674d679f5c3a4cd81143aa5a1c2bdee74a2c1481a64dc4d552f9e4e",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            -0.024447504431009293,
-            -0.00003993138670921326,
-            0.2544737756252289
-          ],
-          "finalBasePosition": [
-            1.3624053001403809,
-            -1.004747986793518,
-            0.2610713243484497
-          ],
-          "minBaseHeight": 0.2544737756252289,
-          "maxBaseHeight": 0.27241411805152893,
-          "standHeightThreshold": 0.22,
-          "standFraction": 1,
-          "netXYDisplacement": 1.7125416719446163,
-          "xProgress": 1.3868528045713902
-        }
-      ]
+      "optionalNativeReferences": []
     },
     {
       "task": "Zbot-Direct-8dof-bipedal-run-v0",
@@ -1447,8 +1105,9 @@
         {
           "engine": "physx",
           "completedSteps": 600,
+          "controlDt": 0.03333333333333333,
           "simulationTime": 20.000000000000153,
-          "elapsedMs": 349.64414099999976,
+          "elapsedMs": 449.6726010000002,
           "acceptanceScope": "motion-validated",
           "motionRequirement": {
             "minHeight": 0.3,
@@ -1487,56 +1146,2268 @@
           "metrics": null
         }
       ],
-      "optionalNativeReferences": [
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "ZbotRlIsaaclab-6DOF-Periodic-Walking",
+      "checkpoint": "public/rl/checkpoints/ZbotRlIsaaclab-6DOF-Periodic-Walking/model_1499.pt",
+      "checkpointSha256": "eaa59b1542a0292929f6174de4dc845365f609d135954ea84cc15652d6651e39",
+      "physxModelSha256": "9fd3558a802b8636889605cda028b66eefce0a70c52e097402d1778cbed40fee",
+      "mujocoModelSha256": "c0859d5ba319ca3bc2cab37c72292f67cb8c4cded69b63a470ab2bfa4f24ac41",
+      "runs": [
         {
-          "externalFile": "/tmp/zbot-isaac-run.json",
-          "sha256": "105f512e82e5ed03ff509026ff05a8b8604c469136310d02bdb9de48c24857a4",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 600,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            0.011224105954170227,
-            0.017297830432653427,
-            0.3608003258705139
-          ],
-          "finalBasePosition": [
-            -11.365666389465332,
-            0.7807074785232544,
-            0.3735204041004181
-          ],
-          "minBaseHeight": 0.3383660614490509,
-          "maxBaseHeight": 0.3844833970069885,
-          "standHeightThreshold": 0.3,
-          "standFraction": 1,
-          "netXYDisplacement": 11.402474803110263,
-          "xProgress": -11.376890495419502
+          "engine": "physx",
+          "completedSteps": 1000,
+          "controlDt": 0.02,
+          "simulationTime": 19.999999999999662,
+          "elapsedMs": 850.1055199999992,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.22,
+            "xDirection": 1,
+            "minX": 2
+          },
+          "nativeWarning": "IsaacLab 3.0 第 1500 代策略；浏览器 PhysX WASM 使用相同 USD 几何与 200 Hz/50 Hz 步长。1.0 Hz 在浏览器复现中可能跌倒，原生与浏览器接触数值不完全相同。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.024447470903396606,
+              -0.000039927661418914795,
+              0.25447380542755127
+            ],
+            "finalBasePosition": [
+              6.840071678161621,
+              2.6711654663085938,
+              0.2667866349220276
+            ],
+            "minBaseHeight": 0.25447380542755127,
+            "maxBaseHeight": 0.27731984853744507,
+            "standHeightThreshold": 0.22,
+            "standFraction": 1,
+            "netXYDisplacement": 7.365932487109476,
+            "xProgress": 6.864519149065018
+          }
         },
         {
-          "externalFile": "/tmp/zbot-isaac-run-sensor.json",
-          "sha256": "bec020d5a11e96f8dc8f3fa4f871345a8e1929b1fc3ade738f5095f075f9709f",
-          "sourceImplementation": "/home/yhzhu/myWorks_vips/zbot_rl_student/zbot_direct/source/zbot_direct/zbot_direct/__init__.py",
-          "provenance": "Optional external native Isaac capture; not required to run or regenerate WASM validation.",
-          "controlSteps": 1,
-          "controlDt": 0.03333333333333333,
-          "initialBasePosition": [
-            0.011224105954170227,
-            0.017297830432653427,
-            0.3608003258705139
-          ],
-          "finalBasePosition": [
-            0.006622565910220146,
-            0.021384086459875107,
-            0.3637588620185852
-          ],
-          "minBaseHeight": 0.3608003258705139,
-          "maxBaseHeight": 0.3637588620185852,
-          "standHeightThreshold": 0.3,
-          "standFraction": 1,
-          "netXYDisplacement": 0.0061539953766704784,
-          "xProgress": -0.004601540043950081
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
         }
-      ]
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-last_ZBotFootDown_ep_2500_rew_970.54364",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-last_ZBotFootDown_ep_2500_rew_970.54364/last_ZBotFootDown_ep_2500_rew_970.54364.pt",
+      "checkpointSha256": "e3e83fffd78cc5de8f86326399ebfbaa5fffb152a70ea85cf5b4cc64179ac252",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.0166,
+          "simulationTime": 1.9919999999999956,
+          "elapsedMs": 65.09125500000118,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym run.sh 原生回放专项对齐：ZBotFootDown.py，使用归档 MJCF、原生物理属性、控制器与启动 reset trace。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.00032544296118430793,
+              -0.00009117834270000458,
+              0.318009614944458
+            ],
+            "finalBasePosition": [
+              -0.02733965776860714,
+              0.03152644261717796,
+              0.25157320499420166
+            ],
+            "minBaseHeight": 0.25157320499420166,
+            "maxBaseHeight": 0.318027526140213,
+            "standHeightThreshold": 0.15,
+            "standFraction": 1,
+            "netXYDisplacement": 0.04158655740529742,
+            "xProgress": -0.02701421480742283
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-zbot_bipedal_forward",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-zbot_bipedal_forward/zbot_bipedal_forward.pt",
+      "checkpointSha256": "7c52af944ffe8c2e60fca44a277c3d1a45b7828c09405946fc82f9d0e043d45a",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 38.29601899999943,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006136844400316477,
+              0.015331674367189407,
+              0.24948863685131073
+            ],
+            "finalBasePosition": [
+              0.25827986001968384,
+              -0.12722961604595184,
+              0.050034403800964355
+            ],
+            "minBaseHeight": 0.04933208227157593,
+            "maxBaseHeight": 0.2595435678958893,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.2,
+            "netXYDisplacement": 0.30039959237754277,
+            "xProgress": 0.2644167044200003
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-zbot_bipedal_running",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-zbot_bipedal_running/zbot_bipedal_running.pt",
+      "checkpointSha256": "aae39699c232b05e83c1d53e488275d72c6e39f0198954d657865eb2680f2426",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 37.10901700000068,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006136844400316477,
+              0.015331674367189407,
+              0.24948863685131073
+            ],
+            "finalBasePosition": [
+              -0.1601259857416153,
+              0.09761364758014679,
+              0.05027369409799576
+            ],
+            "minBaseHeight": 0.04975473880767822,
+            "maxBaseHeight": 0.2503106892108917,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.14166666666666666,
+            "netXYDisplacement": 0.17459375351612194,
+            "xProgress": -0.15398914134129882
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_0.2pi",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_0.2pi/ZBotBipedalWalking_0.2pi.pt",
+      "checkpointSha256": "787f403269a37392473314451af0b4d803cb14f74065d64d3199ad0432869327",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 40.822840999999244,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006136844400316477,
+              0.015331674367189407,
+              0.24948863685131073
+            ],
+            "finalBasePosition": [
+              -0.07992091029882431,
+              -0.38339653611183167,
+              0.0664856880903244
+            ],
+            "minBaseHeight": 0.050001319497823715,
+            "maxBaseHeight": 0.27552253007888794,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.5083333333333333,
+            "netXYDisplacement": 0.4054975637563288,
+            "xProgress": -0.07378406589850783
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_0.45pi",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_0.45pi/ZBotBipedalWalking_0.45pi.pt",
+      "checkpointSha256": "53d17cf547a17c68528bcba13605a464a1eb83a3543d52bb725b035fc9a38cd1",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 40.65948799999933,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006136844400316477,
+              0.015331674367189407,
+              0.24948863685131073
+            ],
+            "finalBasePosition": [
+              0.0588313490152359,
+              0.18664494156837463,
+              0.05016195774078369
+            ],
+            "minBaseHeight": 0.04972868040204048,
+            "maxBaseHeight": 0.25601115822792053,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.25833333333333336,
+            "netXYDisplacement": 0.18321872632137062,
+            "xProgress": 0.06496819341555238
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_20250514",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_20250514/ZBotBipedalWalking_20250514.pt",
+      "checkpointSha256": "ec9caebd1ac4e25649c61619678fd412e9f333b7e1052c9d932c16d963733e31",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.0166,
+          "simulationTime": 1.992,
+          "elapsedMs": 47.396318999999494,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym 6DOF BipedalWalking 专用对齐模型：ZBot_R1 七刚体、原生质量/COM/惯量、36 维观测、0.0166 s 直连速度控制及双启动重置时序；使用原生 golden trace 验证。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.00022604403784498572,
+              0.024423830211162567,
+              0.2544664740562439
+            ],
+            "finalBasePosition": [
+              -0.00045187995419837534,
+              0.024631038308143616,
+              0.2543972432613373
+            ],
+            "minBaseHeight": 0.19657407701015472,
+            "maxBaseHeight": 0.2710041105747223,
+            "standHeightThreshold": 0.15,
+            "standFraction": 1,
+            "netXYDisplacement": 0.0003064915277290432,
+            "xProgress": -0.00022583591635338962
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_20250527",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_20250527/ZBotBipedalWalking_20250527.pt",
+      "checkpointSha256": "09064c1f6d43f56817c30955b63a81af820b0934435e6f3a31285453fb7b3b3b",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.0166,
+          "simulationTime": 1.9919999999999956,
+          "elapsedMs": 42.67430400000012,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym 6DOF BipedalWalking 专用对齐模型：ZBot_R1 七刚体、原生质量/COM/惯量、36 维观测、0.0166 s 直连速度控制及双启动重置时序；使用原生 golden trace 验证。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.00022604403784498572,
+              0.024423830211162567,
+              0.2544664740562439
+            ],
+            "finalBasePosition": [
+              -0.003883714322000742,
+              -0.02425389736890793,
+              0.2566636800765991
+            ],
+            "minBaseHeight": 0.25405922532081604,
+            "maxBaseHeight": 0.25821641087532043,
+            "standHeightThreshold": 0.15,
+            "standFraction": 1,
+            "netXYDisplacement": 0.048814953797654576,
+            "xProgress": -0.0036576702841557562
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking/ZBotBipedalWalking.pt",
+      "checkpointSha256": "bdc0262e1c6d50f1a2a4fb49910bf6a6933dbd8acc6f7c61c694dbfa98fb78e4",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.0166,
+          "simulationTime": 1.9919999999999969,
+          "elapsedMs": 44.871399999999994,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym 6DOF BipedalWalking 专用对齐模型：ZBot_R1 七刚体、原生质量/COM/惯量、36 维观测、0.0166 s 直连速度控制及双启动重置时序；使用原生 golden trace 验证。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.00022604403784498572,
+              0.024423830211162567,
+              0.2544664740562439
+            ],
+            "finalBasePosition": [
+              0.1017259880900383,
+              -0.02171321026980877,
+              0.2678142189979553
+            ],
+            "minBaseHeight": 0.1918785125017166,
+            "maxBaseHeight": 0.2781868875026703,
+            "standHeightThreshold": 0.15,
+            "standFraction": 1,
+            "netXYDisplacement": 0.1119055108533433,
+            "xProgress": 0.10195203212788329
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_BigFoot",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_BigFoot/ZBotBipedalWalking_BigFoot.pt",
+      "checkpointSha256": "851651ff083dfb0a68c0b54ad898e8e8d99ca61b9a3d2a7520fbf14d2f603ba8",
+      "physxModelSha256": "2aecede10e382338b2eafc19349160a21699675f8f6f705e83e6d64ec926c3c9",
+      "mujocoModelSha256": "0b0e53a80e52b392d63bbcaba91dbabfb57d3005f095f35a1669325481d53295",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.0166,
+          "simulationTime": 1.9919999999999956,
+          "elapsedMs": 48.4079559999991,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym run.sh 原生回放专项对齐：ZBotBipedalWalking_BigFoot.py，使用归档 MJCF、原生物理属性、控制器与启动 reset trace。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.007682016585022211,
+              0.017464470118284225,
+              0.28975239396095276
+            ],
+            "finalBasePosition": [
+              0.0071144429966807365,
+              -0.008412143215537071,
+              0.30582118034362793
+            ],
+            "minBaseHeight": 0.28959521651268005,
+            "maxBaseHeight": 0.30582118034362793,
+            "standHeightThreshold": 0.15,
+            "standFraction": 1,
+            "netXYDisplacement": 0.029808293037023557,
+            "xProgress": 0.014796459581702948
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_BigFoot_8DOF",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_BigFoot_8DOF/ZBotBipedalWalking_BigFoot_8DOF.pt",
+      "checkpointSha256": "730e3e4599e7eae4ba585b902630cef4b2000fcb7f61d6f952b698d9e129e203",
+      "physxModelSha256": "18a7362d123f491b47595b309eeb5397ed22643b94594a86c141deaad14f35e9",
+      "mujocoModelSha256": "9406044bed08cea856fc42f94222be8339e927c56ebf50d8a3bf4883704f6738",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.0166,
+          "simulationTime": 1.9919999999999989,
+          "elapsedMs": 77.51699700000063,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym run.sh 原生回放专项对齐：ZBotBipedalWalking_BigFoot_8DOF.py，使用归档 MJCF、原生物理属性、控制器与启动 reset trace。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.02966204285621643,
+              0.006210722960531712,
+              0.3753334581851959
+            ],
+            "finalBasePosition": [
+              -0.08111166208982468,
+              -0.003132709302008152,
+              0.3696243464946747
+            ],
+            "minBaseHeight": 0.368604838848114,
+            "maxBaseHeight": 0.3753334581851959,
+            "standHeightThreshold": 0.15,
+            "standFraction": 1,
+            "netXYDisplacement": 0.05229113735355106,
+            "xProgress": -0.051449619233608246
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_BigFoot_8DOF_Best",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_BigFoot_8DOF_Best/ZBotBipedalWalking_BigFoot_8DOF_Best.pt",
+      "checkpointSha256": "9e87a626dd3888f00312a6a7d3c049260ff59c498f325bb28db63939a97d7999",
+      "physxModelSha256": "18a7362d123f491b47595b309eeb5397ed22643b94594a86c141deaad14f35e9",
+      "mujocoModelSha256": "9406044bed08cea856fc42f94222be8339e927c56ebf50d8a3bf4883704f6738",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 52.89458000000013,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。观测结构依据归档任务 ZBotBipedalWalking_BigFoot_8DOF_Best.py；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.0315229706466198,
+              0.0028767124749720097,
+              0.3549928069114685
+            ],
+            "finalBasePosition": [
+              -0.2970127463340759,
+              0.36041951179504395,
+              0.1213674321770668
+            ],
+            "minBaseHeight": 0.0583442859351635,
+            "maxBaseHeight": 0.4269433319568634,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.43333333333333335,
+            "netXYDisplacement": 0.4453332171983233,
+            "xProgress": -0.26548977568745613
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_BigFoot_8DOF_R1",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_BigFoot_8DOF_R1/ZBotBipedalWalking_BigFoot_8DOF_R1.pt",
+      "checkpointSha256": "587d1936fc8372db30b3b8c6ba705e24d66ee12aa3aa74afeee22d96a27eab39",
+      "physxModelSha256": "18a7362d123f491b47595b309eeb5397ed22643b94594a86c141deaad14f35e9",
+      "mujocoModelSha256": "9406044bed08cea856fc42f94222be8339e927c56ebf50d8a3bf4883704f6738",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 56.86231200000111,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。观测结构依据归档任务 ZBotBipedalWalking_BigFoot_8DOF_R1.py；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.0315229706466198,
+              0.0028767124749720097,
+              0.3549928069114685
+            ],
+            "finalBasePosition": [
+              -0.5617674589157104,
+              0.2740398347377777,
+              0.09280798584222794
+            ],
+            "minBaseHeight": 0.06388236582279205,
+            "maxBaseHeight": 0.378103643655777,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.6583333333333333,
+            "netXYDisplacement": 0.5955574331792552,
+            "xProgress": -0.5302444882690907
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_BigFoot_Best",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_BigFoot_Best/ZBotBipedalWalking_BigFoot_Best.pt",
+      "checkpointSha256": "4f5cf5f2afa13d8bc097e88c67a003420ec5d39f2e942c9cbb40dd7ac69564c1",
+      "physxModelSha256": "2aecede10e382338b2eafc19349160a21699675f8f6f705e83e6d64ec926c3c9",
+      "mujocoModelSha256": "0b0e53a80e52b392d63bbcaba91dbabfb57d3005f095f35a1669325481d53295",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 39.964319999999134,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006269307341426611,
+              0.015366023406386375,
+              0.2694880962371826
+            ],
+            "finalBasePosition": [
+              0.02420949935913086,
+              0.22978486120700836,
+              0.08455276489257812
+            ],
+            "minBaseHeight": 0.06751204282045364,
+            "maxBaseHeight": 0.2949477434158325,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.425,
+            "netXYDisplacement": 0.2165742266791212,
+            "xProgress": 0.03047880670055747
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_BigFoot_R1",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_BigFoot_R1/ZBotBipedalWalking_BigFoot_R1.pt",
+      "checkpointSha256": "382f1b44006f5ebd6a61ca3092a295f8de99643c1c673ef21ce5a9c9f0ab5aa0",
+      "physxModelSha256": "2aecede10e382338b2eafc19349160a21699675f8f6f705e83e6d64ec926c3c9",
+      "mujocoModelSha256": "0b0e53a80e52b392d63bbcaba91dbabfb57d3005f095f35a1669325481d53295",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 43.00694099999964,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。观测结构依据归档任务 ZBotBipedalWalking_BigFoot_R1.py；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006269307341426611,
+              0.015366023406386375,
+              0.2694880962371826
+            ],
+            "finalBasePosition": [
+              0.24719390273094177,
+              -0.12048725038766861,
+              0.05010772496461868
+            ],
+            "minBaseHeight": 0.04949086904525757,
+            "maxBaseHeight": 0.29871249198913574,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.6,
+            "netXYDisplacement": 0.2875755741726894,
+            "xProgress": 0.2534632100723684
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_BigFoot_R2",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_BigFoot_R2/ZBotBipedalWalking_BigFoot_R2.pt",
+      "checkpointSha256": "12932d8775f98ec2f36ce7f677d8c04271a6f3bdf113453148f18850f68a888f",
+      "physxModelSha256": "2aecede10e382338b2eafc19349160a21699675f8f6f705e83e6d64ec926c3c9",
+      "mujocoModelSha256": "0b0e53a80e52b392d63bbcaba91dbabfb57d3005f095f35a1669325481d53295",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 44.03368799999953,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。观测结构依据归档任务 ZBotBipedalWalking_BigFoot_R2.py；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006269307341426611,
+              0.015366023406386375,
+              0.2694880962371826
+            ],
+            "finalBasePosition": [
+              0.0708741843700409,
+              0.26255014538764954,
+              0.06598585098981857
+            ],
+            "minBaseHeight": 0.06268825381994247,
+            "maxBaseHeight": 0.2958807945251465,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.35833333333333334,
+            "netXYDisplacement": 0.2589422879196931,
+            "xProgress": 0.0771434917114675
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_BigFoot_R3",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_BigFoot_R3/ZBotBipedalWalking_BigFoot_R3.pt",
+      "checkpointSha256": "96731aadb18af9f8b5b4039318982dbb98b03eb2274b3b066b8b748f0905b7d4",
+      "physxModelSha256": "2aecede10e382338b2eafc19349160a21699675f8f6f705e83e6d64ec926c3c9",
+      "mujocoModelSha256": "0b0e53a80e52b392d63bbcaba91dbabfb57d3005f095f35a1669325481d53295",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 56.61471299999903,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.036999817937612534,
+              0.048598211258649826,
+              0.31026551127433777
+            ],
+            "finalBasePosition": [
+              -0.36949169635772705,
+              -0.016515010967850685,
+              0.05000893026590347
+            ],
+            "minBaseHeight": 0.049604013562202454,
+            "maxBaseHeight": 0.31026551127433777,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.2833333333333333,
+            "netXYDisplacement": 0.3388075868749899,
+            "xProgress": -0.3324918784201145
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_BigFoot_Rotate",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_BigFoot_Rotate/ZBotBipedalWalking_BigFoot_Rotate.pt",
+      "checkpointSha256": "15e5ff40ed2bcfded79be408e5e0d3dc0c46c5847bf5cee00ca6bf71555b07cc",
+      "physxModelSha256": "2aecede10e382338b2eafc19349160a21699675f8f6f705e83e6d64ec926c3c9",
+      "mujocoModelSha256": "0b0e53a80e52b392d63bbcaba91dbabfb57d3005f095f35a1669325481d53295",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 45.49689099999887,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006269307341426611,
+              0.015366023406386375,
+              0.2694880962371826
+            ],
+            "finalBasePosition": [
+              0.2499430924654007,
+              -0.03292737901210785,
+              0.07182551920413971
+            ],
+            "minBaseHeight": 0.04945363849401474,
+            "maxBaseHeight": 0.2914058268070221,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.23333333333333334,
+            "netXYDisplacement": 0.26072408122750795,
+            "xProgress": 0.2562123998068273
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_BigFoot_VerySlow",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_BigFoot_VerySlow/ZBotBipedalWalking_BigFoot_VerySlow.pt",
+      "checkpointSha256": "b7fc47c6cf86e9bf34df46e640133b17d4c2b1be19ed551e3bf1138d00ab2038",
+      "physxModelSha256": "2aecede10e382338b2eafc19349160a21699675f8f6f705e83e6d64ec926c3c9",
+      "mujocoModelSha256": "0b0e53a80e52b392d63bbcaba91dbabfb57d3005f095f35a1669325481d53295",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 40.10194100000081,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006269307341426611,
+              0.015366023406386375,
+              0.2694880962371826
+            ],
+            "finalBasePosition": [
+              -0.1053776890039444,
+              -0.11247721314430237,
+              0.054952092468738556
+            ],
+            "minBaseHeight": 0.04949793964624405,
+            "maxBaseHeight": 0.2941395938396454,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.3333333333333333,
+            "netXYDisplacement": 0.16176020662548204,
+            "xProgress": -0.09910838166251779
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_ChangeSpeed",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_ChangeSpeed/ZBotBipedalWalking_ChangeSpeed.pt",
+      "checkpointSha256": "0073b3868d22d8901313a30cbcd7b2a2e0f063241f1dc7f4721d4aab21912447",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 34.21534400000019,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。观测结构依据归档任务 ZBotBipedalWalking_ChangeSpeed.py；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006136844400316477,
+              0.015331674367189407,
+              0.24948863685131073
+            ],
+            "finalBasePosition": [
+              -0.08904753625392914,
+              0.26498085260391235,
+              0.0638892874121666
+            ],
+            "minBaseHeight": 0.04976397752761841,
+            "maxBaseHeight": 0.26756593585014343,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.525,
+            "netXYDisplacement": 0.2630568284951291,
+            "xProgress": -0.08291069185361266
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_ChangeSpeedLimit",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_ChangeSpeedLimit/ZBotBipedalWalking_ChangeSpeedLimit.pt",
+      "checkpointSha256": "d95c9724397d4074280cbb014feb5af487c9dd0ac77e893634b17471082747e8",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 35.29015199999958,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。观测结构依据归档任务 ZBotBipedalWalking_ChangeSpeedLimit.py；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006136844400316477,
+              0.015331674367189407,
+              0.24948863685131073
+            ],
+            "finalBasePosition": [
+              -0.12591534852981567,
+              0.2583767771720886,
+              0.050628140568733215
+            ],
+            "minBaseHeight": 0.04974707216024399,
+            "maxBaseHeight": 0.26436424255371094,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.5916666666666667,
+            "netXYDisplacement": 0.27095721442497983,
+            "xProgress": -0.1197785041294992
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_ChangeSpeedLimit_v1",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_ChangeSpeedLimit_v1/ZBotBipedalWalking_ChangeSpeedLimit_v1.pt",
+      "checkpointSha256": "e300576e38a56719b81bb279d9a505502b0ab4de7e5aff35a5868d3117b30b78",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 35.975203999998485,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。观测结构依据归档任务 ZBotBipedalWalking_ChangeSpeedLimit_v1.py；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006136844400316477,
+              0.015331674367189407,
+              0.24948863685131073
+            ],
+            "finalBasePosition": [
+              -0.043917372822761536,
+              0.22047671675682068,
+              0.0688852071762085
+            ],
+            "minBaseHeight": 0.05306193232536316,
+            "maxBaseHeight": 0.26417189836502075,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.35833333333333334,
+            "netXYDisplacement": 0.2085949585798343,
+            "xProgress": -0.03778052842244506
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_ChangeSpeedLimit_v2",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_ChangeSpeedLimit_v2/ZBotBipedalWalking_ChangeSpeedLimit_v2.pt",
+      "checkpointSha256": "d89f1fca3a2ecd12d482a1f924d5b562413aa8638ce9a9b00b29ca477f7b94ba",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 34.53541099999893,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。观测结构依据归档任务 ZBotBipedalWalking_ChangeSpeedLimit_v2.py；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006136844400316477,
+              0.015331674367189407,
+              0.24948863685131073
+            ],
+            "finalBasePosition": [
+              0.23017852008342743,
+              -0.18784968554973602,
+              0.07051549851894379
+            ],
+            "minBaseHeight": 0.04999982938170433,
+            "maxBaseHeight": 0.26558148860931396,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.6833333333333333,
+            "netXYDisplacement": 0.31165303866443517,
+            "xProgress": 0.2363153644837439
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_ChangeSpeedLimit_v2_new",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_ChangeSpeedLimit_v2_new/ZBotBipedalWalking_ChangeSpeedLimit_v2_new.pt",
+      "checkpointSha256": "6fc24029b9b8e1aa667f8609455f4a95a41cb5cfb7f3342f30b2e8c1b288688f",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 34.75151000000005,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。观测结构依据归档任务 ZBotBipedalWalking_ChangeSpeedLimit_v2.py；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006136844400316477,
+              0.015331674367189407,
+              0.24948863685131073
+            ],
+            "finalBasePosition": [
+              -0.22400778532028198,
+              -0.027694324031472206,
+              0.06926589459180832
+            ],
+            "minBaseHeight": 0.0667901337146759,
+            "maxBaseHeight": 0.26682350039482117,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.49166666666666664,
+            "netXYDisplacement": 0.22207877754425956,
+            "xProgress": -0.2178709409199655
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_Side",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_Side/ZBotBipedalWalking_Side.pt",
+      "checkpointSha256": "02f5bcd78c981a1ca02e3954f5368a1f373c0eaf48293d158f649b50d2f535f2",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 35.71333799999957,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。观测结构依据归档任务 ZBotBipedalWalking_Side.py；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006136844400316477,
+              0.015331674367189407,
+              0.24948863685131073
+            ],
+            "finalBasePosition": [
+              -0.17162154614925385,
+              0.10358356684446335,
+              0.10399685800075531
+            ],
+            "minBaseHeight": 0.07106094807386398,
+            "maxBaseHeight": 0.25583264231681824,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.2916666666666667,
+            "netXYDisplacement": 0.18754621574096098,
+            "xProgress": -0.16548470174893737
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_Side_BigFoot_Best",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_Side_BigFoot_Best/ZBotBipedalWalking_Side_BigFoot_Best.pt",
+      "checkpointSha256": "b19be49ed39d13a175407e1d258ec66a4403121981eca2c739757ea2ed46e28d",
+      "physxModelSha256": "2aecede10e382338b2eafc19349160a21699675f8f6f705e83e6d64ec926c3c9",
+      "mujocoModelSha256": "0b0e53a80e52b392d63bbcaba91dbabfb57d3005f095f35a1669325481d53295",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 44.17005100000097,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006269307341426611,
+              0.015366023406386375,
+              0.2694880962371826
+            ],
+            "finalBasePosition": [
+              -0.0993058979511261,
+              0.29967018961906433,
+              0.05271689593791962
+            ],
+            "minBaseHeight": 0.05020592734217644,
+            "maxBaseHeight": 0.29023194313049316,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.49166666666666664,
+            "netXYDisplacement": 0.299139877178157,
+            "xProgress": -0.09303659060969949
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotBipedalWalking_Side_Slow",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotBipedalWalking_Side_Slow/ZBotBipedalWalking_Side_Slow.pt",
+      "checkpointSha256": "0ff2da4c95f423230a8d4469fea2bd4e939f94c91e8c1a5aa7256c588ea29619",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 35.703402999999525,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。观测结构依据归档任务 ZBotBipedalWalking_Side_Slow.py；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006136844400316477,
+              0.015331674367189407,
+              0.24948863685131073
+            ],
+            "finalBasePosition": [
+              0.07297177612781525,
+              0.14796580374240875,
+              0.06458908319473267
+            ],
+            "minBaseHeight": 0.04995464161038399,
+            "maxBaseHeight": 0.24948863685131073,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.18333333333333332,
+            "netXYDisplacement": 0.15443440716688225,
+            "xProgress": 0.07910862052813172
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotFootDown",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotFootDown/ZBotFootDown.pt",
+      "checkpointSha256": "b69f28a9a62a7c589188cc50febe29542624e3214f56dc5fdcfb0a61baa3afe4",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 32.76806299999953,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。观测结构依据归档任务 ZBotFootDown.py；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.00008764746598899364,
+              1.7508864402770996e-7,
+              0.3179999589920044
+            ],
+            "finalBasePosition": [
+              -0.3246448040008545,
+              -0.12591053545475006,
+              0.05002669617533684
+            ],
+            "minBaseHeight": 0.05002669617533684,
+            "maxBaseHeight": 0.3180241286754608,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.44166666666666665,
+            "netXYDisplacement": 0.3481247691382209,
+            "xProgress": -0.3245571565348655
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotFootDownBack",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotFootDownBack/ZBotFootDownBack.pt",
+      "checkpointSha256": "159c96dca2927d1a5f2fd952c47e0e0f8bf8a6216a108252854fe48013ce8d18",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 33.48558799999955,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.00008764746598899364,
+              1.7508864402770996e-7,
+              0.3179999589920044
+            ],
+            "finalBasePosition": [
+              -0.2386184185743332,
+              -0.09950962662696838,
+              0.04979315772652626
+            ],
+            "minBaseHeight": 0.04975717514753342,
+            "maxBaseHeight": 0.3180258572101593,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.525,
+            "netXYDisplacement": 0.2584552754404943,
+            "xProgress": -0.2385307711083442
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotFootDownBack1",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotFootDownBack1/ZBotFootDownBack1.pt",
+      "checkpointSha256": "978716bec51ea73976bdad52388dd7b9da666799d0b5324fb2abef814f559faf",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 35.12642400000004,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.00008764746598899364,
+              1.7508864402770996e-7,
+              0.3179999589920044
+            ],
+            "finalBasePosition": [
+              -0.27846336364746094,
+              0.007703932002186775,
+              0.054638415575027466
+            ],
+            "minBaseHeight": 0.049944087862968445,
+            "maxBaseHeight": 0.318026602268219,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.675,
+            "netXYDisplacement": 0.2784822924893616,
+            "xProgress": -0.27837571618147194
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotFootDown_8DOF",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotFootDown_8DOF/ZBotFootDown_8DOF.pt",
+      "checkpointSha256": "a6a0d20b9954eea45e6d109ee898fbd6c48ba2b93b58b1605d96c2e8ec267cd5",
+      "physxModelSha256": "7ee643b617da421b7428a22045f153790e92429907000f37c0b43f10a70d85fc",
+      "mujocoModelSha256": "c6607d9152fd7beaf34aa475ab3ec653b7fb5e4336ac783b20b4e5306b2710f1",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 102.9788580000004,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。观测结构依据归档任务 ZBotFootDown_8DOF.py；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              7.450580596923828e-8,
+              3.1105749087600998e-9,
+              0.4240001440048218
+            ],
+            "finalBasePosition": [
+              -0.404009610414505,
+              0.2324499934911728,
+              0.05985952168703079
+            ],
+            "minBaseHeight": 0.05000066012144089,
+            "maxBaseHeight": 0.4240535497665405,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.6416666666666667,
+            "netXYDisplacement": 0.4661081672073007,
+            "xProgress": -0.404009684920311
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotSingleLeg",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotSingleLeg/ZBotSingleLeg.pt",
+      "checkpointSha256": "229e390925654b8e5c9a01e3060ad5db48ef5a815a6ee39608c606174f6a475a",
+      "physxModelSha256": "30a248d307eb03235d6050e7c4630dcce2546f74e13c8bbc0d04a0ea82dcb26e",
+      "mujocoModelSha256": "c0859d5ba319ca3bc2cab37c72292f67cb8c4cded69b63a470ab2bfa4f24ac41",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.0166,
+          "simulationTime": 1.9919999999999956,
+          "elapsedMs": 73.04964800000016,
+          "acceptanceScope": "motion-validated",
+          "motionRequirement": {
+            "minHeight": 0.18,
+            "minXY": 0.8
+          },
+          "nativeWarning": "旧 Isaac Gym run.sh 原生回放专项对齐：ZBotSingleLeg.py，使用归档 MJCF、原生物理属性、控制器与启动 reset trace。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.00008445422281511128,
+              -0.002302485518157482,
+              0.21200813353061676
+            ],
+            "finalBasePosition": [
+              0.936798632144928,
+              0.10631909966468811,
+              0.2176615595817566
+            ],
+            "minBaseHeight": 0.19529114663600922,
+            "maxBaseHeight": 0.2849094867706299,
+            "standHeightThreshold": 0.18,
+            "standFraction": 1,
+            "netXYDisplacement": 0.9431588234701418,
+            "xProgress": 0.9368830863677431
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotSnakeAndBipedal",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotSnakeAndBipedal/ZBotSnakeAndBipedal.pt",
+      "checkpointSha256": "9b8c28cdd34a8fbd5a88f223811a79b10a7b4875464a44c0d47d6decb8ffe07c",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.0166,
+          "simulationTime": 1.9919999999999987,
+          "elapsedMs": 58.235169000001406,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym run.sh 原生回放专项对齐：ZBotSnakeAndBipedal.py，使用归档 MJCF、原生物理属性、控制器与启动 reset trace。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              0.005871078930795193,
+              0.015543904155492783,
+              0.24945876002311707
+            ],
+            "finalBasePosition": [
+              0.09066549688577652,
+              0.014067667536437511,
+              0.21973907947540283
+            ],
+            "minBaseHeight": 0.19542963802814484,
+            "maxBaseHeight": 0.2557462155818939,
+            "standHeightThreshold": 0.15,
+            "standFraction": 1,
+            "netXYDisplacement": 0.08480726732349946,
+            "xProgress": 0.08479441795498133
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotSnakeAndBipedal_R1",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotSnakeAndBipedal_R1/ZBotSnakeAndBipedal_R1.pt",
+      "checkpointSha256": "f6ef4c373b274a4ea01ae3799604117218c22148e05b3be84bd0aa56a1198664",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 38.02595899999869,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              3.590866981539875e-8,
+              1.601874828338623e-7,
+              0.05308767035603523
+            ],
+            "finalBasePosition": [
+              0.006354411132633686,
+              -0.16632886230945587,
+              0.05117304250597954
+            ],
+            "minBaseHeight": 0.04955034703016281,
+            "maxBaseHeight": 0.20892158150672913,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.175,
+            "netXYDisplacement": 0.1664503583933482,
+            "xProgress": 0.006354375223963871
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotSnakeAndBipedal_cpg",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotSnakeAndBipedal_cpg/ZBotSnakeAndBipedal_cpg.pt",
+      "checkpointSha256": "edb92095f9efbefb4abf0af5ee3909315c63d9ab4b2b77035f3a196c7558eba4",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 41.63489900000059,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              3.590866981539875e-8,
+              1.601874828338623e-7,
+              0.05308767035603523
+            ],
+            "finalBasePosition": [
+              0.0609021820127964,
+              0.1752706617116928,
+              0.0527791902422905
+            ],
+            "minBaseHeight": 0.04973690211772919,
+            "maxBaseHeight": 0.13205936551094055,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0,
+            "netXYDisplacement": 0.18555004743905748,
+            "xProgress": 0.06090214610412659
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotSnakeAndBipedal_pd",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotSnakeAndBipedal_pd/ZBotSnakeAndBipedal_pd.pt",
+      "checkpointSha256": "8402d17a40fed03d409e711d8428588ce13980e58cac51125e1a967df24cbfd9",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 39.72729199999958,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。观测结构依据归档任务 ZBotSnakeAndBipedal_pd.py；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              3.590866981539875e-8,
+              1.601874828338623e-7,
+              0.05308767035603523
+            ],
+            "finalBasePosition": [
+              0.09697727113962173,
+              0.18858551979064941,
+              0.08384131640195847
+            ],
+            "minBaseHeight": 0.05188770964741707,
+            "maxBaseHeight": 0.20000475645065308,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.45,
+            "netXYDisplacement": 0.212059005962244,
+            "xProgress": 0.09697723523095192
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotStandUp",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotStandUp/ZBotStandUp.pt",
+      "checkpointSha256": "e3aaf94844397c03046c62d390e6be824a34149eb40520ecc092d9a2297bb0a8",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.0166,
+          "simulationTime": 1.9919999999999995,
+          "elapsedMs": 53.79698400000052,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym run.sh 原生回放专项对齐：ZBotStandUp.py，使用归档 MJCF、原生物理属性、控制器与启动 reset trace。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              3.590866981539875e-8,
+              -0.00002241227775812149,
+              0.05038442462682724
+            ],
+            "finalBasePosition": [
+              0.0014836846385151148,
+              0.002605210058391094,
+              0.13339097797870636
+            ],
+            "minBaseHeight": 0.050286199897527695,
+            "maxBaseHeight": 0.25338926911354065,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.725,
+            "netXYDisplacement": 0.003017550777534958,
+            "xProgress": 0.0014836487298452994
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-ZBotStandUpAndWalking",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-ZBotStandUpAndWalking/ZBotStandUpAndWalking.pt",
+      "checkpointSha256": "836196f533d15219983bb5580e15e082ec856d90d5dbe014c7a5885958d88ce5",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 36.4288949999991,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              3.590866981539875e-8,
+              1.601874828338623e-7,
+              0.05308767035603523
+            ],
+            "finalBasePosition": [
+              0.18926650285720825,
+              0.21489696204662323,
+              0.04996069520711899
+            ],
+            "minBaseHeight": 0.04965963214635849,
+            "maxBaseHeight": 0.24318763613700867,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.275,
+            "netXYDisplacement": 0.2863606658751667,
+            "xProgress": 0.18926646694853844
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-zbot_bipedal_walking_R2",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-zbot_bipedal_walking_R2/zbot_bipedal_walking_R2.pt",
+      "checkpointSha256": "b409c5b20ae59d60ca43d7f9ca580415ce4af45289fc7634c6b64f5e77eb13e1",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 34.23973599999954,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              -0.006136844400316477,
+              0.015331674367189407,
+              0.24948863685131073
+            ],
+            "finalBasePosition": [
+              0.03647810220718384,
+              0.0444081649184227,
+              0.060217514634132385
+            ],
+            "minBaseHeight": 0.04897702857851982,
+            "maxBaseHeight": 0.27310115098953247,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0.44166666666666665,
+            "netXYDisplacement": 0.051589494833115604,
+            "xProgress": 0.042614946607500315
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-zbot_forward_moving",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-zbot_forward_moving/zbot_forward_moving.pt",
+      "checkpointSha256": "995ee849b94f3249dc83d2363a03a3fa0847150d0655992e13b00c09a3ae323f",
+      "physxModelSha256": "c27bb77d0e41f3763d27fbf511d44e23548596c5cc4b4960d64137125ad3f8ad",
+      "mujocoModelSha256": "bd374ef658f739be149115064f4582679c2437e6483655aad21487abf786b733",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.0166,
+          "simulationTime": 1.9919999999999956,
+          "elapsedMs": 45.0257479999982,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym run.sh 原生回放专项对齐：ZBotForwardMoving.py，使用归档 MJCF、原生物理属性、控制器与启动 reset trace。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              0.03199993818998337,
+              -0.0022418152075260878,
+              0.050296735018491745
+            ],
+            "finalBasePosition": [
+              0.3431974947452545,
+              0.042701900005340576,
+              0.06542842090129852
+            ],
+            "minBaseHeight": 0.018091723322868347,
+            "maxBaseHeight": 0.09883333742618561,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0,
+            "netXYDisplacement": 0.31442623418396,
+            "xProgress": 0.31119755655527115
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-zbot_rolling",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-zbot_rolling/zbot_rolling.pt",
+      "checkpointSha256": "df4861e429d591755cfa8c76829ac28870db7453c427aae25ee6ff35a85f7a80",
+      "physxModelSha256": "c27bb77d0e41f3763d27fbf511d44e23548596c5cc4b4960d64137125ad3f8ad",
+      "mujocoModelSha256": "bd374ef658f739be149115064f4582679c2437e6483655aad21487abf786b733",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.0166,
+          "simulationTime": 1.9919999999999956,
+          "elapsedMs": 40.934737999999925,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym ZBotRolling 专用对齐模型：7 刚体、原生质量/COM/惯量、MJCF 关节与碰撞、0.0166 s CPG 时序；使用原生 golden trace 验证。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              0.03199993818998337,
+              -0.0022418152075260878,
+              0.050296735018491745
+            ],
+            "finalBasePosition": [
+              0.2655397653579712,
+              -0.7525243759155273,
+              0.08068723976612091
+            ],
+            "minBaseHeight": 0.02314196527004242,
+            "maxBaseHeight": 0.12262412905693054,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0,
+            "netXYDisplacement": 0.7857892667733566,
+            "xProgress": 0.23353982716798782
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-zbot_side_moving",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-zbot_side_moving/zbot_side_moving.pt",
+      "checkpointSha256": "9c4ba5ec5149ee84a70daf067614f983e6a9d12e293c81c1edded5f905c910c8",
+      "physxModelSha256": "c27bb77d0e41f3763d27fbf511d44e23548596c5cc4b4960d64137125ad3f8ad",
+      "mujocoModelSha256": "bd374ef658f739be149115064f4582679c2437e6483655aad21487abf786b733",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.0166,
+          "simulationTime": 1.9919999999999956,
+          "elapsedMs": 45.363038999999844,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym run.sh 原生回放专项对齐：ZBotSideMoving.py，使用归档 MJCF、原生物理属性、控制器与启动 reset trace。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              0.03199993818998337,
+              -0.0022418152075260878,
+              0.050296735018491745
+            ],
+            "finalBasePosition": [
+              0.12195959687232971,
+              -0.16642121970653534,
+              0.050010424107313156
+            ],
+            "minBaseHeight": 0.0448073148727417,
+            "maxBaseHeight": 0.07690749317407608,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0,
+            "netXYDisplacement": 0.18721008800781425,
+            "xProgress": 0.08995965868234634
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-zbot_standup",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-zbot_standup/zbot_standup.pt",
+      "checkpointSha256": "d09e1d78a8eb866e3aebc125b572e212d9be69805e3c5f2916cc0f9fe5189e1b",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 39.77480699999978,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              3.590866981539875e-8,
+              1.601874828338623e-7,
+              0.05308767035603523
+            ],
+            "finalBasePosition": [
+              -0.03307699039578438,
+              -0.020229941233992577,
+              0.050034355372190475
+            ],
+            "minBaseHeight": 0.0495118573307991,
+            "maxBaseHeight": 0.06848589330911636,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0,
+            "netXYDisplacement": 0.03877301474825934,
+            "xProgress": -0.03307702630445419
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-zbot_standup_R1",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-zbot_standup_R1/zbot_standup_R1.pt",
+      "checkpointSha256": "2b4973d9badbd44dd35a203261fe16a8848c53370ca3c1fb0acb3636e622d810",
+      "physxModelSha256": "a5519cc17c687b50ef99080b2b6fe05732c05594a689854b53957756b074a224",
+      "mujocoModelSha256": "50461a20f63f1fa72abedee63657b2b8c21afc86eb6c1eff667b7308ac6db58f",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 39.976064000000406,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              3.590866981539875e-8,
+              1.601874828338623e-7,
+              0.05308767035603523
+            ],
+            "finalBasePosition": [
+              -0.03307699039578438,
+              -0.020229941233992577,
+              0.050034355372190475
+            ],
+            "minBaseHeight": 0.0495118573307991,
+            "maxBaseHeight": 0.06848589330911636,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0,
+            "netXYDisplacement": 0.03877301474825934,
+            "xProgress": -0.03307702630445419
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-zbot_standup_R2",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-zbot_standup_R2/zbot_standup_R2.pt",
+      "checkpointSha256": "4a3c5dcecb89f69e8664e01abc9c5293600f7bbf66f3b8b67f19c2ce750344af",
+      "physxModelSha256": "c27bb77d0e41f3763d27fbf511d44e23548596c5cc4b4960d64137125ad3f8ad",
+      "mujocoModelSha256": "bd374ef658f739be149115064f4582679c2437e6483655aad21487abf786b733",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 39.640762000000905,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              1.1175870895385742e-7,
+              1.6763806343078613e-8,
+              0.05300002172589302
+            ],
+            "finalBasePosition": [
+              0.05180579423904419,
+              0.04642484337091446,
+              0.12413343787193298
+            ],
+            "minBaseHeight": 0.021988648921251297,
+            "maxBaseHeight": 0.1261872947216034,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0,
+            "netXYDisplacement": 0.06956359150269174,
+            "xProgress": 0.051805682480335236
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
+    },
+    {
+      "task": "IsaacGym-zbot_standup_back",
+      "checkpoint": "public/rl/checkpoints/IsaacGym-zbot_standup_back/zbot_standup_back.pt",
+      "checkpointSha256": "83eb53d8468ce34c849234b1c88e43f117a9c6befb9a03ed388b4f2a3eef90cc",
+      "physxModelSha256": "c27bb77d0e41f3763d27fbf511d44e23548596c5cc4b4960d64137125ad3f8ad",
+      "mujocoModelSha256": "bd374ef658f739be149115064f4582679c2437e6483655aad21487abf786b733",
+      "runs": [
+        {
+          "engine": "physx",
+          "completedSteps": 120,
+          "controlDt": 0.016666666666666666,
+          "simulationTime": 1.9999999999999978,
+          "elapsedMs": 38.6589270000004,
+          "acceptanceScope": "migration-numerical-only",
+          "motionRequirement": null,
+          "nativeWarning": "旧 Isaac Gym / rl_games 迁移回放。归档中缺少唯一同名任务源码，观测按同维度任务族恢复；网络推理保持原归一化与动作裁剪，当前 PhysX WASM 仅用于查看执行效果，不代表复现原运动质量。",
+          "accepted": true,
+          "failures": [],
+          "error": null,
+          "mujocoWarnings": [],
+          "metrics": {
+            "initialBasePosition": [
+              1.1175870895385742e-7,
+              1.6763806343078613e-8,
+              0.05300002172589302
+            ],
+            "finalBasePosition": [
+              0.0012412220239639282,
+              -0.08120134472846985,
+              0.12447159737348557
+            ],
+            "minBaseHeight": 0.01229049265384674,
+            "maxBaseHeight": 0.12447159737348557,
+            "standHeightThreshold": 0.15,
+            "standFraction": 0,
+            "netXYDisplacement": 0.08121084572204525,
+            "xProgress": 0.0012411102652549744
+          }
+        },
+        {
+          "engine": "mujoco",
+          "accepted": false,
+          "skipped": true,
+          "reason": "Task requires PhysX velocity/contact state",
+          "metrics": null
+        }
+      ],
+      "optionalNativeReferences": []
     }
   ]
 }

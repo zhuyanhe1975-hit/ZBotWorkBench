@@ -23,6 +23,65 @@ function localTrainingProxyGuard(): Plugin {
   };
 }
 
+function rlBrowserDebugLog(): Plugin {
+  const logPath = '/tmp/zbot-workbench-rl-browser.log';
+  return {
+    name: 'rl-browser-debug-log',
+    configureServer(server) {
+      server.middlewares.use('/api/rl-debug-log', (req, res, next) => {
+        if (req.method === 'GET') {
+          res.statusCode = 200;
+          res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+          res.setHeader('Cache-Control', 'no-store');
+          res.end(fs.existsSync(logPath) ? fs.readFileSync(logPath, 'utf8').slice(-200_000) : '');
+          return;
+        }
+        if (req.method !== 'POST') { next(); return; }
+        let body = '';
+        req.setEncoding('utf8');
+        req.on('data', chunk => {
+          body += chunk;
+          if (body.length > 16_384) req.destroy();
+        });
+        req.on('end', () => {
+          try {
+            const value = JSON.parse(body);
+            if (!value || typeof value.event !== 'string' || value.event.length > 120) throw new Error('invalid debug record');
+            fs.appendFileSync(logPath, `${new Date().toISOString()} ${JSON.stringify(value)}\n`);
+            res.statusCode = 204;
+            res.end();
+          } catch {
+            res.statusCode = 400;
+            res.end('invalid debug record');
+          }
+        });
+      });
+    },
+  };
+}
+
+// PhysX model JSON used to be fetched after the checkpoint and display XML.
+// Some LAN browsers leave that standalone public-file request pending forever.
+// Bundle the immutable catalog into the application so replay loading has no
+// separate physical-model request and no browser decompression dependency.
+function bundledPhysxModels(): Plugin {
+  const publicId = 'virtual:zbot-physx-models';
+  const resolvedId = `\0${publicId}`;
+  return {
+    name: 'bundled-zbot-physx-models',
+    resolveId(id) { return id === publicId ? resolvedId : undefined; },
+    load(id) {
+      if (id !== resolvedId) return undefined;
+      const directory = path.resolve(__dirname, 'public', 'rl', 'physx');
+      const models = Object.fromEntries(fs.readdirSync(directory).filter(name => name.endsWith('.json')).sort().map(name => {
+        const key = name.slice(0, -'.json'.length);
+        return [key, JSON.parse(fs.readFileSync(path.join(directory, name), 'utf8'))];
+      }));
+      return `export default ${JSON.stringify(models)};`;
+    },
+  };
+}
+
 // LINT.IfChange(aistudio_media_plugin)
 function aistudioMediaPlugin(): Plugin {
   return {
@@ -85,7 +144,7 @@ function aistudioMediaPlugin(): Plugin {
 
 export default defineConfig(() => {
   return {
-    plugins: [localTrainingProxyGuard(), react(), tailwindcss(), aistudioMediaPlugin()],
+    plugins: [localTrainingProxyGuard(), rlBrowserDebugLog(), bundledPhysxModels(), react(), tailwindcss(), aistudioMediaPlugin()],
     resolve: {
       dedupe: ['react', 'react-dom'],
       alias: {
