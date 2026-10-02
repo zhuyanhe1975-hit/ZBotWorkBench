@@ -3,6 +3,9 @@ import importlib.metadata
 import importlib.util
 import json
 import ast
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 
@@ -44,8 +47,18 @@ def probe():
             result["cudaBuild"] = cuda_build
         if result["mjlabVersion"] != "1.3.0" or importlib.metadata.version("rsl-rl-lib") != "5.2.0":
             raise RuntimeError("Training requires mjlab==1.3.0 and rsl-rl-lib==5.2.0")
+        # Package metadata alone does not detect blocked or missing native DLLs.
+        # Check MuJoCo in isolation without importing Torch or initializing CUDA.
+        native = subprocess.run(
+            [sys.executable, "-c", "import mujoco"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=15, env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+        )
+        if native.returncode:
+            detail = native.stderr.strip()[-3000:]
+            raise RuntimeError(f"MuJoCo native runtime cannot load: {detail}")
         result["available"] = True
-    except (ImportError, RuntimeError) as error:
+    except (ImportError, RuntimeError, OSError, subprocess.TimeoutExpired) as error:
         result["error"] = str(error)
     return result
 

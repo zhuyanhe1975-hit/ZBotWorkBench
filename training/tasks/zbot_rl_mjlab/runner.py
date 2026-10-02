@@ -81,7 +81,8 @@ class WalkingRunner(MjlabOnPolicyRunner):
         if manager is None:
             return None
         try:
-            reward = manager.get_term_cfg("walking").func
+            name = "in_place" if getattr(self, "walking_config", {}).get("task_card", {}).get("reward_mode") == "in_place" else "walking"
+            reward = manager.get_term_cfg(name).func
         except (AttributeError, ValueError):
             return None
         required = ("stage", "promotion_counter", "last_metric")

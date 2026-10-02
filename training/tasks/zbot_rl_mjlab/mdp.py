@@ -81,15 +81,138 @@ def policy_observation(env):
     )
 
 
+def in_place_observation(env, card):
+    """Observation for commanded alternating in-place support."""
+    robot, base_id = _base(env)
+    data = robot.data
+    action = env.action_manager.get_term("joint_position")
+    ids = action.joint_ids
+    phase = env.episode_length_buf.float() * env.step_dt * 2 * torch.pi * card.target_frequency
+    feet = robot.find_bodies(("foot_0", "foot_1"), preserve_order=True)[0]
+    force = env.scene["feet_contact"].data.force_history[..., 2].mean(dim=-1).abs()
+    force = force / force.sum(dim=-1, keepdim=True).clamp_min(1e-6)
+    com = data.body_com_pos_w[:, base_id, :2] - env.scene.env_origins[:, :2]
+    yaw = torch.atan2(2 * (data.body_link_quat_w[:, base_id, 0] * data.body_link_quat_w[:, base_id, 3]), 1 - 2 * (data.body_link_quat_w[:, base_id, 2] ** 2 + data.body_link_quat_w[:, base_id, 3] ** 2))
+    return torch.cat((
+        data.body_link_quat_w[:, base_id], data.body_link_ang_vel_w[:, base_id],
+        data.joint_pos[:, ids] - data.default_joint_pos[:, ids], data.joint_vel[:, ids],
+        action.bounded_action, action.speed, torch.sin(phase)[:, None], torch.cos(phase)[:, None],
+        force, com, torch.sin(yaw)[:, None], torch.cos(yaw)[:, None],
+    ), dim=-1)
+
+
+class InPlaceReward:
+    """Reward alternating support and center of mass without forward travel."""
+
+    def __init__(self, cfg, env):
+        self.card = cfg.params["card"]
+        self.stage = self.card.initial_stage
+        self.promotion_counter = 0
+        self.last_metric = 0.0
+        self.robot, self.base_id = _base(env)
+        self.feet = self.robot.find_bodies(("foot_0", "foot_1"), preserve_order=True)[0]
+        self.previous_action = torch.zeros((env.num_envs, 6), device=env.device)
+        self.initial_yaw = torch.zeros(env.num_envs, device=env.device)
+
+    def reset(self, env_ids=None):
+        if env_ids is None:
+            self.previous_action.zero_()
+        else:
+            self.previous_action[env_ids] = 0
+        if env_ids is None:
+            self.initial_yaw.zero_()
+        else:
+            self.initial_yaw[env_ids] = 0
+
+    def _promote(self, metric):
+        if self.stage != 1:
+            return
+        self.last_metric = float(metric.mean().item())
+        self.promotion_counter = self.promotion_counter + 1 if self.last_metric >= self.card.promotion_threshold else 0
+        if self.promotion_counter >= self.card.promotion_window_steps:
+            self.stage = 2
+
+    def __call__(self, env, card):
+        data = self.robot.data
+        phase = env.episode_length_buf.float() * env.step_dt * 2 * torch.pi * card.target_frequency
+        phase_signal = torch.sin(phase)
+        desired_left = (phase_signal + 1) * .5
+        force = env.scene["feet_contact"].data.force_history[..., 2].mean(dim=-1).abs()
+        share = force / force.sum(dim=-1, keepdim=True).clamp_min(1e-6)
+        support_signal = share[:, 0] - share[:, 1]
+        # Keep the trunk centered over the two-foot support line and stationary.
+        feet_pos = data.body_link_pos_w[:, self.feet, :2]
+        support_mid = feet_pos.mean(dim=1)
+        com = data.body_com_pos_w[:, self.base_id, :2]
+        foot_half_span = (feet_pos[:, 0, 1] - feet_pos[:, 1, 1]).abs().clamp_min(1e-4) * 0.5
+        support_center_y = feet_pos[:, :, 1].mean(dim=1)
+        # COM phase signal relative to the two feet, normalized to [-1, 1].
+        com_signal = ((com[:, 1] - support_center_y) / foot_half_span).clamp(-1, 1)
+        velocity = data.body_com_lin_vel_w[:, self.base_id].square().sum(dim=-1)
+        upright = data.body_link_quat_w[:, self.base_id, 0].square()
+        quat = data.body_link_quat_w[:, self.base_id]
+        yaw = torch.atan2(2 * (quat[:, 0] * quat[:, 3]), 1 - 2 * (quat[:, 2].square() + quat[:, 3].square()))
+        if self.initial_yaw.numel():
+            initializing = env.episode_length_buf == 0
+            self.initial_yaw = torch.where(initializing, yaw.detach(), self.initial_yaw)
+        yaw_error = torch.atan2(torch.sin(yaw - self.initial_yaw), torch.cos(yaw - self.initial_yaw))
+        action = env.action_manager.get_term("joint_position")
+        smooth = (action.bounded_action - self.previous_action).square().sum(dim=-1)
+        joint_pose_error = (data.joint_pos[:, action.joint_ids] - data.default_joint_pos[:, action.joint_ids]).square().sum(dim=-1)
+        self.previous_action.copy_(action.bounded_action)
+        upright_score = data.body_link_quat_w[:, self.base_id, 0].square()
+        height = data.body_link_pos_w[:, self.base_id, 2] - env.scene.env_origins[:, 2]
+        alive_fraction = ((upright_score > 0.7) & (height > card.termination_height)).float().mean()
+        # Signed phase alignment: positive when force and COM follow the sine.
+        support_alignment = support_signal * phase_signal - 0.5 * (support_signal - phase_signal).square()
+        com_alignment = com_signal * phase_signal - 0.5 * (com_signal - phase_signal).square()
+        if self.stage == 1:
+            terms = {
+                "upright": card.stage_2_rewards.get("upright", -1.0) * (1.0 - upright_score),
+                "body_velocity": card.stage_2_rewards.get("body_velocity", -0.5) * data.body_com_lin_vel_w[:, self.base_id].square().sum(dim=-1),
+                "heading": card.stage_2_rewards.get("heading", -2.0) * yaw_error.square(),
+                "joint_pose": card.stage_2_rewards.get("joint_pose", -0.2) * joint_pose_error,
+                "action_rate": card.stage_2_rewards.get("action_rate", -0.05) * smooth,
+            }
+            self._promote(alive_fraction.reshape(1))
+        else:
+            terms = {
+                "support_phase": card.stage_2_rewards.get("support_phase", 4.0) * support_alignment,
+                "com_phase": card.stage_2_rewards.get("com_phase", 2.0) * com_alignment,
+                "heading": card.stage_2_rewards.get("heading", -2.0) * yaw_error.square(),
+                "joint_pose": card.stage_2_rewards.get("joint_pose", -0.2) * joint_pose_error,
+                "body_velocity": card.stage_2_rewards.get("body_velocity", -0.5) * velocity,
+                "upright": card.stage_2_rewards.get("upright", -1.0) * (1.0 - upright),
+                "action_rate": card.stage_2_rewards.get("action_rate", -0.05) * smooth,
+                "single_support": card.stage_2_rewards.get("single_support", 1.0) * support_signal.abs(),
+            }
+        logs = env.extras.setdefault("log", {})
+        logs["Reward/curriculum_stage"] = float(self.stage)
+        for name, value in terms.items():
+            logs[f"Reward/{name}"] = float(value.mean().item())
+        if self.stage == 1:
+            logs["Reward/support_phase"] = float((card.stage_2_rewards.get("support_phase", 4.0) * support_alignment).mean().item())
+            logs["Reward/com_phase"] = float((card.stage_2_rewards.get("com_phase", 2.0) * com_alignment).mean().item())
+        logs["Curriculum/stage"] = float(self.stage)
+        # Keep the terminal cost discrete, matching the walking task: a fall
+        # must make the total reward negative even when upright terms were
+        # positive earlier in the control step.
+        stage_reward = sum(terms.values())
+        return stage_reward - env.reset_terminated.float() * card.terminated_reward_penalty / env.step_dt
+
+
 def fallen(env, card):
     robot, base_id = _base(env)
     pos = robot.data.body_link_pos_w[:, base_id] - env.scene.env_origins
     forces = env.scene["body_contact"].data.force_history
     contact = forces.norm(dim=-1).amax(dim=(-1, -2)) > card.non_foot_contact_force
+    quat = robot.data.body_link_quat_w[:, base_id]
+    yaw = torch.atan2(2 * (quat[:, 0] * quat[:, 3]), 1 - 2 * (quat[:, 2].square() + quat[:, 3].square()))
     return (
         contact
         | (pos[:, 2] < card.termination_height)
         | (pos[:, 1].abs() > card.maximum_lateral_deviation)
+        | (yaw.abs() > torch.pi / 4)
     )
 
 

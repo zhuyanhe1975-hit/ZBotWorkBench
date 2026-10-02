@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 TASK_ID = "Mjlab-Zbot-6dof-Bipedal-Walking"
+IN_PLACE_TASK_ID = "Mjlab-Zbot-6dof-InPlace-Stepping"
 JOINT_NAMES = tuple(f"joint{i}" for i in range(1, 7))
 DEFAULT_JOINT_POS = (0.312, 0.837, -2.02, 2.02, -0.837, -0.312)
 OBSERVATION_TERMS = (
@@ -27,7 +28,7 @@ class WalkingTaskCard:
     friction_cone: Literal["pyramidal", "elliptic"] = "pyramidal"
     friction_impedance_ratio: float = 1.0
     contact_dimension: int = 3
-    foot_sliding_friction: float = 1.0
+    foot_sliding_friction: float = 2.0
     slip_force_threshold: float = 1.0
     slip_huber_delta: float = 0.08
     minimum_step_advancement: float = 0.025
@@ -49,9 +50,13 @@ class WalkingTaskCard:
     moving_direction: float = 1.0
     # Quat observations are fixed; the default reward now follows ordinary 6DOF walking.
     reward_mode: str = "bipedal_curriculum"
+    # In-place stepping command. The phase is encoded in the observation and
+    # alternates the desired left/right support at this frequency.
+    target_frequency: float = 1.0
+    target_com_sway: float = 0.035
     initial_stage: int = 1
-    promotion_threshold: float = 0.5
-    promotion_window_steps: int = 50
+    promotion_threshold: float = 0.75
+    promotion_window_steps: int = 20
     stage_1_rewards: dict[str, float] = field(
         default_factory=lambda: {
             "feet_downward": -1.0,
@@ -105,8 +110,10 @@ class WalkingTaskCard:
             or self.friction_impedance_ratio <= 0
         ):
             raise ValueError("Invalid friction solver settings")
-        if self.reward_mode not in ("quat", "bipedal_curriculum"):
+        if self.reward_mode not in ("quat", "bipedal_curriculum", "in_place"):
             raise ValueError("Unknown reward_mode")
+        if self.reward_mode == "in_place" and self.target_frequency != 1.0:
+            raise ValueError("in-place stepping uses a fixed 1.0 Hz command")
         if self.initial_stage not in (1, 2) or self.promotion_window_steps < 1:
             raise ValueError("Invalid curriculum stage/window")
         if self.num_envs < 1 or self.decimation < 1 or self.physics_dt <= 0:

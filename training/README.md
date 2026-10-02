@@ -19,6 +19,20 @@ changed by the workbench. First use compiles Warp kernels, which can take longer
 small training run. Kernel caches are shared between jobs under their parent
 directory's `.zbot-training-cache`, unless `XDG_CACHE_HOME` is supplied.
 
+On Windows, create the project environment with `python -m venv training/.venv`.
+The service detects `training/.venv/Scripts/python.exe` automatically; an explicit
+`ZBOT_TRAINING_PYTHON` still takes precedence. Install the CUDA 12.8 Torch wheel
+from the official PyTorch index when using an NVIDIA GPU.
+
+The published mjlab 1.3.0 metadata pins RSL-RL 5.0.1, whereas this worker requires
+5.2.0. A single `pip install -r requirements.txt` therefore fails resolution.
+Install the remaining pinned requirements with mjlab's dependencies first, then
+install `rsl-rl-lib==5.2.0` with `--no-deps`. This intentionally overrides mjlab's
+metadata pin; verify the worker in the resulting environment before a long run.
+The worker uses WGL on Windows and EGL on Linux. The lightweight environment
+probe also checks that MuJoCo's native module can load in a separate process;
+installed package metadata alone is insufficient when a DLL is blocked.
+
 ```bash
 /path/to/python training/probe.py
 /path/to/python training/worker.py --request /absolute/job/request.json --job-dir /absolute/job

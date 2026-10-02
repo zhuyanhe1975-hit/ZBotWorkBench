@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Download, Eye, EyeOff, Play, Square, X } from 'lucide-react';
-import { taskDefaults } from '../training/tasks';
+import { IN_PLACE_TASK, taskDefaults } from '../training/tasks';
 import { TrainingClient, trainingCheckpointUrl, trainingBundleUrl } from '../training/client';
 import type { TrainingConfig, TrainingJob, TrainingReplayBundle, TrainingResources, TrainingTask, TrainingTaskCardSettings } from '../training/types';
 import { TrainingLiveView } from './TrainingLiveView';
@@ -10,7 +10,7 @@ const statusLabel: Record<TrainingJob['status'], string> = { queued: '等待启�
 const initialConfig: TrainingConfig = { taskId: '', device: 'cpu', cpuThreads: 4, numEnvs: 4, iterations: 100, saveInterval: 10, seed: 42, maxSeconds: 3600 };
 const memory = (bytes: number) => `${(bytes / 1024 ** 3).toFixed(1)} GiB`;
 const inputClass = 'mt-1 w-full rounded border border-slate-700 bg-slate-900 px-2 py-2 text-sm disabled:opacity-40';
-const rewardLabels: Record<string, string> = { feet_downward: '足部朝下', feet_forward: '足部朝前', base_heading_x: '机身航向', feet_force_diff: '左右受力交替', feet_force_sum: '累计受力差', base_vel_forward: '前进速度', slow_speed_tracking: '慢速跟踪', similar_to_default: '默认姿态', base_heading_x_sum: '累计航向', support_stability: '支撑稳定', base_tilt: '机身倾斜', step_length: '步长', small_step: '小碎步', step_cadence: '慢步频', airtime_balance: '腾空时间差', airtime_sum: '腾空总时长', double_flight: '双脚腾空', action_rate: '动作变化', body_shake: '机身抖动', joint_velocity: '关节速度', joint_acceleration: '关节加速度', torques: '力矩平方', energy_consumption: '总机械能耗', feet_slide: '滑脚', base_pos_y_err: '横向偏移' };
+const rewardLabels: Record<string, string> = { feet_downward: '足部朝下', feet_forward: '足部朝前', base_heading_x: '机身航向', feet_force_diff: '左右受力交替', feet_force_sum: '累计受力差', base_vel_forward: '前进速度', slow_speed_tracking: '慢速跟踪', similar_to_default: '默认姿态', base_heading_x_sum: '累计航向', support_stability: '支撑稳定', base_tilt: '机身倾斜', step_length: '步长', small_step: '小碎步', step_cadence: '慢步频', airtime_balance: '腾空时间差', airtime_sum: '腾空总时长', double_flight: '双脚腾空', action_rate: '动作变化', body_shake: '机身抖动', joint_velocity: '关节速度', joint_acceleration: '关节加速度', torques: '力矩平方', energy_consumption: '总机械能耗', feet_slide: '滑脚', base_pos_y_err: '横向偏移', support_phase: '支撑相位跟踪', com_centering: '重心居中', com_phase: '重心相位跟踪', lateral_drift: '横向漂移', heading: '方向朝向', joint_pose: '初始构型偏离', body_velocity: '机身速度', upright: '机身直立', fall_protection: '保持不摔倒', single_support: '单脚支撑' };
 
 function TaskCardEditor({ task, initial, running, revision, disabled, onCommit }: { key?: React.Key; task: TrainingTask; initial: TrainingTaskCardSettings; running: boolean; revision?: number; disabled: boolean; onCommit: (value: TrainingTaskCardSettings) => void }) {
   const [draft, setDraft] = useState(() => ({ stage1Rewards: { ...initial.stage1Rewards }, stage2Rewards: { ...initial.stage2Rewards }, terminatedRewardPenalty: initial.terminatedRewardPenalty }));
@@ -50,29 +50,30 @@ function RewardHistory({ history }: { history: NonNullable<TrainingJob['history'
   </figure>;
 }
 
-function RewardTermBars({ current, history, card }: { current?: Record<string, number>; history?: TrainingJob['history']; card?: TrainingTaskCardSettings }) {
-  if (!current || !card) return <div className="rounded border border-dashed border-slate-800 p-4 text-xs text-slate-500">奖励分项柱状图将在首个PPO更新后显示。</div>;
+function RewardTermBars({ current, history, card, defaults, disabled, onCommit }: { current?: Record<string, number>; history?: TrainingJob['history']; card?: TrainingTaskCardSettings; defaults?: TrainingTaskCardSettings; disabled?: boolean; onCommit?: (value: TrainingTaskCardSettings) => void }) {
+  const [draft, setDraft] = useState(card ?? defaults);
+  const cardSignature = JSON.stringify(card ?? defaults);
+  useEffect(() => setDraft(card ?? defaults), [cardSignature]);
+  if (!card) return <div className="rounded border border-dashed border-slate-800 p-4 text-xs text-slate-500">奖励分项贡献将在选择训练任务后显示。</div>;
   const keys = [...new Set([...Object.keys(card.stage1Rewards), ...Object.keys(card.stage2Rewards)])];
-  const maximum = Math.max(1e-9, ...keys.map(key => Math.abs(current[key] ?? 0)));
-  const total = keys.reduce((sum, key) => sum + Math.abs(current[key] ?? 0), 0);
+  const curriculumStage = current?.curriculum_stage;
+  const maximum = Math.max(1e-9, ...keys.map(key => Math.abs(current?.[key] ?? 0)));
   const samples = (history ?? []).slice(-20);
+  if (!draft) return null;
+  const update = (key: string, value: number) => setDraft(previous => ({ ...previous, stage1Rewards: key in previous.stage1Rewards ? { ...previous.stage1Rewards, [key]: value } : previous.stage1Rewards, stage2Rewards: key in previous.stage2Rewards ? { ...previous.stage2Rewards, [key]: value } : previous.stage2Rewards }));
+  const reset = () => defaults && setDraft({ stage1Rewards: { ...defaults.stage1Rewards }, stage2Rewards: { ...defaults.stage2Rewards }, terminatedRewardPenalty: defaults.terminatedRewardPenalty });
   return <figure className="rounded border border-slate-800 bg-slate-950/50 p-3">
-    <figcaption className="mb-3"><span className="text-sm text-slate-200">奖励分项贡献</span><span className="ml-2 text-[11px] text-slate-500">当前比例 · 最近20次更新趋势</span></figcaption>
+    <figcaption className="mb-3 flex flex-wrap items-center gap-2"><span className="text-sm text-slate-200">奖励分项贡献</span><span className="text-[11px] text-slate-500">当前值 · 权重可随时修改</span>{curriculumStage !== undefined && <span className="rounded bg-slate-800 px-2 py-1 text-[11px] text-sky-300">课程阶段：{curriculumStage.toFixed(0)}</span>}<span className="ml-auto flex gap-2"><button type="button" disabled={disabled || !onCommit} onClick={reset} className="rounded bg-slate-800 px-2 py-1 text-[11px] hover:bg-slate-700 disabled:opacity-40">恢复默认权重</button><button type="button" disabled={disabled || !onCommit} onClick={() => onCommit?.(draft)} className="rounded bg-violet-700 px-2 py-1 text-[11px] hover:bg-violet-600 disabled:opacity-40">应用权重</button></span></figcaption>
     <div className="space-y-2">{keys.map(key => {
-      const value = current[key] ?? 0, percentage = total ? Math.abs(value) / total * 100 : 0;
-      const trend = samples.map(sample => sample.rewardTerms?.[key] ?? 0);
-      const trendLimit = Math.max(1e-9, ...trend.map(Math.abs));
-      return <div key={key} className="grid grid-cols-[7.5rem_minmax(8rem,1fr)_4rem_8rem] items-center gap-2 text-[11px]">
+      const value = current?.[key] ?? 0, weight = key in draft.stage1Rewards ? draft.stage1Rewards[key] : draft.stage2Rewards[key];
+      return <div key={key} className="grid grid-cols-[7.5rem_minmax(6rem,1fr)_4.5rem_5rem] items-center gap-2 text-[11px]">
         <span className="truncate text-slate-300" title={key}>{rewardLabels[key] ?? key}</span>
         <div className="relative h-4 overflow-hidden rounded bg-slate-900" title={`${key}: ${value.toFixed(5)}`}><span className="absolute inset-y-0 left-1/2 w-px bg-slate-600" /><span className={`absolute top-0.5 h-3 rounded-sm ${value >= 0 ? 'left-1/2 bg-emerald-500' : 'right-1/2 bg-rose-500'}`} style={{ width: `${Math.abs(value) / maximum * 50}%` }} /></div>
-        <span className={value >= 0 ? 'text-right text-emerald-300' : 'text-right text-rose-300'}>{value.toFixed(3)}<small className="block text-[9px] text-slate-500">{percentage.toFixed(1)}%</small></span>
-        <svg viewBox="0 0 120 28" className="h-7 w-full" role="img" aria-label={`${rewardLabels[key] ?? key}最近${trend.length}次柱状趋势`}><line x1="0" y1="14" x2="120" y2="14" stroke="#475569" />{trend.map((sample, index) => {
-          const height = Math.abs(sample) / trendLimit * 13, x = 120 - (trend.length - index) * 6;
-          return <rect key={index} x={x} y={sample >= 0 ? 14 - height : 14} width="4.5" height={height || .5} fill={sample >= 0 ? '#10b981' : '#f43f5e'}><title>迭代 {samples[index]?.iteration}: {sample.toFixed(5)}</title></rect>;
-        })}</svg>
+        <span className={value >= 0 ? 'text-right text-emerald-300' : 'text-right text-rose-300'}>{value.toFixed(3)}</span>
+        <input aria-label={`${rewardLabels[key] ?? key}权重`} type="number" min={-100} max={100} step="0.1" value={weight} disabled={disabled || !onCommit} onChange={event => update(key, Number(event.target.value))} className="w-full rounded border border-slate-700 bg-slate-900 px-1 py-1 text-left text-[11px]" />
       </div>;
     })}</div>
-    <div className="mt-3 flex gap-4 text-[10px] text-slate-500"><span><i className="mr-1 inline-block h-2 w-2 bg-emerald-500" />正贡献</span><span><i className="mr-1 inline-block h-2 w-2 bg-rose-500" />负贡献</span><span>百分比按当前绝对贡献计算</span></div>
+    <div className="mt-3 flex gap-4 text-[10px] text-slate-500"><span><i className="mr-1 inline-block h-2 w-2 bg-emerald-500" />正贡献</span><span><i className="mr-1 inline-block h-2 w-2 bg-rose-500" />负贡献</span></div>
   </figure>;
 }
 
@@ -97,8 +98,11 @@ export function TrainingPanel({ onClose, onReplay }: { onClose: () => void; onRe
   const activeJob = jobs.find(job => activeStatuses.has(job.status));
   const selectedTask = resources?.tasks.find(task => task.id === config.taskId);
   const cardJob = selected && ['queued', 'starting', 'running'].includes(selected.status) ? selected : undefined;
-  const cardTask = resources?.tasks.find(task => task.id === (cardJob?.config.taskId ?? config.taskId));
-  const cardSettings = cardJob?.taskCard ?? config.taskCard ?? cardTask?.taskCard;
+  const cardTask = resources?.tasks.find(task => task.id === (selected?.config.taskId ?? config.taskId));
+  const rawCardSettings = selected?.taskCard ?? config.taskCard ?? cardTask?.taskCard;
+  const cardSettings = rawCardSettings && (selected?.config.taskId ?? config.taskId) === IN_PLACE_TASK
+    ? { ...rawCardSettings, stage1Rewards: {} }
+    : rawCardSettings;
   const resumeJobs = jobs.filter(job => ['completed', 'stopped'].includes(job.status) && job.checkpoints.length);
   const deviceAvailable = !!resources?.runtime.available && (config.device === 'cpu' || resources.runtime.cudaBuild !== false && resources.gpus.some(gpu => config.device === `cuda:${gpu.id}`));
   previewJob.current = selected?.livePreviewEnabled && activeStatuses.has(selected.status) ? selected.id : null;
@@ -219,10 +223,6 @@ export function TrainingPanel({ onClose, onReplay }: { onClose: () => void; onRe
         <label htmlFor="training-resume" className="block text-xs">新训练 / 继续本服务保存的训练<select id="training-resume" value={config.resumeJobId ? JSON.stringify([config.resumeJobId, config.resumeCheckpoint]) : ''} onChange={event => resume(event.target.value)} disabled={busy} className={inputClass}><option value="">新训练</option>{resumeJobs.flatMap(job => job.checkpoints.map(checkpoint => <option key={`${job.id}/${checkpoint.name}`} value={JSON.stringify([job.id, checkpoint.name])}>{job.id} · {checkpoint.name}</option>))}</select></label>
         <label htmlFor="training-task" className="block text-xs">训练任务<select id="training-task" value={config.taskId} onChange={event => resources && setConfig(taskDefaults(event.target.value, resources))} disabled={busy || !!config.resumeJobId} className={inputClass}><option value="" disabled>选择任务</option>{resources?.tasks.map(task => <option key={task.id} value={task.id}>{task.label}</option>)}</select></label>
         <p className="text-xs leading-5 text-slate-400">{selectedTask?.description}</p>
-        {cardTask && cardSettings && <TaskCardEditor key={cardJob ? `${cardJob.id}:${cardJob.taskCardRevision ?? 0}` : `new:${config.taskId}`} task={cardTask} initial={cardSettings} running={!!cardJob} revision={cardJob?.taskCardRevision} disabled={busy} onCommit={value => {
-          if (cardJob) void act(async signal => acceptJob(await client.taskCard(cardJob.id, value, signal)));
-          else setConfig(current => ({ ...current, taskCard: value }));
-        }} />}
         {selectedTask?.referenceBundleUrl && <button disabled={busy} className="rounded bg-emerald-800 px-3 py-2 text-xs hover:bg-emerald-700 disabled:opacity-40" onClick={() => void act(async signal => {
           const response = await fetch(selectedTask.referenceBundleUrl!, { signal });
           if (!response.ok) throw new Error('参考回放包不可用，请重新构建应用。');
@@ -248,7 +248,10 @@ export function TrainingPanel({ onClose, onReplay }: { onClose: () => void; onRe
             <div className="flex flex-wrap gap-4 text-xs"><span>迭代 {selected.metrics.iteration} / {selected.metrics.totalIterations}</span>{selected.metrics.reward !== undefined && <span>奖励 {selected.metrics.reward.toFixed(3)}</span>}{selected.metrics.fps !== undefined && <span>{selected.metrics.fps.toFixed(0)} 环境步/s</span>}{selected.metrics.loss !== undefined && <span>损失 {selected.metrics.loss.toFixed(4)}</span>}</div>
             {selected.livePreviewEnabled && <TrainingLiveView frame={selected.liveFrame} jobId={selected.id} client={client} />}
             {selected.history && <RewardHistory history={selected.history} />}
-            <RewardTermBars current={selected.metrics.rewardTerms} history={selected.history} card={selected.taskCard} />
+            <RewardTermBars current={selected.metrics.rewardTerms} history={selected.history} card={cardSettings} defaults={cardTask?.taskCard} disabled={busy} onCommit={value => {
+              if (cardJob) void act(async signal => acceptJob(await client.taskCard(cardJob.id, value, signal)));
+              else setConfig(current => ({ ...current, taskCard: value }));
+            }} />
             {selected.error && <p className="text-xs text-rose-300" role="alert">{selected.error}</p>}
             <div className="flex flex-wrap gap-2">{(activeStatuses.has(selected.status) || selected.liveFrame) && <button disabled={busy || selected.status === 'stopping'} onClick={() => void act(async signal => acceptJob(await client.preview(selected.id, !selected.livePreviewEnabled, signal)))} className="flex items-center gap-2 rounded bg-sky-800 px-3 py-2 text-xs disabled:opacity-40">{selected.livePreviewEnabled ? <EyeOff size={14} /> : <Eye size={14} />}{selected.livePreviewEnabled ? '关闭训练画面，加速训练' : '显示训练画面'}</button>}{activeStatuses.has(selected.status) && <button disabled={busy || selected.status === 'stopping'} onClick={() => void act(async signal => acceptJob(await client.stop(selected.id, signal)))} className="flex items-center gap-2 rounded bg-amber-800 px-3 py-2 text-xs disabled:opacity-40"><Square size={14} />停止并保存</button>}{selected.bundleReady && <button disabled={busy} onClick={() => void act(async signal => { const bundle = await client.bundle(selected.id, signal); if (mounted.current && !signal.aborted) onReplay(bundle); })} className="flex items-center gap-2 rounded bg-emerald-700 px-3 py-2 text-xs disabled:opacity-40"><Play size={14} />用 MuJoCo 回放训练结果</button>}{selected.bundleReady && <a href={trainingBundleUrl(selected.id)} download={`${selected.id}-replay.json`} className="flex items-center gap-2 rounded bg-slate-800 px-3 py-2 text-xs hover:bg-slate-700"><Download size={14} />下载完整回放包（JSON）</a>}</div>
             {!selected.livePreviewEnabled && activeStatuses.has(selected.status) && <p className="text-xs text-emerald-300">训练画面已关闭：worker不复制姿态数据，浏览器不加载WebGL，后台保持最快训练。</p>}

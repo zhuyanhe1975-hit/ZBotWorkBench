@@ -22,6 +22,7 @@ function validateTaskCard(value: unknown, taskId: string): TrainingTaskCardSetti
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new TrainingError(400, '任务卡必须为JSON对象');
   const input = value as Record<string, unknown>;
   const rewards = (name: 'stage1Rewards' | 'stage2Rewards') => {
+    if (taskId === 'Mjlab-Zbot-6dof-InPlace-Stepping' && name === 'stage1Rewards') return {};
     const record = input[name];
     const expected = Object.keys(defaults[name]);
     const supplied = record && typeof record === 'object' && !Array.isArray(record) ? Object.keys(record) : [];
@@ -112,8 +113,9 @@ export async function createTrainingService(options: TrainingServiceOptions = {}
   const jobsDir = path.join(workDir, 'jobs');
   const repoRoot = process.cwd();
   const siblingRoot = path.dirname(repoRoot);
-  const pythonCandidates = [path.join(siblingRoot, 'zbot_rl_mjlab/.venv/bin/python'), path.join(repoRoot, 'training/.venv/bin/python')];
-  const python = options.python ?? process.env.ZBOT_TRAINING_PYTHON ?? pythonCandidates.find(existsSync) ?? 'python3';
+  const pythonRelativePath = os.platform() === 'win32' ? '.venv/Scripts/python.exe' : '.venv/bin/python';
+  const pythonCandidates = [path.join(repoRoot, 'training', pythonRelativePath), path.join(siblingRoot, 'zbot_rl_mjlab', pythonRelativePath)];
+  const python = options.python ?? process.env.ZBOT_TRAINING_PYTHON ?? pythonCandidates.find(existsSync) ?? (os.platform() === 'win32' ? 'python' : 'python3');
   const worker = path.resolve(options.worker ?? 'training/worker.py');
   const probe = path.resolve(options.probe ?? 'training/probe.py');
   let operatorRoots: string[] | undefined;
@@ -142,6 +144,12 @@ export async function createTrainingService(options: TrainingServiceOptions = {}
   const dir = (id: string) => path.join(jobsDir, id);
   const kill = options.killProcess ?? ((child: ChildProcess, signal: NodeJS.Signals) => {
     if (!child.pid) return;
+    if (os.platform() === 'win32') {
+      // The STOP marker requests a cooperative exit. Windows has no POSIX
+      // process groups, and SIGTERM would terminate Python immediately.
+      if (signal !== 'SIGTERM') child.kill(signal);
+      return;
+    }
     try { process.kill(-child.pid, signal); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error; }
   });
   function persist(job: TrainingJob) {

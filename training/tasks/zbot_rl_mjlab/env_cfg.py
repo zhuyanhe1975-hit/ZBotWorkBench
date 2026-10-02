@@ -18,14 +18,17 @@ from .task_card import WalkingTaskCard
 
 def walking_env_cfg(play=False, card=None):
     card = card or WalkingTaskCard()
+    observation_func = mdp.in_place_observation if card.reward_mode == "in_place" else mdp.policy_observation
     observations = {
         name: ObservationGroupCfg(
-            {"walking": ObservationTermCfg(func=mdp.policy_observation)},
+            {"walking": ObservationTermCfg(func=observation_func, params={"card": card})},
             enable_corruption=False,
         )
         for name in ("actor", "critic")
     }
-    if card.reward_mode == "bipedal_curriculum":
+    if card.reward_mode == "in_place":
+        rewards = {"in_place": RewardTermCfg(func=mdp.InPlaceReward, weight=1.0, params={"card": card})}
+    elif card.reward_mode == "bipedal_curriculum":
         rewards = {
             "walking": RewardTermCfg(func=mdp.WalkingReward, weight=1.0, params={"card": card})
         }

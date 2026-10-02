@@ -44,10 +44,15 @@ export function TrainingLiveView({ frame, jobId, client }: { frame?: TrainingLiv
     host.insertBefore(renderer.domElement, host.firstChild);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = false;
-    controls.target.set(2, 0, .22);
+    // Live poses are rebased around the environment origin and tiled around
+    // x=0; targeting x=2 leaves the robot outside the initial view.
+    controls.target.set(0, 0, .22);
     controls.minDistance = 1.2;
     controls.maxDistance = 8;
     controls.maxPolarAngle = Math.PI / 2 - .02;
+    // Apply the initial target immediately; otherwise the camera keeps its
+    // default -Z orientation until the user moves the orbit controls.
+    controls.update();
     const render = () => { if (!disposed) renderer.render(scene, camera); };
     controls.addEventListener('change', render);
 
@@ -101,7 +106,11 @@ export function TrainingLiveView({ frame, jobId, client }: { frame?: TrainingLiv
         const localRotation = new THREE.Quaternion(model.geom_quat[geom * 4 + 1], model.geom_quat[geom * 4 + 2], model.geom_quat[geom * 4 + 3], model.geom_quat[geom * 4]);
         geomMatrix.compose(localPosition, localRotation, one);
         const fullBodyName = nameAt(model.name_bodyadr[model.geom_bodyid[geom]]);
-        const index = bodyIndex.get(fullBodyName.replace(/^robot\//, '')) ?? bodyIndex.get(fullBodyName);
+        const shortBodyName = fullBodyName.split('/').at(-1) ?? fullBodyName;
+        const index = bodyIndex.get(fullBodyName)
+          ?? bodyIndex.get(fullBodyName.replace(/^robot\//, ''))
+          ?? bodyIndex.get(shortBodyName)
+          ?? next.bodyNames.findIndex(name => name.split('/').at(-1) === shortBodyName);
         mesh.count = index === undefined ? 0 : count;
         if (index === undefined) continue;
         for (let environmentIndex = 0; environmentIndex < count; environmentIndex++) {
@@ -138,7 +147,9 @@ export function TrainingLiveView({ frame, jobId, client }: { frame?: TrainingLiv
         model = engine.getModel();
         const geometryCache = new Map<number, THREE.BufferGeometry>();
         for (let geom = 0; geom < model.ngeom; geom++) {
-          if (model.geom_group[geom] !== 1 || model.geom_type[geom] !== 7 || model.geom_dataid[geom] < 0) continue;
+          // Training assets can use either the standard visual group (1) or
+          // the default group (0). Only skip collision geometry (group 4).
+          if (model.geom_group[geom] === 4 || model.geom_type[geom] !== 7 || model.geom_dataid[geom] < 0) continue;
           const meshId = model.geom_dataid[geom];
           let geometry = geometryCache.get(meshId);
           if (!geometry) {

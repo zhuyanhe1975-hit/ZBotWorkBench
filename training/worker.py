@@ -17,6 +17,7 @@ import traceback
 TASK_ID = "Mjlab-Zbot-6dof-Bipedal-Walking"
 WALKING_TASK_ID = "Mjlab-Zbot-6dof-Walking-Finetune"
 QUASISTATIC_TASK_ID = "Mjlab-Zbot-6dof-Quasistatic-Walking"
+IN_PLACE_TASK_ID = "Mjlab-Zbot-6dof-InPlace-Stepping"
 QUAT_MODEL = "zbot_rl_mjlab.models:QuatFeatureMLP"
 SEED_SHA256 = "ddd61fd509a2d9bca3dd027c8e62b93d019c34be8a3da6e0f2262ee1f15181c6"
 STOPPED = False
@@ -28,7 +29,7 @@ def request_stop(*_):
 
 
 def validate_request(request):
-    if request.get("taskId") not in (TASK_ID, WALKING_TASK_ID, QUASISTATIC_TASK_ID):
+    if request.get("taskId") not in (TASK_ID, WALKING_TASK_ID, QUASISTATIC_TASK_ID, IN_PLACE_TASK_ID):
         raise ValueError("Unsupported training task")
     if not re.fullmatch(r"cpu|cuda:\d+", request.get("device", "")):
         raise ValueError("Invalid training device")
@@ -52,7 +53,7 @@ def preset_checkpoint():
 
 def validate_policy_config(config, state, task_id):
     expected = QUAT_MODEL if task_id in (WALKING_TASK_ID, QUASISTATIC_TASK_ID) else "MLPModel"
-    width = 30 if expected == QUAT_MODEL else 26
+    width = 30 if expected == QUAT_MODEL else (34 if task_id == IN_PLACE_TASK_ID else 26)
     ppo = config["ppo"]
     for name in ("actor", "critic"):
         model = ppo[name]
@@ -95,6 +96,9 @@ def apply_task_card_settings(card, value):
     result = {}
     for field, current in (("stage1Rewards", card.stage_1_rewards), ("stage2Rewards", card.stage_2_rewards)):
         rewards = value.get(field)
+        if card.reward_mode == "in_place" and field == "stage1Rewards" and rewards == {}:
+            result["stage_1_rewards"] = {}
+            continue
         if not isinstance(rewards, dict) or set(rewards) != set(current):
             raise ValueError(f"{field} reward terms do not match the task")
         if any(isinstance(weight, bool) or not isinstance(weight, (int, float))
@@ -183,7 +187,7 @@ def run(request, job, emit):
     for name in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
         os.environ[name] = str(threads)
     device = prepare_device(request["device"], os.environ)
-    os.environ["MUJOCO_GL"] = "egl"
+    os.environ["MUJOCO_GL"] = "wgl" if sys.platform == "win32" else "egl"
     os.environ["WANDB_MODE"] = "disabled"
     os.environ.setdefault("MPLCONFIGDIR", str(job / "cache" / "matplotlib"))
     os.environ.setdefault("XDG_CACHE_HOME", str(job.parent / ".zbot-training-cache"))
@@ -230,7 +234,17 @@ def run(request, job, emit):
         agent = RslRlOnPolicyRunnerCfg(**ppo)
     else:
         card = replace(WalkingTaskCard(num_envs=request["numEnvs"]), **from_scratch_overrides())
+        if request["taskId"] == IN_PLACE_TASK_ID:
+            card = replace(card, reward_mode="in_place", target_frequency=1.0, joint_speed_range=(2.0, 2.0), foot_sliding_friction=2.0, stage_1_rewards={},
+                           stage_2_rewards={"support_phase": 4.0, "com_phase": 2.0, "heading": -2.0, "joint_pose": -0.2,
+                                            "body_velocity": -0.5, "upright": -1.0,
+                                            "action_rate": -0.05, "single_support": 1.0})
         agent = walking_ppo_cfg()
+        if request["taskId"] == IN_PLACE_TASK_ID:
+            # Start the standing curriculum conservatively: large Gaussian
+            # exploration impulses make the freshly initialized robot bounce.
+            agent.actor.distribution_cfg["init_std"] = 0.3
+            agent.algorithm.entropy_coef = 0.001
     card = apply_task_card_settings(card, request.get("taskCard"))
     agent.seed = request["seed"]
     agent.save_interval = request["saveInterval"]
@@ -296,7 +310,11 @@ def run(request, job, emit):
         runner = JobRunner(wrapped, asdict(agent), str(job / "logs"), device=device)
         if load_path:
             runner.load(str(load_path), map_location=device,
-                        allow_task_card_change=bool(seed_checkpoint and request["taskId"] == QUASISTATIC_TASK_ID))
+                        # Reward weights are intentionally hot-editable.  A resumed
+                        # checkpoint may therefore start with the current task-card
+                        # weights instead of the values stored when it was saved.
+                        # The network/PPO contract is still checked by runner.load.
+                        allow_task_card_change=True)
             runner.current_learning_iteration = int(saved["iter"]) + 1
         start_iteration = runner.current_learning_iteration
         original_log = runner.logger.log
@@ -312,7 +330,8 @@ def run(request, job, emit):
             if not isinstance(revision, int) or revision <= card_revision:
                 return
             card = apply_task_card_settings(card, update.get("taskCard"))
-            term = env.reward_manager.get_term_cfg("walking")
+            term_name = "in_place" if card.reward_mode == "in_place" else "walking"
+            term = env.reward_manager.get_term_cfg(term_name)
             term.params["card"] = card
             term.func.card = card
             runner.walking_config["task_card"] = json.loads(json.dumps(asdict(card)))
@@ -351,7 +370,7 @@ def run(request, job, emit):
             pass
         if completed:
             runner.save(str(checkpoints / f"model_{runner.current_learning_iteration}.pt"))
-        if latest:
+        if latest and card.reward_mode != "in_place":
             # Sensor history buffers are created during inference-mode rollouts;
             # their reset must remain in inference mode as well.
             with torch.inference_mode():
