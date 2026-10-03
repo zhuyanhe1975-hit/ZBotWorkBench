@@ -1,5 +1,7 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
-import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { createInterface } from 'node:readline';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createTrainingService, TrainingError, type TrainingServiceOptions } from './trainingService';
@@ -10,6 +12,9 @@ export async function createTrainingApp(options: TrainingServiceOptions & { dist
   const service = await createTrainingService(options);
   const app = express();
   const token = randomBytes(32).toString('hex');
+  const nativeReplays = new Map<string, { child: ReturnType<typeof spawn>; listeners: Set<(value: unknown) => void>; last?: unknown }>();
+  const nativeReplayScript = path.resolve(options.distDir ? path.join(options.distDir, '..', 'training/native_replay.py') : 'training/native_replay.py');
+  const python = process.env.ZBOT_TRAINING_PYTHON ?? path.join(process.env.HOME ?? '', 'mjlab', '.venv', 'bin', 'python');
   app.disable('x-powered-by');
   app.use((req, res, next) => {
     if (!loopbackAddress(req.socket.remoteAddress)) return res.status(403).json({ error: '训练服务仅接受本机连接' });
@@ -42,6 +47,38 @@ export async function createTrainingApp(options: TrainingServiceOptions & { dist
   const asyncRoute = (handler: (req: Request, res: Response) => Promise<unknown>) => (req: Request, res: Response, next: NextFunction) => { void handler(req, res).catch(next); };
   app.get('/api/training/session', (_req, res) => res.json({ token }));
   app.get('/api/training/resources', asyncRoute(async (_req, res) => res.json(await service.resources())));
+  app.post('/api/training/replay', asyncRoute(async (req, res) => {
+    const frequency = Number(req.body?.frequency ?? 0.4);
+    const steps = Number(req.body?.steps ?? 600);
+    const device = typeof req.body?.device === 'string' && /^cuda:\d+$/.test(req.body.device) ? req.body.device : 'cuda:0';
+    if (!Number.isFinite(frequency) || frequency < 0.25 || frequency > 1 || !Number.isInteger(steps) || steps < 1 || steps > 10000) return res.status(400).json({ error: 'invalid native replay parameters' });
+    const id = randomUUID();
+    const child = spawn(python, [nativeReplayScript, '--frequency', String(frequency), '--steps', String(steps), '--device', device], { cwd: path.dirname(nativeReplayScript), env: { ...process.env, PYTHONUNBUFFERED: '1' }, stdio: ['ignore', 'pipe', 'pipe'] });
+    const record: { child: ReturnType<typeof spawn>; listeners: Set<(value: unknown) => void>; last?: unknown } = { child, listeners: new Set<(value: unknown) => void>() };
+    nativeReplays.set(id, record);
+    const lineReader = createInterface({ input: child.stdout });
+    lineReader.on('line', line => {
+      try { const value = JSON.parse(line); record.last = value; for (const listener of record.listeners) listener(value); } catch {}
+    });
+    child.stderr.on('data', chunk => console.error('[MJWarp replay]', String(chunk).trim()));
+    child.once('close', () => { for (const listener of record.listeners) listener({ kind: 'closed' }); setTimeout(() => nativeReplays.delete(id), 60000).unref(); });
+    return res.status(202).json({ id, backend: 'mjwarp', frequency, device });
+  }));
+  app.post('/api/training/replay/:id/stop', (req, res) => {
+    const record = nativeReplays.get(req.params.id);
+    if (!record) return res.status(404).json({ error: 'native replay not found' });
+    record.child.kill('SIGTERM'); return res.json({ stopped: true });
+  });
+  app.get('/api/training/replay/:id/live', (req, res) => {
+    const record = nativeReplays.get(req.params.id);
+    if (!record) return res.status(404).json({ error: 'native replay not found' });
+    res.status(200).set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+    res.flushHeaders(); res.write(': connected\n\n');
+    const listener = (value: unknown) => res.write('data: ' + JSON.stringify(value) + '\n\n');
+    record.listeners.add(listener); if (record.last) listener(record.last);
+    const heartbeat = setInterval(() => res.write(': keepalive\n\n'), 15000); heartbeat.unref();
+    res.once('close', () => { clearInterval(heartbeat); record.listeners.delete(listener); });
+  });
   app.get('/api/training/jobs', (_req, res) => res.json(service.list()));
   app.get('/api/training/jobs/:id', asyncRoute(async (req, res) => res.json(service.get(req.params.id))));
   app.post('/api/training/jobs', asyncRoute(async (req, res) => res.status(201).json(await service.start(req.body))));

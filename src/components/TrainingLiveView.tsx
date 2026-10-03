@@ -12,7 +12,7 @@ const MAX_ENVIRONMENTS = 9;
 export const trainingDisplayPosition = (pose: [number, number, number], origin: [number, number, number], tileX: number, tileY: number): [number, number, number] =>
   [pose[0] - origin[0] + tileX, pose[1] - origin[1] + tileY, pose[2] - origin[2]];
 
-export function TrainingLiveView({ frame, jobId, client }: { frame?: TrainingLiveFrame; jobId: string; client: TrainingClient }) {
+export function TrainingLiveView({ frame, jobId, client, native = false }: { frame?: TrainingLiveFrame; jobId: string; client: TrainingClient; native?: boolean }) {
   const container = useRef<HTMLDivElement>(null);
   const frameRef = useRef<TrainingLiveFrame | undefined>(frame);
   const updateRef = useRef<(next: TrainingLiveFrame) => void>(() => {});
@@ -77,6 +77,12 @@ export function TrainingLiveView({ frame, jobId, client }: { frame?: TrainingLiv
     const geometries = new Set<THREE.BufferGeometry>();
     const materials = new Set<THREE.Material>();
     const instances = new Map<number, THREE.InstancedMesh>();
+    const bodyMarkerGeometry = new THREE.SphereGeometry(.055, 12, 8);
+    const bodyMarkerMaterial = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: .45, metalness: .15 });
+    const bodyMarkers = new THREE.InstancedMesh(bodyMarkerGeometry, bodyMarkerMaterial, MAX_ENVIRONMENTS * 32);
+    bodyMarkers.frustumCulled = false;
+    bodyMarkers.count = 0;
+    scene.add(bodyMarkers);
     let model: any = null;
     const nameAt = (address: number) => {
       let value = '';
@@ -130,6 +136,23 @@ export function TrainingLiveView({ frame, jobId, client }: { frame?: TrainingLiv
         }
         mesh.instanceMatrix.needsUpdate = true;
       }
+      let markerCount = 0;
+      for (let environmentIndex = 0; environmentIndex < count; environmentIndex++) {
+        const environment = next.environments[environmentIndex];
+        const origin = environment.environmentOrigin ?? environment.bodyPositions[base];
+        const column = environmentIndex % columns, row = Math.floor(environmentIndex / columns);
+        const tileX = (column - (columns - 1) / 2) * .82;
+        const tileY = ((rows - 1) / 2 - row) * .82;
+        for (let body = 0; body < environment.bodyPositions.length; body++) {
+          const pose = environment.bodyPositions[body];
+          if (!pose) continue;
+          position.fromArray(trainingDisplayPosition(pose, origin, tileX, tileY));
+          bodyMatrix.compose(position, new THREE.Quaternion(), new THREE.Vector3(.72, .72, .72));
+          bodyMarkers.setMatrixAt(markerCount++, bodyMatrix);
+        }
+      }
+      bodyMarkers.count = markerCount;
+      bodyMarkers.instanceMatrix.needsUpdate = true;
       renderer.shadowMap.needsUpdate = true;
       render();
     };
@@ -184,6 +207,8 @@ export function TrainingLiveView({ frame, jobId, client }: { frame?: TrainingLiv
       instances.forEach(mesh => scene.remove(mesh));
       geometries.forEach(geometry => geometry.dispose());
       materials.forEach(material => material.dispose());
+      bodyMarkerGeometry.dispose();
+      bodyMarkerMaterial.dispose();
       floor.geometry.dispose();
       (floor.material as THREE.Material).dispose();
       renderer.dispose();
@@ -193,11 +218,11 @@ export function TrainingLiveView({ frame, jobId, client }: { frame?: TrainingLiv
   }, []);
 
   useEffect(() => { if (frame) { frameRef.current = frame; setDisplayFrame(frame); updateRef.current(frame); } }, [frame]);
-  useEffect(() => client.live(jobId, next => {
+  useEffect(() => (native ? client.nativeReplayLive(jobId, next => { if (next?.kind !== 'frame' || !Array.isArray(next.environments)) return; frameRef.current = next; setDisplayFrame(next); updateRef.current(next); }, () => {}) : client.live(jobId, next => {
     frameRef.current = next;
     setDisplayFrame(next);
     updateRef.current(next);
-  }), [client, jobId]);
+  }, () => {})), [client, jobId, native]);
 
   return <figure className="overflow-hidden rounded border border-slate-700 bg-[#0b1220]" aria-label={`mjlab ZBot实体连续训练画面${displayFrame ? `，第 ${displayFrame.iteration} 次迭代，显示 ${displayFrame.environments.length} 个环境` : ''}`}>
     <figcaption className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-3 py-2 text-xs">

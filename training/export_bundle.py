@@ -12,14 +12,21 @@ def export_bundle(env, checkpoint_path, job_dir, card, versions):
     import mujoco
     import numpy as np
     import torch
-    from zbot_rl_mjlab.task_card import JOINT_NAMES, TASK_ID
+    try:
+        from zbot_rl_mjlab.task_card import JOINT_NAMES, TASK_ID
+    except ModuleNotFoundError:
+        # The vendored upstream task keeps its contract in robot.py rather
+        # than the legacy WorkBench task_card module.
+        from zbot_rl_mjlab.robot import JOINT_NAMES
+        TASK_ID = "Mjlab-Zbot-6dof-Walking"
     from zbot_rl_mjlab.robot import ASSET_PATH
 
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     state = checkpoint["actor_state_dict"]
-    model_class = checkpoint["infos"]["walking_config"]["ppo"]["actor"].get("class_name", "MLPModel")
-    feature_policy = model_class == "zbot_rl_mjlab.models:QuatFeatureMLP"
-    if model_class not in ("MLPModel", "zbot_rl_mjlab.models:QuatFeatureMLP") or state["mlp.0.weight"].shape[1] != (30 if feature_policy else 26):
+    model_class = ((checkpoint.get("infos") or {}).get("walking_config", {}).get("ppo", {}).get("actor", {}) or {}).get("class_name", "MLPModel")
+    input_size = int(state["mlp.0.weight"].shape[1])
+    feature_policy = model_class == "zbot_rl_mjlab.models:QuatFeatureMLP" or input_size == 30
+    if model_class not in ("MLPModel", "zbot_rl_mjlab.models:QuatFeatureMLP") or input_size not in (26, 30, 31):
         raise ValueError("Replay export requires an allowlisted MLP observation contract")
     # Do not ship optimizer state or arbitrary training metadata to the browser.
     portable = io.BytesIO()
@@ -98,11 +105,12 @@ def export_bundle(env, checkpoint_path, job_dir, card, versions):
             geom.set("group", "4")
 
     env.reset(seed=card["seed"])
-    action = env.action_manager.get_term("joint_position")
+    action = env.action_manager.get_term("joint_position") if "joint_position" in env.action_manager._terms else env.action_manager.get_term("joint_pos")
     lower, upper = card["task_card"]["joint_speed_range"]
     speed = max(lower, min(1.0, upper))
-    action.speed.fill_(speed)
-    defaults = env.scene["robot"].data.default_joint_pos[0, action.joint_ids].detach().cpu().tolist()
+    if hasattr(action, "speed"):
+        action.speed.fill_(speed)
+    defaults = env.scene["robot"].data.default_joint_pos[0].detach().cpu().tolist()
     qpos = env.sim.data.qpos[0].detach().cpu().numpy()
     ctrl = np.zeros(native.nu)
     for name, value in zip(joints, defaults):
@@ -125,8 +133,8 @@ def export_bundle(env, checkpoint_path, job_dir, card, versions):
         "name": "ZBot mjlab " + Path(checkpoint_path).stem,
         "xml": text, "assets": assets,
         "checkpointBase64": base64.b64encode(portable.getvalue()).decode("ascii"),
-        "profile": {"jointNames": joints, "defaultAngles": defaults, "observation": "quaternion",
-                    "inputSize": 26, "physicsDt": env.physics_dt, "controlDt": env.step_dt,
+        "profile": {"jointNames": joints, "defaultAngles": defaults, "observation": "mjlab-zbot" if input_size == 31 else "quaternion",
+                    "inputSize": input_size, "physicsDt": env.physics_dt, "controlDt": env.step_dt,
                     "jointSpeedLimit": speed, **({"policyFeatures": "quat-gravity-heading-v1"} if feature_policy else {})},
         "versions": versions,
     }

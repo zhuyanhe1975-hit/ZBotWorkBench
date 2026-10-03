@@ -45,8 +45,8 @@ def probe():
         cuda_build = cuda_build_from_source(source, result["torchVersion"])
         if cuda_build is not None:
             result["cudaBuild"] = cuda_build
-        if result["mjlabVersion"] != "1.3.0" or importlib.metadata.version("rsl-rl-lib") != "5.2.0":
-            raise RuntimeError("Training requires mjlab==1.3.0 and rsl-rl-lib==5.2.0")
+        if result["mjlabVersion"] != "1.6.0" or importlib.metadata.version("rsl-rl-lib") != "5.5.1":
+            raise RuntimeError("Training requires mjlab==1.6.0 and rsl-rl-lib==5.5.1")
         # Package metadata alone does not detect blocked or missing native DLLs.
         # Check MuJoCo in isolation without importing Torch or initializing CUDA.
         native = subprocess.run(

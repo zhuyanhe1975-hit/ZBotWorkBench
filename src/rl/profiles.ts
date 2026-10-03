@@ -19,7 +19,7 @@ export interface ReplayProfile {
   model: string;
   displayModel?: string;
   checkpoint: string;
-  observation: 'bipedal' | 'snake' | 'quaternion' | 'velocity' | 'imu' | 'run' | 'isaacgym' | 'isaaclab-periodic';
+  observation: 'bipedal' | 'snake' | 'quaternion' | 'velocity' | 'imu' | 'run' | 'isaacgym' | 'isaaclab-periodic' | 'mjlab-zbot';
   inputSize: number;
   jointNames: string[];
   displayJointNames?: string[];
@@ -31,6 +31,8 @@ export interface ReplayProfile {
   targetLimit?: number;
   commands?: [number, number, number];
   phaseFrequency?: number;
+  /** MJLab walking policy command, in steps per second (0.2–1.0 Hz). */
+  stepFrequency?: number;
   mujocoCompatible?: boolean;
   motion?: 'walking' | 'snake' | 'transition' | 'wheel' | 'velocity' | 'run';
   note?: string;
@@ -39,6 +41,8 @@ export interface ReplayProfile {
   jointSpeedLimit?: number;
   jointSigns?: number[];
   actionTransform?: 'tanh' | 'clamp';
+  actionMode?: 'velocity' | 'position';
+  bundlePath?: string;
   policyOutputSize?: number;
   legacyObservation?: LegacyObservation;
   legacyBodyIndex?: number;
@@ -81,6 +85,7 @@ const humanV1 = [-.08, 0, ...radians([25, -125, 125, -25]), 0, .08];
 // These contracts match the supplied checkpoints and the named task implementations.
 // Equal input dimensions alone do not identify a task's observation semantics.
 export const REPLAY_PROFILES: ReplayProfile[] = [
+  { id: 'ZbotRlMjlab-6DOF-Walking', label: '6DOF Walking · zbot_rl_mjlab · model_599', model: 'zbot_6s_new', displayModel: 'zbot_6s_new_mjlab', bundlePath: 'bundles/ZbotRlMjlab-6DOF-Walking/model_599.json', checkpoint: 'model_599.pt', observation: 'mjlab-zbot', inputSize: 31, actionMode: 'position', actionScale: .25, jointNames: sixJoints, defaultAngles: sixAngles, controlDt: .02, physicsDt: .005, stepFrequency: .5, motion: 'walking', origin: 'mjlab', note: 'mjlab 1.6.0，model_599；31维观测，含经验归一化；回放参数为踏步频率 0.2–1.0 Hz。' },
   { id: 'Zbot-Direct-8dof-bipedal-v0', label: '8DOF 双足 v0', model: 'zbot_8s_human', checkpoint: 'model_4050.pt', observation: 'bipedal', inputSize: 30, jointNames: eightJoints, defaultAngles: [0, ...sixAngles, 0] },
   { id: 'Zbot-Direct-8dof-snake-v0', label: '8DOF 蛇形 v0', model: 'zbot_8s_snake_v0', checkpoint: 'model_12050.pt', observation: 'snake', inputSize: 30, jointNames: eightJoints, defaultAngles: Array(8).fill(0) },
   { id: 'Zbot-Direct-6dof-bipedal-quat-v0', label: '6DOF 双足 · 四元数观测', model: 'zbot_6s_new', checkpoint: 'model_3850.pt', observation: 'quaternion', inputSize: 26, jointNames: sixJoints, defaultAngles: sixAngles },

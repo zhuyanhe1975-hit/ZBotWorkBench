@@ -44,7 +44,7 @@ export class MujocoEngine {
 
     this.initPromise = (async () => {
       this.mujoco = await loadMujoco({
-        locateFile: (file: string) => `${import.meta.env?.BASE_URL ?? '/'}${file}`,
+      locateFile: (file: string) => (import.meta.env?.BASE_URL ?? '/') + 'mujoco.wasm',
       });
       // Ensure meshes are loaded from meshManager
       await meshManager.init();

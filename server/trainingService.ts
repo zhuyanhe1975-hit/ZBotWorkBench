@@ -112,10 +112,9 @@ export async function createTrainingService(options: TrainingServiceOptions = {}
   const workDir = path.resolve(options.workDir ?? '.training');
   const jobsDir = path.join(workDir, 'jobs');
   const repoRoot = process.cwd();
-  const siblingRoot = path.dirname(repoRoot);
   const pythonRelativePath = os.platform() === 'win32' ? '.venv/Scripts/python.exe' : '.venv/bin/python';
-  const pythonCandidates = [path.join(repoRoot, 'training', pythonRelativePath), path.join(siblingRoot, 'zbot_rl_mjlab', pythonRelativePath)];
-  const python = options.python ?? process.env.ZBOT_TRAINING_PYTHON ?? pythonCandidates.find(existsSync) ?? (os.platform() === 'win32' ? 'python' : 'python3');
+  const pythonCandidates = [path.join(repoRoot, 'training', pythonRelativePath)];
+  const python = options.python ?? process.env.ZBOT_TRAINING_PYTHON ?? pythonCandidates.find(existsSync) ?? (os.platform() === 'win32' ? 'python' : path.join(os.homedir(), 'mjlab', '.venv', 'bin', 'python'));
   const worker = path.resolve(options.worker ?? 'training/worker.py');
   const probe = path.resolve(options.probe ?? 'training/probe.py');
   let operatorRoots: string[] | undefined;
@@ -126,9 +125,7 @@ export async function createTrainingService(options: TrainingServiceOptions = {}
       operatorRoots = value.map(root => path.resolve(repoRoot, root));
     } catch { throw new TrainingError(400, 'ZBOT_TRAINING_SCAN_ROOTS 必须是最多 10 个目录字符串组成的 JSON 数组'); }
   }
-  const scannedRoots = options.scannedRoots ?? operatorRoots ?? [
-    path.join(siblingRoot, 'zbot_rl_mjlab/logs'), path.join(siblingRoot, 'zbot_rl_student/pth'), path.join(siblingRoot, 'zbot_rl_runs/zbot_rl_student'),
-  ];
+  const scannedRoots = options.scannedRoots ?? operatorRoots ?? [path.join(repoRoot, 'training', 'vendor', 'zbot_rl_mjlab', 'logs')];
   const jobs = new Map<string, TrainingJob>();
   let active: { job: TrainingJob; child?: ChildProcess; stopRequested: boolean; deadline?: ReturnType<typeof setTimeout>; killTimer?: ReturnType<typeof setTimeout>; logBytes: number; done: Promise<void>; resolveDone: () => void } | undefined;
   let closed = false, pumping = false;
@@ -359,13 +356,18 @@ export async function createTrainingService(options: TrainingServiceOptions = {}
               const liveFrame = sanitizeLiveFrame(event.liveFrame, event.iteration);
               if (liveFrame) job.liveFrame = liveFrame;
               const history = job.history ??= [];
-              if (!history.length || event.iteration > history.at(-1)!.iteration) {
-                const point: NonNullable<TrainingJob['history']>[number] = { iteration: event.iteration };
-                if (typeof event.reward === 'number' && Number.isFinite(event.reward)) point.reward = event.reward;
-                if (typeof event.loss === 'number' && Number.isFinite(event.loss)) point.loss = event.loss;
-                if (job.metrics.rewardTerms) point.rewardTerms = { ...job.metrics.rewardTerms };
+              let point = history.at(-1);
+              if (!point || event.iteration > point.iteration) {
+                point = { iteration: event.iteration };
                 history.push(point);
                 if (history.length > 200) history.splice(0, history.length - 200);
+              }
+              // mjlab prints the iteration header before its reward metrics.
+              // Update the same point as later metric lines arrive.
+              if (point.iteration === event.iteration) {
+                if (typeof event.reward === "number" && Number.isFinite(event.reward)) point.reward = event.reward;
+                if (typeof event.loss === "number" && Number.isFinite(event.loss)) point.loss = event.loss;
+                if (job.metrics.rewardTerms) point.rewardTerms = { ...job.metrics.rewardTerms };
               }
             }
           }

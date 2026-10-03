@@ -9,15 +9,14 @@ import os
 from pathlib import Path
 import re
 import signal
+import shutil
+import subprocess
 import statistics
 import sys
 import time
 import traceback
 
-TASK_ID = "Mjlab-Zbot-6dof-Bipedal-Walking"
-WALKING_TASK_ID = "Mjlab-Zbot-6dof-Walking-Finetune"
-QUASISTATIC_TASK_ID = "Mjlab-Zbot-6dof-Quasistatic-Walking"
-IN_PLACE_TASK_ID = "Mjlab-Zbot-6dof-InPlace-Stepping"
+DIRECT_WALKING_TASK = "Mjlab-Zbot-6dof-Walking"
 QUAT_MODEL = "zbot_rl_mjlab.models:QuatFeatureMLP"
 SEED_SHA256 = "ddd61fd509a2d9bca3dd027c8e62b93d019c34be8a3da6e0f2262ee1f15181c6"
 STOPPED = False
@@ -29,11 +28,11 @@ def request_stop(*_):
 
 
 def validate_request(request):
-    if request.get("taskId") not in (TASK_ID, WALKING_TASK_ID, QUASISTATIC_TASK_ID, IN_PLACE_TASK_ID):
+    if request.get("taskId") != DIRECT_WALKING_TASK:
         raise ValueError("Unsupported training task")
     if not re.fullmatch(r"cpu|cuda:\d+", request.get("device", "")):
         raise ValueError("Invalid training device")
-    limits = {"cpuThreads": (1, 256), "numEnvs": (1, 4096), "iterations": (1, 100000),
+    limits = {"cpuThreads": (1, 256), "numEnvs": (1, 8192), "iterations": (1, 100000),
               "saveInterval": (1, 10000), "seed": (0, 2147483647), "maxSeconds": (1, 86400)}
     for name, (lower, upper) in limits.items():
         value = request.get(name)
@@ -52,8 +51,8 @@ def preset_checkpoint():
 
 
 def validate_policy_config(config, state, task_id):
-    expected = QUAT_MODEL if task_id in (WALKING_TASK_ID, QUASISTATIC_TASK_ID) else "MLPModel"
-    width = 30 if expected == QUAT_MODEL else (34 if task_id == IN_PLACE_TASK_ID else 26)
+    expected = "MLPModel"
+    width = 26
     ppo = config["ppo"]
     for name in ("actor", "critic"):
         model = ppo[name]
@@ -63,7 +62,7 @@ def validate_policy_config(config, state, task_id):
     if (ppo["algorithm"].get("class_name", "PPO") != "PPO"
             or state["actor_state_dict"]["mlp.0.weight"].shape[1] != width):
         raise ValueError("Unsupported checkpoint algorithm or observation contract")
-    if task_id == TASK_ID:
+    if task_id == DIRECT_WALKING_TASK:
         card = config["task_card"]
         if (card.get("physics_dt") != 1 / 240 or card.get("decimation") != 8
                 or card.get("contact_history_length") != 8):
@@ -177,6 +176,8 @@ def aggregate_reward_terms(extras):
 def run(request, job, emit):
     started = time.monotonic()
     validate_request(request)
+    if request["taskId"] == DIRECT_WALKING_TASK and not request.get("resumePath"):
+        return run_vendored_zbot(request, job, emit)
     if STOPPED or (job / "STOP").exists():
         emit("finished", stopped=True, iterations=0)
         return
@@ -204,7 +205,7 @@ def run(request, job, emit):
     from export_bundle import export_bundle
 
     versions = {name: importlib.metadata.version(name) for name in ("mjlab", "mujoco", "mujoco-warp", "warp-lang", "rsl-rl-lib", "torch")}
-    if versions["mjlab"] != "1.3.0" or versions["rsl-rl-lib"] != "5.2.0":
+    if versions["mjlab"] != "1.6.0" or versions["rsl-rl-lib"] != "5.5.1":
         raise ValueError("Unsupported training runtime; use pinned training/requirements.txt")
     # Match mjlab.scripts.train exactly; the verified run used TF32 on CUDA.
     configure_torch_backends()
@@ -214,38 +215,33 @@ def run(request, job, emit):
     if device.startswith("cuda") and (not torch.cuda.is_available() or int(device.split(":")[1]) >= torch.cuda.device_count()):
         raise ValueError(f"Requested physical CUDA device {request['device']} is unavailable")
     resume = Path(request["resumePath"]).resolve(strict=True) if request.get("resumePath") else None
-    seed_checkpoint = preset_checkpoint() if not resume and request["taskId"] in (WALKING_TASK_ID, QUASISTATIC_TASK_ID) else None
+    seed_checkpoint = None
     load_path = resume or seed_checkpoint
     if load_path:
         saved = torch.load(load_path, map_location="cpu", weights_only=True)
         if resume:
             marker = (saved.get("infos") or {}).get("workbench_training", {})
-            if marker.get("format_version") != 1 or marker.get("task_id", TASK_ID) != request["taskId"]:
+            if marker.get("format_version") != 1 or marker.get("task_id", DIRECT_WALKING_TASK) != request["taskId"]:
                 raise ValueError("Resume requires a checkpoint produced by this workbench training task")
         config = checkpoint_config(load_path)
         validate_policy_config(config, saved, request["taskId"])
         ppo = config["ppo"]
         card = replace(WalkingTaskCard(**config["task_card"]), num_envs=request["numEnvs"])
-        if seed_checkpoint and request["taskId"] == QUASISTATIC_TASK_ID:
-            card = quasistatic_overrides(card)
         for name in ("actor", "critic"):
             ppo[name] = RslRlModelCfg(**ppo[name])
         ppo["algorithm"] = RslRlPpoAlgorithmCfg(**ppo["algorithm"])
         agent = RslRlOnPolicyRunnerCfg(**ppo)
     else:
         card = replace(WalkingTaskCard(num_envs=request["numEnvs"]), **from_scratch_overrides())
-        if request["taskId"] == IN_PLACE_TASK_ID:
-            card = replace(card, reward_mode="in_place", target_frequency=1.0, joint_speed_range=(2.0, 2.0), foot_sliding_friction=2.0, stage_1_rewards={},
-                           stage_2_rewards={"support_phase": 4.0, "com_phase": 2.0, "heading": -2.0, "joint_pose": -0.2,
-                                            "body_velocity": -0.5, "upright": -1.0,
-                                            "action_rate": -0.05, "single_support": 1.0})
         agent = walking_ppo_cfg()
-        if request["taskId"] == IN_PLACE_TASK_ID:
-            # Start the standing curriculum conservatively: large Gaussian
-            # exploration impulses make the freshly initialized robot bounce.
-            agent.actor.distribution_cfg["init_std"] = 0.3
-            agent.algorithm.entropy_coef = 0.001
-    card = apply_task_card_settings(card, request.get("taskCard"))
+    # The vendored zbot task owns its reward terms; accept its complete card
+    # shape instead of validating against the retired WorkBench curriculum.
+    if request["taskId"] == DIRECT_WALKING_TASK:
+        requested_card = request.get("taskCard")
+        if isinstance(requested_card, dict):
+            card = replace(card, terminated_reward_penalty=float(requested_card.get("terminatedRewardPenalty", card.terminated_reward_penalty)))
+    else:
+        card = apply_task_card_settings(card, request.get("taskCard"))
     agent.seed = request["seed"]
     agent.save_interval = request["saveInterval"]
     agent.max_iterations = request["iterations"]
@@ -274,7 +270,7 @@ def run(request, job, emit):
             info = {**(infos or {}), "workbench_training": {"format_version": 1,
                     "completed_updates": self.current_learning_iteration + 1, "versions": versions,
                     "task_id": request["taskId"],
-                    "seed_checkpoint_sha256": SEED_SHA256 if request["taskId"] in (WALKING_TASK_ID, QUASISTATIC_TASK_ID) else None,
+                    "seed_checkpoint_sha256": None,
                     "requested_device": request["device"], "runtime_device": device,
                     "cpu_affinity": affinity, "effective_cpu_threads": threads}}
             temporary = destination.with_suffix(".pt.tmp")
@@ -383,6 +379,90 @@ def run(request, job, emit):
             writer.close()
         if env:
             env.close()
+
+
+def run_vendored_zbot(request, job, emit):
+    """Run the vendored zbot_rl_mjlab CLI, bypassing the retired runner."""
+    root = Path(__file__).resolve().parent / "vendor" / "zbot_rl_mjlab"
+    command = [sys.executable, str(root / "train.py"), "Mjlab-Zbot-6dof-Walking",
+               "--env.step-frequency-min", "0.25", "--env.step-frequency-max", "1.0",
+               "--env.scene.num-envs", str(request["numEnvs"]),
+               "--agent.max-iterations", str(request["iterations"])]
+    environment = os.environ.copy()
+    environment["PYTHONPATH"] = str(root / "src") + os.pathsep + environment.get("PYTHONPATH", "")
+    environment["MUJOCO_GL"] = "egl" if sys.platform != "win32" else "wgl"
+    environment["WANDB_MODE"] = "disabled"
+    environment["PYTHONUNBUFFERED"] = "1"
+    if request["device"] == "cpu":
+        environment["CUDA_VISIBLE_DEVICES"] = ""
+    else:
+        environment["CUDA_VISIBLE_DEVICES"] = request["device"].split(":", 1)[1]
+    emit("ready", device=request["device"], runtimeDevice=request["device"],
+         versions={"source": "vendored zbot_rl_mjlab", "task": "Mjlab-Zbot-6dof-Walking"})
+    (job / "zbot-command.txt").write_text(" ".join(command) + "\n")
+    process = subprocess.Popen(command, cwd=root, env=environment, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT, text=True, bufsize=1)
+    assert process.stdout is not None
+    iteration = 0
+    total_iterations = request["iterations"]
+    reward = None
+    loss = None
+    fps = None
+    reward_terms = {}
+    experiment_dir = None
+    for line in process.stdout:
+        sys.stderr.write(line)
+        sys.stderr.flush()
+        # mjlab formats metrics with ANSI styling and prefixes such as
+        # Episode_Reward/frequency_tracking. Strip styling before parsing and
+        # publish every reward term so the UI updates during the current iteration.
+        clean_line = re.sub(r"\[[0-9;]*m", "", line)
+        experiment_match = re.search(r"Logging experiment (?:in|to) directory:\s*(\S+)", clean_line)
+        if experiment_match:
+            experiment_dir = Path(experiment_match.group(1))
+        parsed = False
+        match = re.search(r"Learning iteration\s+(\d+)/(\d+)", clean_line)
+        if match:
+            iteration, total_iterations = int(match.group(1)), int(match.group(2))
+            parsed = True
+        match = re.search(r"Mean reward:\s*([-+]?\d+(?:\.\d+)?)", clean_line)
+        if match:
+            reward = float(match.group(1))
+        match = re.search(r"Mean value loss:\s*([-+]?\d+(?:\.\d+)?)", clean_line)
+        if match:
+            loss = float(match.group(1))
+        match = re.search(r"Steps per second:\s*([-+]?\d+(?:\.\d+)?)", clean_line)
+        if match:
+            fps = float(match.group(1))
+        match = re.search(r"^\s*(?:Episode_)?Reward/([A-Za-z][A-Za-z0-9_/-]*):\s*([-+]?\d+(?:\.\d+)?)\s*$", clean_line)
+        if match:
+            key = match.group(1).replace("/", "_")
+            reward_terms[key] = float(match.group(2))
+            parsed = True
+        if parsed and iteration >= 0:
+            emit("progress", iteration=iteration, totalIterations=total_iterations,
+                 reward=reward, loss=loss, fps=fps, rewardTerms=reward_terms)
+        if STOPPED or (job / "STOP").exists():
+            process.terminate()
+            break
+    return_code = process.wait()
+    if return_code != 0 and not STOPPED:
+        raise RuntimeError(f"vendored zbot training exited with code {return_code}")
+    # zbot_rl_mjlab writes model_*.pt under its experiment directory. Copy
+    # those artifacts into the WorkBench job for completion and downloads.
+    if return_code == 0 and not STOPPED:
+        if experiment_dir is None:
+            root_logs = root / "logs" / "rsl_rl" / "zbot_walking"
+            candidates = sorted((item for item in root_logs.iterdir() if item.is_dir()), key=lambda item: item.stat().st_mtime)
+            experiment_dir = candidates[-1] if candidates else None
+        if experiment_dir and experiment_dir.is_dir():
+            checkpoints = job / "checkpoints"
+            checkpoints.mkdir(parents=True, exist_ok=True)
+            for source in sorted(experiment_dir.glob("model_*.pt")):
+                destination = checkpoints / source.name
+                shutil.copy2(source, destination)
+                emit("checkpoint", name=source.name)
+    emit("finished", stopped=STOPPED or (job / "STOP").exists(), iterations=iteration)
 
 
 def main():

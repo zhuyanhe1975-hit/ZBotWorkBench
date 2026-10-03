@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Download, Eye, EyeOff, Play, Square, X } from 'lucide-react';
-import { IN_PLACE_TASK, taskDefaults } from '../training/tasks';
+import { DIRECT_WALKING_TASK, taskDefaults } from '../training/tasks';
 import { TrainingClient, trainingCheckpointUrl, trainingBundleUrl } from '../training/client';
 import type { TrainingConfig, TrainingJob, TrainingReplayBundle, TrainingResources, TrainingTask, TrainingTaskCardSettings } from '../training/types';
 import { TrainingLiveView } from './TrainingLiveView';
@@ -18,7 +18,7 @@ function TaskCardEditor({ task, initial, running, revision, disabled, onCommit }
   const group = (stage: 'stage1Rewards' | 'stage2Rewards', title: string) => <fieldset className="rounded border border-slate-800 p-3"><legend className="px-1 text-xs text-sky-300">{title}</legend><div className="grid grid-cols-2 gap-2">{Object.entries(draft[stage]).map(([key, value]) => <label key={key} className="text-[11px] text-slate-400">{rewardLabels[key] ?? key}<input aria-label={`${title}-${key}`} type="number" min={-100} max={100} step="0.1" value={value} disabled={disabled} onChange={event => weight(stage, key, Number(event.target.value))} className={inputClass} /></label>)}</div></fieldset>;
   return <details className="rounded border border-slate-700 bg-slate-950/40 p-3 text-xs"><summary className="cursor-pointer font-medium text-slate-200">任务卡 · {running ? `运行中修改${revision ? `（版本 ${revision}）` : ''}` : '下一次训练'}</summary>
     <div className="mt-3 space-y-3"><div className="grid grid-cols-2 gap-2 rounded bg-slate-900 p-2 text-[11px] text-slate-400"><span>物理 {task.taskCard.physicsHz} Hz</span><span>控制 {task.taskCard.controlHz} Hz</span><span>接触历史 {task.taskCard.contactHistory} 步</span><span>初始阶段 {task.taskCard.initialStage}</span><span className="col-span-2">积分速度 {task.taskCard.jointSpeedRange[0]}–{task.taskCard.jointSpeedRange[1]}</span></div>
-      {group('stage1Rewards', '第一阶段奖励权重')}{group('stage2Rewards', '第二阶段奖励权重')}
+      {task.id !== DIRECT_WALKING_TASK && group('stage1Rewards', '第一阶段奖励权重')}{group('stage2Rewards', '奖励权重')}
       <label className="block text-xs">提前终止惩罚<input aria-label="提前终止惩罚" type="number" min={0} max={1000} step="1" value={draft.terminatedRewardPenalty} disabled={disabled} onChange={event => setDraft(current => ({ ...current, terminatedRewardPenalty: Number(event.target.value) }))} className={inputClass} /></label>
       <button type="button" disabled={disabled} onClick={() => onCommit({ stage1Rewards: { ...draft.stage1Rewards }, stage2Rewards: { ...draft.stage2Rewards }, terminatedRewardPenalty: draft.terminatedRewardPenalty })} className="w-full rounded bg-violet-700 px-3 py-2 text-xs hover:bg-violet-600 disabled:opacity-40">{running ? '应用到运行任务（下一次PPO更新生效）' : '应用到下一次训练'}</button>
       {running && <p className="text-[11px] text-amber-300">权重更新不会回溯修改已经采集的rollout；下一次PPO更新统一使用新任务卡。</p>}
@@ -94,15 +94,13 @@ export function TrainingPanel({ onClose, onReplay }: { onClose: () => void; onRe
   const closeButton = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const previewJob = useRef<string | null>(null);
-  const selected = jobs.find(job => job.id === selectedId) ?? jobs[0];
+  const selected = jobs.find(job => job.id === selectedId) ?? (selectedId ? jobs[0] : undefined);
   const activeJob = jobs.find(job => activeStatuses.has(job.status));
   const selectedTask = resources?.tasks.find(task => task.id === config.taskId);
   const cardJob = selected && ['queued', 'starting', 'running'].includes(selected.status) ? selected : undefined;
   const cardTask = resources?.tasks.find(task => task.id === (selected?.config.taskId ?? config.taskId));
   const rawCardSettings = selected?.taskCard ?? config.taskCard ?? cardTask?.taskCard;
-  const cardSettings = rawCardSettings && (selected?.config.taskId ?? config.taskId) === IN_PLACE_TASK
-    ? { ...rawCardSettings, stage1Rewards: {} }
-    : rawCardSettings;
+  const cardSettings = rawCardSettings;
   const resumeJobs = jobs.filter(job => ['completed', 'stopped'].includes(job.status) && job.checkpoints.length);
   const deviceAvailable = !!resources?.runtime.available && (config.device === 'cpu' || resources.runtime.cudaBuild !== false && resources.gpus.some(gpu => config.device === `cuda:${gpu.id}`));
   previewJob.current = selected?.livePreviewEnabled && activeStatuses.has(selected.status) ? selected.id : null;
@@ -221,7 +219,7 @@ export function TrainingPanel({ onClose, onReplay }: { onClose: () => void; onRe
           <p className={resources.runtime.available ? 'text-emerald-300' : 'text-amber-300'}>{resources.runtime.available ? `运行环境就绪 · mjlab ${resources.runtime.mjlabVersion ?? '已检测'} · PyTorch ${resources.runtime.torchVersion ?? '已检测'}` : `运行环境不可用：${resources.runtime.error ?? '请检查本地训练依赖'}`}</p>
         </div>}
         <label htmlFor="training-resume" className="block text-xs">新训练 / 继续本服务保存的训练<select id="training-resume" value={config.resumeJobId ? JSON.stringify([config.resumeJobId, config.resumeCheckpoint]) : ''} onChange={event => resume(event.target.value)} disabled={busy} className={inputClass}><option value="">新训练</option>{resumeJobs.flatMap(job => job.checkpoints.map(checkpoint => <option key={`${job.id}/${checkpoint.name}`} value={JSON.stringify([job.id, checkpoint.name])}>{job.id} · {checkpoint.name}</option>))}</select></label>
-        <label htmlFor="training-task" className="block text-xs">训练任务<select id="training-task" value={config.taskId} onChange={event => resources && setConfig(taskDefaults(event.target.value, resources))} disabled={busy || !!config.resumeJobId} className={inputClass}><option value="" disabled>选择任务</option>{resources?.tasks.map(task => <option key={task.id} value={task.id}>{task.label}</option>)}</select></label>
+        <label htmlFor="training-task" className="block text-xs">训练任务<select id="training-task" value={config.taskId} onChange={event => { if (!resources) return; setSelectedId(''); setConfig(taskDefaults(event.target.value, resources)); }} disabled={busy || !!config.resumeJobId} className={inputClass}><option value="" disabled>选择任务</option>{resources?.tasks.map(task => <option key={task.id} value={task.id}>{task.label}</option>)}</select></label>
         <p className="text-xs leading-5 text-slate-400">{selectedTask?.description}</p>
         {selectedTask?.referenceBundleUrl && <button disabled={busy} className="rounded bg-emerald-800 px-3 py-2 text-xs hover:bg-emerald-700 disabled:opacity-40" onClick={() => void act(async signal => {
           const response = await fetch(selectedTask.referenceBundleUrl!, { signal });

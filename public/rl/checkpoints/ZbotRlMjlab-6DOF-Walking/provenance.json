@@ -1,0 +1,10 @@
+{
+  "taskId": "Mjlab-Zbot-6dof-Walking",
+  "label": "6DOF Walking · zbot_rl_mjlab · model_599",
+  "source": "ZBotWorkBench training job 226f86dd-2e4e-4a8a-98a2-f35969931510",
+  "checkpoint": "model_599.pt",
+  "runtime": {"mjlab": "1.6.0", "torch": "2.14.1", "device": "cuda:0"},
+  "observation": "31D mjlab actor observation with empirical normalization",
+  "physicsDt": 0.005,
+  "controlDt": 0.02
+}

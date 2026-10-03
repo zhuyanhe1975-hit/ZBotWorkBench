@@ -1,7 +1,7 @@
 {
-  "sourceDirectory": "/home/yhzhu/myWorks_vips/zbot_rl_mjlab/src/zbot_rl_mjlab",
+  "sourceDirectory": "training/vendor/zbot_rl_mjlab/src/zbot_rl_mjlab",
   "snapshotDate": "2026-09-11",
-  "note": "Task source and robot assets were copied from the sibling project. The local task card, environment and reward files now include the documented contact-point slip reward; no training requires sibling source at runtime. Original notices and asset provenance are retained.",
+  "note": "The complete zbot_rl_mjlab source, scripts and assets are vendored in this repository. Training no longer requires the sibling repository at runtime.",
   "files": {
     "actions.py": "7f83f29d4442d49365af83ed3ed16e2cbbc0218368f5edae3810772b68cf76f6",
     "task_card.py": "36940bce811b8a34bcd69c83ba399d82255ab7bcf020578ba6209130e747ab06",

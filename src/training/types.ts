@@ -88,8 +88,8 @@ export interface TrainingReplayBundle {
   profile: {
     jointNames: string[];
     defaultAngles: number[];
-    observation: 'quaternion';
-    inputSize: 26;
+    observation: 'quaternion' | 'mjlab-zbot';
+    inputSize: number;
     policyFeatures?: 'quat-gravity-heading-v1';
     physicsDt: number;
     controlDt: number;

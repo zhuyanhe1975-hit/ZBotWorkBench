@@ -36,6 +36,21 @@ export interface ObservationContext {
   frequency?: number;
   filteredLinear?: ArrayLike<number>;
   filteredAngular?: ArrayLike<number>;
+  initialForwardWorld?: ArrayLike<number>;
+}
+
+export interface ReplayTraceFrame {
+  step: number;
+  time: number;
+  observation: number[];
+  rawAction: number[];
+  targets: number[];
+  jointPositions: number[];
+  jointVelocities: number[];
+  basePosition: number[];
+  baseQuaternion: number[];
+  baseLinearVelocity: number[];
+  baseAngularVelocity: number[];
 }
 
 function periodicWalkingObservation(profile: ReplayProfile, state: PolicyState, previousActions: ArrayLike<number>, context: ObservationContext): Float32Array {
@@ -118,6 +133,29 @@ function buildLegacyObservation(profile: ReplayProfile, state: PolicyState, join
   }
 }
 
+function mjlabZbotObservation(profile: ReplayProfile, state: PolicyState, previousActions: ArrayLike<number>, context: ObservationContext): Float32Array {
+  if (!state.linearVelocity || previousActions.length !== 6 || state.positions.length !== 6 || state.velocities.length !== 6) throw new Error("mjlab zbot 回放缺少机身速度或关节观测");
+  const [w, x, y, z] = state.quaternion;
+  const inverse = new Quaternion(x, y, z, w).invert();
+  const local = (v: number[]) => new Vector3(...v as [number, number, number]).applyQuaternion(inverse).toArray();
+  const gravity = local([0, 0, -1]);
+  const linear = local(state.linearVelocity);
+  const angular = local(state.angularVelocity);
+  const bodyZ = new Vector3(0, 0, 1).applyQuaternion(new Quaternion(x, y, z, w));
+  const currentForward = new Vector3(bodyZ.y, -bodyZ.x, 0).normalize();
+  const initialForward = context.initialForwardWorld ? new Vector3(...Array.from(context.initialForwardWorld) as [number, number, number]).normalize() : new Vector3(0, 1, 0);
+  const yawError = Math.atan2(currentForward.x * initialForward.y - currentForward.y * initialForward.x,
+    currentForward.x * initialForward.x + currentForward.y * initialForward.y);
+  const frequency = context.frequency ?? profile.phaseFrequency ?? 1;
+  const phase = context.phase ?? ((context.time ?? 0) * frequency * 2 * Math.PI);
+  const frequencyNormalized = (frequency - 0.25) / 0.75;
+  const observation = new Float32Array([...linear, ...angular, ...gravity, yawError,
+    ...state.positions.map((value, i) => value - profile.defaultAngles[i]), ...state.velocities,
+    ...Array.from(previousActions), Math.sin(phase), Math.cos(phase), frequencyNormalized]);
+  if (observation.length !== 31 || !observation.every(Number.isFinite)) throw new Error("mjlab zbot 观测维度或数值无效");
+  return observation;
+}
+
 export function velocityObservationRaw(state: PolicyState): { linear: Float32Array; angular: Float32Array } {
   if (!state.linearVelocity) throw new Error('速度策略缺少机身线速度');
   const [w, x, y, z] = state.quaternion;
@@ -133,6 +171,7 @@ export function velocityObservationRaw(state: PolicyState): { linear: Float32Arr
 
 export function buildObservation(profile: ReplayProfile, state: PolicyState, previousActions: ArrayLike<number>, context: ObservationContext = {}): Float32Array {
   if (profile.observation === 'isaaclab-periodic') return periodicWalkingObservation(profile, state, previousActions, context);
+  if (profile.observation === 'mjlab-zbot') return mjlabZbotObservation(profile, state, previousActions, context);
   const [w, x, y, z] = state.quaternion;
   const quat = new Quaternion(x, y, z, w);
   let head: number[];
@@ -197,6 +236,16 @@ export function policyFeatures(profile: ReplayProfile, observation: Float32Array
 }
 
 /** Training-compatible action transform plus integrated position-delta controller. */
+export function integratePositionActions(raw: ArrayLike<number>, defaults: number[], scale = 1): { actions: Float32Array; targets: Float64Array } {
+  // MJLab's JointPositionAction applies scale + default offset without clipping.
+  // The actor mean is passed through as-is during inference; clipping here changes
+  // both the target and the next observation's `last_action` term.
+  const actions = Float32Array.from(raw);
+  if (!actions.every(Number.isFinite) || actions.length !== defaults.length) throw new Error("位置动作维度或数值无效");
+  const targets = Float64Array.from(defaults, (value, i) => value + actions[i] * scale);
+  return { actions, targets };
+}
+
 export function integrateActions(raw: ArrayLike<number>, delta: Float64Array, defaults: number[], options: Pick<ReplayProfile, 'deltaLimit' | 'actionScale' | 'targetLimit' | 'controlDt' | 'jointSpeedLimit' | 'jointSigns' | 'actionTransform'> = {}): { actions: Float32Array; targets: Float64Array } {
   if (raw.length !== delta.length || raw.length !== defaults.length) throw new Error('动作维度不匹配');
   const actions = Float32Array.from(raw, value => options.actionTransform === 'clamp'
@@ -253,6 +302,7 @@ export class PolicyReplay {
   public lastObservation = new Float32Array();
   public lastActions = new Float32Array();
   public controlSteps = 0;
+  private trace: ReplayTraceFrame[] = [];
   private commands: [number, number, number];
   private filterStep = -1;
   private filteredLinear: Float32Array | null = null;
@@ -267,11 +317,12 @@ export class PolicyReplay {
   private legacyResetPending = false;
   private previousBaseHeight: number | null = null;
   private legacySimulationSteps = 0;
+  private initialForwardWorld: number[] | null = null;
 
   constructor(private engine: MujocoEngine, public profile: ReplayProfile, private policy: PolicyNetwork, private dynamics?: ReplayDynamics) {
     this.commands = [...(profile.commands ?? [0, 0, 0])];
     this.jointSpeedLimit = profile.jointSpeedLimit ?? JOINT_SPEED_LIMIT;
-    this.periodicFrequency = profile.phaseFrequency ?? 1;
+    this.periodicFrequency = profile.stepFrequency ?? profile.phaseFrequency ?? 1;
     this.controlDt = profile.controlDt ?? CONTROL_DT;
     this.physicsDt = profile.physicsDt ?? PHYSICS_DT;
     const ratio = this.controlDt / this.physicsDt;
@@ -320,6 +371,7 @@ export class PolicyReplay {
     });
     for (let i = 0; i < model.nsensor; i++) this.sensorAddresses[name(model.name_sensoradr[i])] = model.sensor_adr[i];
     for (const s of ['rl_base_quat', 'rl_base_angvel']) if (this.sensorAddresses[s] === undefined) throw new Error(`策略模型缺少传感器 ${s}`);
+    if (profile.observation === 'mjlab-zbot' && this.sensorAddresses.rl_base_linvel === undefined) throw new Error('MJLab 策略模型缺少 rl_base_linvel 传感器');
     this.delta = new Float64Array(profile.jointNames.length);
     this.previousActions = new Float32Array(expectedOutput);
     this.reset();
@@ -337,7 +389,9 @@ export class PolicyReplay {
     this.legacyResetPending = false;
     this.previousBaseHeight = this.dynamics?.state().basePosition?.[2] ?? null;
     this.legacySimulationSteps = 0;
+    this.initialForwardWorld = this.profile.observation === 'mjlab-zbot' ? this.mjlabForwardWorld() : null;
     this.lastObservation = this.pendingZeroObservation ? new Float32Array(this.profile.inputSize) : this.observe();
+    this.trace = [];
   }
 
   public observe(): Float32Array {
@@ -360,12 +414,22 @@ export class PolicyReplay {
       }
       return buildObservation(observationProfile, state, this.previousActions, { commands: this.commands, time: this.controlSteps * this.controlDt,
         phase: this.periodicPhase, frequency: this.periodicFrequency,
-        filteredLinear: this.filteredLinear ?? undefined, filteredAngular: this.filteredAngular ?? undefined });
+        filteredLinear: this.filteredLinear ?? undefined, filteredAngular: this.filteredAngular ?? undefined, initialForwardWorld: this.initialForwardWorld ?? undefined });
     }
     const data = this.engine.getData();
     const sensor = (key: string, n: number) => Array.from(data.sensordata.slice(this.sensorAddresses[key], this.sensorAddresses[key] + n)) as number[];
     return buildObservation(observationProfile, { quaternion: sensor('rl_base_quat', 4), angularVelocity: sensor('rl_base_angvel', 3),
-      positions: this.joints.map(j => data.qpos[j.qpos]), velocities: this.joints.map(j => data.qvel[j.dof]) }, this.previousActions);
+      linearVelocity: this.profile.observation === 'mjlab-zbot' ? sensor('rl_base_linvel', 3) : undefined,
+      positions: this.joints.map(j => data.qpos[j.qpos]), velocities: this.joints.map(j => data.qvel[j.dof]) }, this.previousActions,
+      { time: this.controlSteps * this.controlDt, frequency: this.periodicFrequency, initialForwardWorld: this.initialForwardWorld ?? undefined });
+  }
+
+  private mjlabForwardWorld(): number[] {
+    const data = this.engine.getData();
+    const sensor = (key: string, n: number) => Array.from(data.sensordata.slice(this.sensorAddresses[key], this.sensorAddresses[key] + n));
+    const [w, x, y, z] = sensor('rl_base_quat', 4);
+    const bodyZ = new Vector3(0, 0, 1).applyQuaternion(new Quaternion(x, y, z, w));
+    return new Vector3(bodyZ.y, -bodyZ.x, 0).normalize().toArray();
   }
 
   public setCommands(commands: [number, number, number]): void {
@@ -382,8 +446,12 @@ export class PolicyReplay {
   public getJointSpeedLimit(): number { return this.jointSpeedLimit; }
 
   public setPeriodicFrequency(value: number): void {
-    if (this.profile.observation !== 'isaaclab-periodic' || !Number.isFinite(value) || value < .5 || value > 2) {
-      throw new Error('周期频率必须在 0.5–2.0 Hz 之间');
+    const isMjlab = this.profile.observation === 'mjlab-zbot';
+    const isIsaacLab = this.profile.observation === 'isaaclab-periodic';
+    if ((!isMjlab && !isIsaacLab) || !Number.isFinite(value)
+      || (isMjlab && (value < .2 || value > 1))
+      || (isIsaacLab && (value < .5 || value > 2))) {
+      throw new Error(isMjlab ? '踏步频率必须在 0.2–1.0 Hz 之间' : '周期频率必须在 0.5–2.0 Hz 之间');
     }
     this.periodicFrequency = value;
     this.lastObservation = this.observe();
@@ -399,11 +467,14 @@ export class PolicyReplay {
     const { actions, targets } = this.profile.legacyController
       ? integrateLegacyActions(raw, this.delta, this.profile.defaultAngles, runtimeProfile,
         (this.legacySimulationSteps + (this.profile.legacyController.timeOffsetSteps ?? 0)) * this.controlDt, this.controlSteps + 1)
-      : integrateActions(raw, this.delta, this.profile.defaultAngles, runtimeProfile);
+      : this.profile.actionMode === 'position'
+        ? integratePositionActions(raw, this.profile.defaultAngles, this.profile.actionScale ?? 1)
+        : integrateActions(raw, this.delta, this.profile.defaultAngles, runtimeProfile);
     const data = this.engine.getData();
     for (let i = 0; i < this.joints.length; i++) data.ctrl[this.joints[i].actuator] = this.joints[i].sign * targets[i];
     this.previousActions = this.profile.observation === 'isaaclab-periodic' ? Float32Array.from(raw) : actions;
     this.lastActions = actions;
+    const traceRawAction = Array.from(raw);
     const before = data.time;
     if (this.dynamics) this.dynamics.step(targets);
     else {
@@ -451,7 +522,17 @@ export class PolicyReplay {
     if (!Array.from(data.qpos as Float64Array).every(Number.isFinite) || !Array.from(data.qvel as Float64Array).every(Number.isFinite)) throw new Error('仿真状态无效，请重置回放');
     if (this.profile.observation === 'isaaclab-periodic') this.periodicPhase = (this.periodicPhase + this.periodicFrequency * this.controlDt) % 1;
     this.controlSteps++;
+    if (this.profile.observation === 'mjlab-zbot') {
+      const state = this.dynamics?.state();
+      this.trace.push({ step: this.controlSteps, time: data.time, observation: Array.from(this.lastObservation), rawAction: traceRawAction,
+        targets: Array.from(targets), jointPositions: this.joints.map(j => data.qpos[j.qpos]), jointVelocities: this.joints.map(j => data.qvel[j.dof]),
+        basePosition: state?.basePosition ?? Array.from(data.qpos.slice(0, 3)), baseQuaternion: state?.quaternion ?? Array.from(data.sensordata.slice(this.sensorAddresses.rl_base_quat, this.sensorAddresses.rl_base_quat + 4)),
+        baseLinearVelocity: state?.linearVelocity ?? Array.from(data.sensordata.slice(this.sensorAddresses.rl_base_linvel, this.sensorAddresses.rl_base_linvel + 3)), baseAngularVelocity: state?.angularVelocity ?? Array.from(data.sensordata.slice(this.sensorAddresses.rl_base_angvel, this.sensorAddresses.rl_base_angvel + 3)) });
+      if (this.trace.length > 1000) this.trace.shift();
+    }
   }
+
+  public getTrace(): ReplayTraceFrame[] { return this.trace.map(frame => ({ ...frame, observation: [...frame.observation], rawAction: [...frame.rawAction], targets: [...frame.targets], jointPositions: [...frame.jointPositions], jointVelocities: [...frame.jointVelocities], basePosition: [...frame.basePosition], baseQuaternion: [...frame.baseQuaternion], baseLinearVelocity: [...frame.baseLinearVelocity], baseAngularVelocity: [...frame.baseAngularVelocity] })); }
 
   public async resetAsync(): Promise<void> {
     if (!this.dynamics?.resetAsync) { this.reset(); return; }
@@ -464,6 +545,7 @@ export class PolicyReplay {
     this.pendingObservationOverride = null; this.legacyResetPending = false;
     this.previousBaseHeight = this.dynamics.state().basePosition?.[2] ?? null;
     this.legacySimulationSteps = 0;
+    this.trace = [];
     this.lastObservation = this.pendingZeroObservation ? new Float32Array(this.profile.inputSize) : this.observe();
   }
 
@@ -476,7 +558,9 @@ export class PolicyReplay {
     const { actions, targets } = this.profile.legacyController
       ? integrateLegacyActions(raw, this.delta, this.profile.defaultAngles, runtimeProfile,
         (this.legacySimulationSteps + (this.profile.legacyController.timeOffsetSteps ?? 0)) * this.controlDt, this.controlSteps + 1)
-      : integrateActions(raw, this.delta, this.profile.defaultAngles, runtimeProfile);
+      : this.profile.actionMode === 'position'
+        ? integratePositionActions(raw, this.profile.defaultAngles, this.profile.actionScale ?? 1)
+        : integrateActions(raw, this.delta, this.profile.defaultAngles, runtimeProfile);
     const data = this.engine.getData();
     for (let i = 0; i < this.joints.length; i++) data.ctrl[this.joints[i].actuator] = this.joints[i].sign * targets[i];
     this.previousActions = this.profile.observation === 'isaaclab-periodic' ? Float32Array.from(raw) : actions;

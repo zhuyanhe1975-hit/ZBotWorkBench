@@ -1,7 +1,0 @@
-{
-  "source": "zbot_rl_mjlab/logs/rsl_rl/6dof_bipedal_walking/2026-09-09_exact-ppo-noentropy/model_801.pt",
-  "sha256": "ddd61fd509a2d9bca3dd027c8e62b93d019c34be8a3da6e0f2262ee1f15181c6",
-  "iteration": 801,
-  "models_source": "zbot_rl_mjlab/src/zbot_rl_mjlab/models.py",
-  "models_sha256": "30454d2e7d1f2b9762179bfa30b79a4c1debf8a846a18fe01026732db6fd2104"
-}

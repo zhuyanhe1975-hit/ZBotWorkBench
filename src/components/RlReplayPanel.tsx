@@ -8,7 +8,9 @@ import { JOINT_SPEED_LIMIT, REPLAY_PROFILES } from '../rl/profiles';
 import { PolicyReplay } from '../rl/replay';
 import type { PhysxModel } from '../rl/physx';
 import { PhysxWorkerSimulation } from '../rl/physxWorkerClient';
-import type { TrainingReplayBundle } from '../training/types';
+import type { TrainingReplayBundle, TrainingLiveFrame } from '../training/types';
+import { TrainingClient } from '../training/client';
+import { TrainingLiveView } from './TrainingLiveView';
 import { loadTrainingBundle, trainingBundleProfile } from '../training/bundle';
 import bundledPhysxModels from 'virtual:zbot-physx-models';
 import { getRlDebugRecords, logRlDebug, subscribeRlDebug } from '../rl/debugLog';
@@ -45,7 +47,10 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
   const [engine] = useState(() => new MujocoEngine());
   const [ready, setReady] = useState(false);
   const [profileId, setProfileId] = useState(REPLAY_PROFILES[0].id);
-  const [backend, setBackend] = useState<'physx' | 'mujoco'>('physx');
+  const [backend, setBackend] = useState<'physx' | 'mujoco' | 'mjwarp'>('physx');
+  const [nativeReplayId, setNativeReplayId] = useState('');
+  const [nativeFrame, setNativeFrame] = useState<TrainingLiveFrame>();
+  const nativeClient = useMemo(() => new TrainingClient(), []);
   const [importedBundle, setImportedBundle] = useState<TrainingReplayBundle | null>(null);
   const importedProfile = useMemo(() => importedBundle ? trainingBundleProfile(importedBundle) : null, [importedBundle]);
   const profile = importedProfile ?? REPLAY_PROFILES.find(p => p.id === profileId)!;
@@ -177,12 +182,26 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
     };
     logRlDebug('replay.load.start', { profile: profile.id, backend, source });
     pause(); setError(''); setLoading(true); updateStage(stage);
+    if (backend === 'mjwarp') {
+      try {
+        const native = await nativeClient.nativeReplay({ frequency: periodicFrequency, device: 'cuda:0', steps: 600 });
+        setNativeReplayId(native.id); setNativeFrame(undefined); setLoadedName('MJLab native model_599 / MJWarp'); setRunning(true);
+      } catch (err) { setError((err as Error).message); }
+      finally { setLoading(false); setLoadingStage(''); }
+      return;
+    }
     const token = ++generation.current;
     requestRef.current?.abort();
     const controller = new AbortController(); requestRef.current = controller;
     let timedOut = false;
     const timeout = window.setTimeout(() => { timedOut = true; controller.abort(); }, 30_000);
     try {
+      if (source === 'example' && profile.bundlePath) {
+        const response = await fetch(asset(profile.bundlePath), { signal: controller.signal });
+        if (!response.ok) throw new Error("回放资产包加载失败");
+        if (token === generation.current) applyBundle(await response.json());
+        return;
+      }
       if (source === 'bundle') {
         if (file) {
           if (file.size > MAX_CHECKPOINT_BYTES) throw new Error('训练结果包过大');
@@ -250,7 +269,7 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
       if (token !== generation.current) { physics.current?.dispose(); physics.current = null; return; }
       runner.current = new PolicyReplay(engine, profile, policy, physics.current ?? undefined);
       runner.current.setJointSpeedLimit(jointSpeedLimit);
-      if (profile.observation === 'isaaclab-periodic') runner.current.setPeriodicFrequency(periodicFrequency);
+      if (profile.observation === 'isaaclab-periodic' || profile.observation === 'mjlab-zbot') runner.current.setPeriodicFrequency(periodicFrequency);
       if (profile.commands) runner.current.setCommands(commands);
       setLoadedName(name); update();
       logRlDebug('replay.load.done', { profile: profile.id, elapsedMs: Math.round(performance.now() - loadStarted) });
@@ -278,9 +297,9 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
     clearSelection();
     setImportedBundle(null); setSource('example'); setFile(null);
     const selected = REPLAY_PROFILES.find(p => p.id === id)!;
-    setProfileId(id); setCommands([...(selected.commands ?? [0, 0, 0])]);
+    setProfileId(id); if (selected.origin === 'mjlab') setBackend('mujoco'); setCommands([...(selected.commands ?? [0, 0, 0])]);
     setJointSpeedLimit(selected.jointSpeedLimit ?? JOINT_SPEED_LIMIT);
-    setPeriodicFrequency(selected.phaseFrequency ?? 1);
+    setPeriodicFrequency(selected.stepFrequency ?? selected.phaseFrequency ?? (selected.origin === 'mjlab' ? .5 : 1));
     if (selected.mujocoCompatible === false) setBackend('physx');
   };
   const changeCommand = (index: number, value: number) => {
@@ -291,9 +310,12 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
   const hasJointSpeedObservation = profile.origin === 'isaacgym'
     ? profile.legacyController?.usesJointSpeed === true
     : profile.jointNames.length === 6 && profile.observation !== 'velocity'
-      && profile.observation !== 'imu' && profile.observation !== 'isaaclab-periodic';
+      && profile.observation !== 'imu' && profile.observation !== 'isaaclab-periodic' && profile.observation !== 'mjlab-zbot';
+  const hasStepFrequency = profile.observation === 'mjlab-zbot';
   const changePeriodicFrequency = (value: number) => {
-    if (!Number.isFinite(value) || value < .5 || value > 2) return;
+    const min = hasStepFrequency ? .2 : .5;
+    const max = hasStepFrequency ? 1 : 2;
+    if (!Number.isFinite(value) || value < min || value > max) return;
     setPeriodicFrequency(value);
     runner.current?.setPeriodicFrequency(value);
   };
@@ -310,11 +332,12 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
     </header>
     <div className="flex-1 min-h-0 overflow-y-auto lg:flex">
       <section className="p-5 space-y-4 lg:w-[360px] shrink-0 border-r border-slate-800">
-        <label className="block text-sm">物理引擎<select aria-label="物理引擎" value={backend} onChange={e => { clearSelection(); setBackend(e.target.value as typeof backend); }} className="mt-2 w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs"><option value="physx" disabled={profile.origin === 'mjlab'}>PhysX WASM · Isaac 同求解器（推荐）</option><option value="mujoco" disabled={profile.mujocoCompatible === false}>MuJoCo WASM · {profile.origin === 'mjlab' ? 'mjlab 训练结果' : profile.mujocoCompatible === false ? '此任务暂未适配' : '迁移对照'}</option></select></label>
+<label className="block text-sm">Physics engine<select aria-label="physics" value={backend} onChange={e => { clearSelection(); setBackend(e.target.value as typeof backend); }} className="mt-2 w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs"><option value="physx" disabled={profile.origin === "mjlab"}>PhysX WASM</option><option value="mujoco" disabled={profile.mujocoCompatible === false}>MuJoCo WASM</option><option value="mjwarp" disabled={profile.origin !== "mjlab"}>MJWarp - local MJLab</option></select></label>
         <label className="block text-sm">训练任务<select aria-label="训练任务" value={importedProfile?.id ?? profileId} onChange={e => changeProfile(e.target.value)} className="mt-2 w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs">
           {importedProfile && <option value={importedProfile.id}>{importedProfile.label}</option>}
-          <optgroup label="现有 Isaac Lab / mjlab 策略">{REPLAY_PROFILES.filter(p => p.origin !== 'isaacgym').map(p => <option key={p.id} value={p.id}>{p.label}</option>)}</optgroup>
-          <optgroup label="旧 Isaac Gym 迁移策略">{REPLAY_PROFILES.filter(p => p.origin === 'isaacgym').map(p => <option key={p.id} value={p.id}>{p.label}</option>)}</optgroup>
+          <optgroup label="ZBot RL / Isaac Lab 训练结果">{REPLAY_PROFILES.filter(p => p.origin !== 'isaacgym' && p.origin !== 'mjlab').map(p => <option key={p.id} value={p.id}>{p.label}</option>)}</optgroup>
+          <optgroup label="旧版 Isaac Gym 训练结果">{REPLAY_PROFILES.filter(p => p.origin === 'isaacgym').map(p => <option key={p.id} value={p.id}>{p.label}</option>)}</optgroup>
+          <optgroup label="MJLab 训练结果">{REPLAY_PROFILES.filter(p => p.origin === 'mjlab').map(p => <option key={p.id} value={p.id}>{p.label}</option>)}</optgroup>
         </select></label>
         <label className="block text-sm">权重来源<select aria-label="权重来源" value={source} onChange={e => { clearSelection(); setSource(e.target.value as typeof source); setFile(null); if (e.target.value !== 'bundle') { setImportedBundle(null); if (importedBundle) setBackend('physx'); } }} className="mt-2 w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs"><option value="example">内置训练权重</option><option value="file">本地 .pt / .pth 文件</option><option value="url">网络权重网址</option><option value="bundle">mjlab 训练结果包 (.json)</option></select></label>
         {source === 'example' && <p className="text-xs text-slate-400 break-all">{profile.checkpoint} · 已随页面打包</p>}
@@ -333,10 +356,11 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
           </label>)}
           <button onClick={() => { setCommands([0, 0, 0]); runner.current?.setCommands([0, 0, 0]); }} className="px-2 py-1 rounded bg-slate-800">速度归零</button>
         </fieldset>}
-        {profile.observation === 'isaaclab-periodic' && <label className="block rounded border border-sky-900 bg-sky-950/20 p-3 text-xs">
-          周期频率 <span className="ml-2 font-mono text-sky-300">{periodicFrequency.toFixed(1)} Hz</span>
-          <input aria-label="周期频率" type="range" min="0.5" max="2" step="0.1" value={periodicFrequency}
+        {(profile.observation === 'isaaclab-periodic' || hasStepFrequency) && <label className="block rounded border border-sky-900 bg-sky-950/20 p-3 text-xs">
+          {hasStepFrequency ? '踏步频率' : '周期频率'} <span className="ml-2 font-mono text-sky-300">{periodicFrequency.toFixed(2)} Hz</span>
+          <input aria-label={hasStepFrequency ? '踏步频率' : '周期频率'} type="range" min={hasStepFrequency ? '.2' : '.5'} max={hasStepFrequency ? '1' : '2'} step={hasStepFrequency ? '.05' : '.1'} value={periodicFrequency}
             onChange={event => changePeriodicFrequency(Number(event.target.value))} className="block w-full mt-2" />
+          {hasStepFrequency && <span className="block mt-1 text-slate-400">写入策略观测的 frequency 项，训练范围 0.2–1.0 Hz。</span>}
         </label>}
         {hasJointSpeedObservation && <label className="block rounded border border-sky-900 bg-sky-950/20 p-3 text-xs">
           策略关节速度参数
@@ -383,7 +407,7 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
           <span className="text-sky-300">{loading ? '加载中' : running ? '策略持续运行中' : loadedName ? '策略已就绪 · 已暂停' : '等待加载策略'}</span>
           <span>时间 {metrics.time.toFixed(2)} s</span><span>控制步 {steps}</span><span>动作峰值 {actionPeak.toFixed(3)}</span>
         </div>
-        <div className="flex-1 min-h-[440px] relative"><SimulationViewport engine={engine} config={displayConfig} simMetrics={metrics} physicsLabel={`${backend === 'physx' ? 'PhysX' : 'MuJoCo'} WASM 动力学仿真器`} physicalEntity={physics.current} showPhysicalEntity={showPhysicalEntity} showDisplayEntity={showDisplayEntity} enablePhysicsDiagnostics onDiagnosticsChange={value => { diagnosticsRef.current = value; physics.current?.setDebugVisualization(value.forces); }} onApplyImpulse={backend === 'mujoco' ? (x, y, z) => engine.applyImpulse(x, y, z) : undefined} /></div>
+        <div className="flex-1 min-h-[440px] relative">{backend === 'mjwarp' && nativeReplayId ? <TrainingLiveView frame={nativeFrame} jobId={nativeReplayId} client={nativeClient} native /> : <SimulationViewport engine={engine} config={displayConfig} visualStyle={profile.origin === 'mjlab' ? 'mjlab' : 'default'} physicsLabel={backend === 'physx' ? 'PhysX WASM' : backend === 'mjwarp' ? 'MJLab MJWarp' : 'MuJoCo WASM'} physicalEntity={physics.current} showPhysicalEntity={showPhysicalEntity} showDisplayEntity={showDisplayEntity} />}</div>
         <p className="px-4 py-2 text-[11px] text-slate-500 break-all">{loadedName || '权重不会离开浏览器；内置示例可直接加载。'}</p>
       </section>
     </div>

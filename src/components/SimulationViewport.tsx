@@ -44,6 +44,7 @@ interface SimulationViewportProps {
   showPhysicalEntity?: boolean;
   enablePhysicsDiagnostics?: boolean;
   onDiagnosticsChange?: (value: { contacts: boolean; forces: boolean; centerOfMass: boolean }) => void;
+  visualStyle?: 'default' | 'mjlab';
 }
 
 export const SimulationViewport: React.FC<SimulationViewportProps> = ({
@@ -59,6 +60,7 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
   showPhysicalEntity = false,
   enablePhysicsDiagnostics = false,
   onDiagnosticsChange,
+  visualStyle = 'default',
   armTarget = null, armMode = 'translate', armValid = true, onArmTargetChange,
 }) => {
   const armControlRef = useRef<ReturnType<typeof createArmTargetControl> | null>(null);
@@ -69,6 +71,8 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const configRef = useRef(config);
   configRef.current = config;
+  const visualStyleRef = useRef(visualStyle);
+  visualStyleRef.current = visualStyle;
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
@@ -121,6 +125,17 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
   const axesHelperRef = useRef<THREE.AxesHelper | null>(null);
   const lastModelRef = useRef<any>(null);
   const needsRebuildRef = useRef<boolean>(true);
+  const floorMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null);
+  const gridMaterialRef = useRef<THREE.MeshBasicMaterial | null>(null);
+
+  useEffect(() => {
+    const mjlab = visualStyle === 'mjlab';
+    floorMaterialRef.current?.color.set(mjlab ? '#263746' : '#1e293b');
+    if (gridMaterialRef.current) gridMaterialRef.current.opacity = mjlab ? .5 : .35;
+    needsRebuildRef.current = true;
+    poseDirtyRef.current = true;
+    invalidateRef.current();
+  }, [visualStyle]);
 
   // Subscribe to mesh updates
   useEffect(() => {
@@ -199,10 +214,11 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
     // Floor with shadow receiver
     const floorGeo = new THREE.PlaneGeometry(30, 30);
     const floorMat = new THREE.MeshStandardMaterial({
-      color: '#1e293b', // slate-800
+      color: visualStyleRef.current === 'mjlab' ? '#263746' : '#1e293b',
       roughness: 0.85,
       metalness: 0.1,
     });
+    floorMaterialRef.current = floorMat;
     const floorMesh = new THREE.Mesh(floorGeo, floorMat);
     floorMesh.receiveShadow = true;
     scene.add(floorMesh);
@@ -211,11 +227,13 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
     const gridCanvas = document.createElement('canvas'); gridCanvas.width = gridCanvas.height = 128;
     const gridContext = gridCanvas.getContext('2d')!;
     gridContext.clearRect(0, 0, 128, 128);
-    gridContext.strokeStyle = '#475569'; gridContext.lineWidth = 1;
+    gridContext.strokeStyle = visualStyleRef.current === 'mjlab' ? '#b8c7d4' : '#475569'; gridContext.lineWidth = 1;
     gridContext.beginPath(); gridContext.moveTo(.5, .5); gridContext.lineTo(127.5, .5); gridContext.moveTo(.5, .5); gridContext.lineTo(.5, 127.5); gridContext.stroke();
     const gridTexture = new THREE.CanvasTexture(gridCanvas);
     gridTexture.wrapS = gridTexture.wrapT = THREE.RepeatWrapping; gridTexture.repeat.set(40, 40); gridTexture.magFilter = THREE.LinearFilter;
-    const grid = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshBasicMaterial({ map: gridTexture, transparent: true, opacity: .35, depthTest: true, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+    const gridMaterial = new THREE.MeshBasicMaterial({ map: gridTexture, transparent: true, opacity: visualStyleRef.current === 'mjlab' ? .5 : .35, depthTest: true, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+    gridMaterialRef.current = gridMaterial;
+    const grid = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), gridMaterial);
     grid.position.z = 0.004;
     grid.renderOrder = 1;
     scene.add(grid);
@@ -756,7 +774,9 @@ export const SimulationViewport: React.FC<SimulationViewportProps> = ({
       if (geomName !== 'visual_cube' && geomName !== 'visual_tetrahedron') visualGeomIndex++;
       const palette = moduleColors[modIndex % moduleColors.length] || { colorA: '#2563eb', colorB: '#38bdf8' };
 
-      const baseColor = (geomName === 'visual_cube' || geomName === 'visual_tetrahedron') ? '#d9dee6' : isPartA ? palette.colorA : palette.colorB;
+      const rgba = model.geom_rgba && g * 4 + 3 < model.geom_rgba.length ? Array.from(model.geom_rgba.slice(g * 4, g * 4 + 4)) : null;
+      const mjlabColor = rgba && rgba[3] > 0 ? new THREE.Color(rgba[0], rgba[1], rgba[2]) : null;
+      const baseColor = visualStyleRef.current === 'mjlab' && mjlabColor ? mjlabColor : (geomName === 'visual_cube' || geomName === 'visual_tetrahedron') ? '#d9dee6' : isPartA ? palette.colorA : palette.colorB;
       const mat = new THREE.MeshStandardMaterial({
         color: baseColor,
         flatShading: geomName === 'visual_tetrahedron',

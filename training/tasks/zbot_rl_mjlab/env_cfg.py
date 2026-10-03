@@ -21,7 +21,7 @@ def walking_env_cfg(play=False, card=None):
     observation_func = mdp.in_place_observation if card.reward_mode == "in_place" else mdp.policy_observation
     observations = {
         name: ObservationGroupCfg(
-            {"walking": ObservationTermCfg(func=observation_func, params={"card": card})},
+            {"walking": ObservationTermCfg(func=observation_func, params={"card": card} if card.reward_mode == "in_place" else {})},
             enable_corruption=False,
         )
         for name in ("actor", "critic")

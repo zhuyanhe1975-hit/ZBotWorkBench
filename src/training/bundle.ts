@@ -22,9 +22,10 @@ export function parseTrainingBundle(value: unknown): TrainingReplayBundle {
     if (!Object.hasOwn(b.assets, match[1])) invalid(`模型引用缺失资源 ${match[1]}`);
   }
   const p = b.profile;
-  if (!p || p.observation !== 'quaternion' || p.inputSize !== 26 || !Array.isArray(p.jointNames) || p.jointNames.length !== 6
+  if (!p || !['quaternion', 'mjlab-zbot'].includes(p.observation) || ![26, 31].includes(p.inputSize) || !Array.isArray(p.jointNames) || p.jointNames.length !== 6
     || new Set(p.jointNames).size !== 6 || !p.jointNames.every(n => typeof n === 'string' && n.length > 0 && n.length <= 128)
     || !Array.isArray(p.defaultAngles) || p.defaultAngles.length !== 6 || !p.defaultAngles.every(Number.isFinite)) invalid('只支持六自由度26维四元数任务');
+  if (p.observation === 'mjlab-zbot' && p.inputSize !== 31) invalid('mjlab zbot 观测维度无效');
   if (p.policyFeatures !== undefined && p.policyFeatures !== 'quat-gravity-heading-v1') invalid('不支持此策略特征变换');
   const ratio = p.controlDt / p.physicsDt;
   if (!(p.physicsDt >= .00001 && p.physicsDt <= .05 && p.controlDt <= .1 && ratio >= 1 && ratio <= 1000)
@@ -38,8 +39,9 @@ export function parseTrainingBundle(value: unknown): TrainingReplayBundle {
 export function trainingBundleProfile(bundle: TrainingReplayBundle): ReplayProfile {
   const p = bundle.profile;
   return { id: `training:${bundle.taskId}`, label: bundle.name, model: '', checkpoint: '', origin: 'mjlab',
-    jointNames: [...p.jointNames], defaultAngles: [...p.defaultAngles], observation: 'quaternion', inputSize: 26,
+    jointNames: [...p.jointNames], defaultAngles: [...p.defaultAngles], observation: p.observation, inputSize: p.inputSize,
     ...(p.policyFeatures ? { policyFeatures: p.policyFeatures } : {}),
+    ...(p.observation === 'mjlab-zbot' ? { actionMode: 'position', actionScale: 0.25, stepFrequency: 0.5 } : {}),
     physicsDt: p.physicsDt, controlDt: p.controlDt, jointSpeedLimit: p.jointSpeedLimit, motion: 'walking' };
 }
 
@@ -47,7 +49,7 @@ export function loadTrainingBundle(engine: MujocoEngine, value: unknown): { bund
   const bundle = parseTrainingBundle(value);
   const bytes = Uint8Array.from(atob(bundle.checkpointBase64), c => c.charCodeAt(0));
   const policy = loadCheckpoint(bytes.buffer, 'elu');
-  const networkInputSize = bundle.profile.policyFeatures ? 30 : 26;
+  const networkInputSize = bundle.profile.inputSize;
   if (policy.inputSize !== networkInputSize || policy.outputSize !== 6) invalid('权重维度与任务不符');
   if (bundle.profile.policyFeatures && policy.normalization) invalid('四元数特征策略不支持观测归一化');
   const profile = trainingBundleProfile(bundle);

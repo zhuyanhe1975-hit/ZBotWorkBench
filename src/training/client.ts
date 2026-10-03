@@ -53,6 +53,17 @@ export class TrainingClient {
   stop(id: string, signal?: AbortSignal) { return this.mutation<TrainingJob>(`/jobs/${encodeURIComponent(id)}/stop`, {}, signal); }
   preview(id: string, enabled: boolean, signal?: AbortSignal) { return this.mutation<TrainingJob>(`/jobs/${encodeURIComponent(id)}/preview`, { enabled }, signal); }
   taskCard(id: string, taskCard: TrainingTaskCardSettings, signal?: AbortSignal) { return this.mutation<TrainingJob>(`/jobs/${encodeURIComponent(id)}/task-card`, taskCard, signal); }
+  async nativeReplay(options: { frequency: number; device?: string; steps?: number }, signal?: AbortSignal): Promise<{ id: string }> {
+    return this.mutation<{ id: string }>('/replay', { frequency: options.frequency, device: options.device ?? 'cuda:0', steps: options.steps ?? 600 }, signal);
+  }
+  nativeReplayLive(id: string, onFrame: (frame: any) => void, onError?: () => void) {
+    const source = new EventSource(API + '/replay/' + encodeURIComponent(id) + '/live');
+    source.onmessage = event => { try { onFrame(JSON.parse(event.data)); } catch { onError?.(); } };
+    source.onerror = () => onError?.();
+    return () => source.close();
+  }
+  nativeReplayStop(id: string, signal?: AbortSignal) { return this.mutation<{ stopped: boolean }>('/replay/' + encodeURIComponent(id) + '/stop', {}, signal); }
+
   live(id: string, onFrame: (frame: NonNullable<TrainingJob['liveFrame']>) => void, onError?: () => void) {
     const source = new EventSource(`${API}/jobs/${encodeURIComponent(id)}/live`);
     source.onmessage = event => {
