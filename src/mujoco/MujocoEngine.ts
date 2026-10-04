@@ -145,6 +145,11 @@ export class MujocoEngine {
     return true;
   }
 
+  /** Load model geometry for display; native MJLab owns replay dynamics. */
+  public loadDisplayModelFromXml(xml: string): boolean {
+    return this.loadModelFromXml(xml);
+  }
+
   /** Training bundles own only this isolated VFS namespace, never CAD assets. */
   public installTrainingAssets(assets: Record<string, string>): void {
     if (!this.mujoco) throw new Error('MuJoCo WASM not initialized yet');
@@ -426,6 +431,34 @@ export class MujocoEngine {
 
   public getData(): any {
     return this.data;
+  }
+
+  /** Apply externally simulated MJLab poses to the display-only MuJoCo data. */
+  public applyExternalDisplayState(bodyNames: string[], positions: number[][], quaternions: number[][], time = 0): void {
+    if (!this.model || !this.data) return;
+    const nameAt = (address: number): string => {
+      let value = '';
+      for (let i = address; i >= 0 && i < this.model.names.length && this.model.names[i]; i++) value += String.fromCharCode(this.model.names[i]);
+      return value;
+    };
+    const index = new Map(bodyNames.map((name, i) => [name, i]));
+    const qmul = (a: number[], b: number[]) => [a[0]*b[0]-a[1]*b[1]-a[2]*b[2]-a[3]*b[3], a[0]*b[1]+a[1]*b[0]+a[2]*b[3]-a[3]*b[2], a[0]*b[2]-a[1]*b[3]+a[2]*b[0]+a[3]*b[1], a[0]*b[3]+a[1]*b[2]-a[2]*b[1]+a[3]*b[0]];
+    const rotate = (q: number[], v: number[]) => { const r = qmul(qmul(q, [0, ...v]), [q[0], -q[1], -q[2], -q[3]]); return [r[1], r[2], r[3]]; };
+    const mat = (q: number[]) => { const [w,x,y,z]=q; return [1-2*(y*y+z*z),2*(x*y-z*w),2*(x*z+y*w),2*(x*y+z*w),1-2*(x*x+z*z),2*(y*z-x*w),2*(x*z-y*w),2*(y*z+x*w),1-2*(x*x+y*y)]; };
+    for (let b = 0; b < this.model.nbody; b++) {
+      const full = nameAt(this.model.name_bodyadr[b]); const short = full.split('/').at(-1) ?? full;
+      const i = index.get(full) ?? index.get(short); if (i === undefined || !positions[i] || !quaternions[i]) continue;
+      const p = positions[i], q = quaternions[i]; this.data.xpos.set(p, b * 3); this.data.xquat.set(q, b * 4); this.data.xmat.set(mat(q), b * 9);
+    }
+    for (let g = 0; g < this.model.ngeom; g++) {
+      const b = this.model.geom_bodyid[g], bp = Array.from(this.data.xpos.slice(b*3,b*3+3)) as number[], bq = Array.from(this.data.xquat.slice(b*4,b*4+4)) as number[];
+      const gp = this.model.geom_pos.slice(g*3,g*3+3) as number[], gq = this.model.geom_quat.slice(g*4,g*4+4) as number[]; const rp = rotate(bq, gp);
+      this.data.geom_xpos.set([bp[0]+rp[0],bp[1]+rp[1],bp[2]+rp[2]], g*3); this.data.geom_xmat.set(mat(qmul(bq,gq)),g*9);
+    }
+    // SimulationViewport's follow lock tracks subtree_com. For an externally
+    // simulated state, use the supplied body origins as the display COM proxy.
+    this.data.subtree_com.set(this.data.xpos);
+    this.data.time = time;
   }
 
   public getCurrentXml(): string {

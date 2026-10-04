@@ -12,7 +12,7 @@ const MAX_ENVIRONMENTS = 9;
 export const trainingDisplayPosition = (pose: [number, number, number], origin: [number, number, number], tileX: number, tileY: number): [number, number, number] =>
   [pose[0] - origin[0] + tileX, pose[1] - origin[1] + tileY, pose[2] - origin[2]];
 
-export function TrainingLiveView({ frame, jobId, client, native = false }: { frame?: TrainingLiveFrame; jobId: string; client: TrainingClient; native?: boolean }) {
+export function TrainingLiveView({ frame, jobId, client, native = false, onNativeError }: { frame?: TrainingLiveFrame; jobId: string; client: TrainingClient; native?: boolean; onNativeError?: (message: string) => void }) {
   const container = useRef<HTMLDivElement>(null);
   const frameRef = useRef<TrainingLiveFrame | undefined>(frame);
   const updateRef = useRef<(next: TrainingLiveFrame) => void>(() => {});
@@ -30,7 +30,7 @@ export function TrainingLiveView({ frame, jobId, client, native = false }: { fra
     scene.fog = new THREE.FogExp2('#0b1220', .055);
     const camera = new THREE.PerspectiveCamera(42, 1, .01, 50);
     camera.up.set(0, 0, 1);
-    camera.position.set(4, -5, 3.4);
+    camera.position.set(.48, -.62, .38);
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
     renderer.shadowMap.enabled = true;
@@ -47,7 +47,7 @@ export function TrainingLiveView({ frame, jobId, client, native = false }: { fra
     // Live poses are rebased around the environment origin and tiled around
     // x=0; targeting x=2 leaves the robot outside the initial view.
     controls.target.set(0, 0, .22);
-    controls.minDistance = 1.2;
+    controls.minDistance = .18;
     controls.maxDistance = 8;
     controls.maxPolarAngle = Math.PI / 2 - .02;
     // Apply the initial target immediately; otherwise the camera keeps its
@@ -66,23 +66,21 @@ export function TrainingLiveView({ frame, jobId, client, native = false }: { fra
     sun.shadow.camera.far = 15;
     sun.shadow.bias = -.0003;
     scene.add(sun, sun.target);
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: 0x172033, roughness: .82, metalness: .08 }));
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshStandardMaterial({ color: 0x263746, roughness: .85, metalness: .1 }));
     floor.receiveShadow = true;
     scene.add(floor);
-    const grid = new THREE.GridHelper(40, 80, 0x0ea5e9, 0x334155);
-    grid.rotation.x = Math.PI / 2;
-    grid.position.z = .001;
+    const gridCanvas = document.createElement('canvas'); gridCanvas.width = gridCanvas.height = 128;
+    const gridContext = gridCanvas.getContext('2d')!;
+    gridContext.strokeStyle = '#b8c7d4'; gridContext.lineWidth = 1;
+    gridContext.beginPath(); gridContext.moveTo(.5, .5); gridContext.lineTo(127.5, .5); gridContext.moveTo(.5, .5); gridContext.lineTo(.5, 127.5); gridContext.stroke();
+    const gridTexture = new THREE.CanvasTexture(gridCanvas); gridTexture.wrapS = gridTexture.wrapT = THREE.RepeatWrapping; gridTexture.repeat.set(40, 40);
+    const grid = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), new THREE.MeshBasicMaterial({ map: gridTexture, transparent: true, opacity: .5, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+    grid.position.z = .004; grid.renderOrder = 1;
     scene.add(grid);
 
     const geometries = new Set<THREE.BufferGeometry>();
     const materials = new Set<THREE.Material>();
     const instances = new Map<number, THREE.InstancedMesh>();
-    const bodyMarkerGeometry = new THREE.SphereGeometry(.055, 12, 8);
-    const bodyMarkerMaterial = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: .45, metalness: .15 });
-    const bodyMarkers = new THREE.InstancedMesh(bodyMarkerGeometry, bodyMarkerMaterial, MAX_ENVIRONMENTS * 32);
-    bodyMarkers.frustumCulled = false;
-    bodyMarkers.count = 0;
-    scene.add(bodyMarkers);
     let model: any = null;
     const nameAt = (address: number) => {
       let value = '';
@@ -107,6 +105,20 @@ export function TrainingLiveView({ frame, jobId, client, native = false }: { fra
       const rows = Math.ceil(count / columns);
       const bodyMatrix = new THREE.Matrix4(), geomMatrix = new THREE.Matrix4(), worldMatrix = new THREE.Matrix4();
       const position = new THREE.Vector3(), rotation = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1);
+      const focusEnvironment = next.environments[0];
+      const focusOrigin = focusEnvironment?.environmentOrigin ?? focusEnvironment?.bodyPositions[base];
+      const focusPose = focusEnvironment?.bodyPositions[base];
+      if (focusOrigin && focusPose) {
+        const column = 0, row = 0;
+        const focus = new THREE.Vector3().fromArray(trainingDisplayPosition(focusPose, focusOrigin, column, row));
+        focus.z += .22;
+        if (focus.distanceTo(controls.target) > 1.2) {
+          const delta = focus.clone().sub(controls.target);
+          controls.target.add(delta);
+          camera.position.add(delta);
+          controls.update();
+        }
+      }
       for (const [geom, mesh] of instances) {
         const localPosition = new THREE.Vector3().fromArray(model.geom_pos, geom * 3);
         const localRotation = new THREE.Quaternion(model.geom_quat[geom * 4 + 1], model.geom_quat[geom * 4 + 2], model.geom_quat[geom * 4 + 3], model.geom_quat[geom * 4]);
@@ -136,23 +148,6 @@ export function TrainingLiveView({ frame, jobId, client, native = false }: { fra
         }
         mesh.instanceMatrix.needsUpdate = true;
       }
-      let markerCount = 0;
-      for (let environmentIndex = 0; environmentIndex < count; environmentIndex++) {
-        const environment = next.environments[environmentIndex];
-        const origin = environment.environmentOrigin ?? environment.bodyPositions[base];
-        const column = environmentIndex % columns, row = Math.floor(environmentIndex / columns);
-        const tileX = (column - (columns - 1) / 2) * .82;
-        const tileY = ((rows - 1) / 2 - row) * .82;
-        for (let body = 0; body < environment.bodyPositions.length; body++) {
-          const pose = environment.bodyPositions[body];
-          if (!pose) continue;
-          position.fromArray(trainingDisplayPosition(pose, origin, tileX, tileY));
-          bodyMatrix.compose(position, new THREE.Quaternion(), new THREE.Vector3(.72, .72, .72));
-          bodyMarkers.setMatrixAt(markerCount++, bodyMatrix);
-        }
-      }
-      bodyMarkers.count = markerCount;
-      bodyMarkers.instanceMatrix.needsUpdate = true;
       renderer.shadowMap.needsUpdate = true;
       render();
     };
@@ -166,7 +161,9 @@ export function TrainingLiveView({ frame, jobId, client, native = false }: { fra
         await engine.init();
         if (disposed) return;
         engine.installTrainingAssets(bundle.assets);
-        engine.loadModelFromXml(bundle.xml);
+        // MuJoCo WASM only compiles the display model here. MJLab/MJWarp
+        // produces every pose in the state stream; this view never steps it.
+        engine.loadDisplayModelFromXml(bundle.xml);
         model = engine.getModel();
         const geometryCache = new Map<number, THREE.BufferGeometry>();
         for (let geom = 0; geom < model.ngeom; geom++) {
@@ -181,7 +178,7 @@ export function TrainingLiveView({ frame, jobId, client, native = false }: { fra
             geometries.add(geometry);
           }
           const offset = geom * 4;
-          const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(model.geom_rgba[offset], model.geom_rgba[offset + 1], model.geom_rgba[offset + 2]), metalness: .35, roughness: .32 });
+          const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(model.geom_rgba[offset], model.geom_rgba[offset + 1], model.geom_rgba[offset + 2]), roughness: .32, metalness: .15 });
           materials.add(material);
           const mesh = new THREE.InstancedMesh(geometry, material, MAX_ENVIRONMENTS);
           mesh.castShadow = true;
@@ -207,8 +204,6 @@ export function TrainingLiveView({ frame, jobId, client, native = false }: { fra
       instances.forEach(mesh => scene.remove(mesh));
       geometries.forEach(geometry => geometry.dispose());
       materials.forEach(material => material.dispose());
-      bodyMarkerGeometry.dispose();
-      bodyMarkerMaterial.dispose();
       floor.geometry.dispose();
       (floor.material as THREE.Material).dispose();
       renderer.dispose();
@@ -218,11 +213,15 @@ export function TrainingLiveView({ frame, jobId, client, native = false }: { fra
   }, []);
 
   useEffect(() => { if (frame) { frameRef.current = frame; setDisplayFrame(frame); updateRef.current(frame); } }, [frame]);
-  useEffect(() => (native ? client.nativeReplayLive(jobId, next => { if (next?.kind !== 'frame' || !Array.isArray(next.environments)) return; frameRef.current = next; setDisplayFrame(next); updateRef.current(next); }, () => {}) : client.live(jobId, next => {
+  useEffect(() => (native ? client.nativeReplayLive(jobId, next => {
+    if (next?.kind === 'error') { onNativeError?.(typeof next.message === 'string' ? next.message : 'MJLab 本地仿真进程失败'); return; }
+    if (next?.kind !== 'frame' || !Array.isArray(next.environments)) return;
+    frameRef.current = next; setDisplayFrame(next); updateRef.current(next);
+  }, () => onNativeError?.('MJLab 本地状态流已断开')) : client.live(jobId, next => {
     frameRef.current = next;
     setDisplayFrame(next);
     updateRef.current(next);
-  }, () => {})), [client, jobId, native]);
+  }, () => {})), [client, jobId, native, onNativeError]);
 
   return <figure className="overflow-hidden rounded border border-slate-700 bg-[#0b1220]" aria-label={`mjlab ZBot实体连续训练画面${displayFrame ? `，第 ${displayFrame.iteration} 次迭代，显示 ${displayFrame.environments.length} 个环境` : ''}`}>
     <figcaption className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-3 py-2 text-xs">

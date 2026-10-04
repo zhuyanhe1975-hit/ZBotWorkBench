@@ -10,7 +10,7 @@ import type { PhysxModel } from '../rl/physx';
 import { PhysxWorkerSimulation } from '../rl/physxWorkerClient';
 import type { TrainingReplayBundle, TrainingLiveFrame } from '../training/types';
 import { TrainingClient } from '../training/client';
-import { TrainingLiveView } from './TrainingLiveView';
+import { parseTrainingBundle } from '../training/bundle';
 import { loadTrainingBundle, trainingBundleProfile } from '../training/bundle';
 import bundledPhysxModels from 'virtual:zbot-physx-models';
 import { getRlDebugRecords, logRlDebug, subscribeRlDebug } from '../rl/debugLog';
@@ -50,7 +50,9 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
   const [backend, setBackend] = useState<'physx' | 'mujoco' | 'mjwarp'>('physx');
   const [nativeReplayId, setNativeReplayId] = useState('');
   const [nativeFrame, setNativeFrame] = useState<TrainingLiveFrame>();
+  const [nativePaused, setNativePaused] = useState(false);
   const nativeClient = useMemo(() => new TrainingClient(), []);
+  const nativeReplayIdRef = useRef('');
   const [importedBundle, setImportedBundle] = useState<TrainingReplayBundle | null>(null);
   const importedProfile = useMemo(() => importedBundle ? trainingBundleProfile(importedBundle) : null, [importedBundle]);
   const profile = importedProfile ?? REPLAY_PROFILES.find(p => p.id === profileId)!;
@@ -113,9 +115,10 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
     });
     return () => {
       active = false; generation.current++; requestRef.current?.abort(); runningRef.current = false;
+      if (nativeReplayIdRef.current) void nativeClient.nativeReplayStop(nativeReplayIdRef.current).catch(() => {});
       runner.current = null; physics.current?.dispose(); physics.current = null; engine.destroy();
     };
-  }, [engine]);
+  }, [engine, nativeClient]);
 
   useEffect(() => {
     if (!running) return;
@@ -152,8 +155,29 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
 
   const clearSelection = () => {
     pause(); generation.current++; requestRef.current?.abort(); setLoading(false); setLoadingStage('');
+    if (nativeReplayIdRef.current) void nativeClient.nativeReplayStop(nativeReplayIdRef.current).catch(() => {});
+    nativeReplayIdRef.current = ''; setNativeReplayId(''); setNativeFrame(undefined);
     runner.current = null; physics.current?.dispose(); physics.current = null;
     engine.cleanupModel(); setLoadedName(''); setError(''); update();
+  };
+  const nativeReplayError = (message: string) => {
+    const id = nativeReplayIdRef.current;
+    if (id) void nativeClient.nativeReplayStop(id).catch(() => {});
+    nativeReplayIdRef.current = ''; setNativeReplayId(''); setNativeFrame(undefined);
+    runningRef.current = false; setRunning(false); setLoadedName(''); setError(message);
+  };
+  const startNativeReplay = async () => {
+    const resources = await nativeClient.resources();
+    const device = resources.gpus.length > 0 && resources.runtime.cudaBuild ? 'cuda:0' : 'cpu';
+    const native = await nativeClient.nativeReplay({ frequency: periodicFrequency, device, steps: 10000 });
+    nativeReplayIdRef.current = native.id;
+    setNativeReplayId(native.id); setNativeFrame(undefined); setNativePaused(true); setLoadedName(`MJLab local · ${device}`); setRunning(false);
+    await nativeClient.nativeReplayControl(native.id, 'pause');
+  };
+  const stopNativeReplay = () => {
+    const id = nativeReplayIdRef.current;
+    if (id) void nativeClient.nativeReplayStop(id).catch(() => {});
+    nativeReplayIdRef.current = ''; setNativeReplayId(''); setNativeFrame(undefined); setNativePaused(true); setRunning(false);
   };
   const cancelLoad = () => {
     generation.current++;
@@ -184,8 +208,13 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
     pause(); setError(''); setLoading(true); updateStage(stage);
     if (backend === 'mjwarp') {
       try {
-        const native = await nativeClient.nativeReplay({ frequency: periodicFrequency, device: 'cuda:0', steps: 600 });
-        setNativeReplayId(native.id); setNativeFrame(undefined); setLoadedName('MJLab native model_599 / MJWarp'); setRunning(true);
+        if (nativeReplayIdRef.current) stopNativeReplay();
+        const displayResponse = await fetch(asset('training/walking-reference.json'));
+        if (!displayResponse.ok) throw new Error('MuJoCo 显示模型加载失败');
+        const displayBundle = parseTrainingBundle(await displayResponse.json());
+        engine.installTrainingAssets(displayBundle.assets);
+        engine.loadDisplayModelFromXml(displayBundle.xml);
+        await startNativeReplay();
       } catch (err) { setError((err as Error).message); }
       finally { setLoading(false); setLoadingStage(''); }
       return;
@@ -285,13 +314,29 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
       }
     }
   };
-  const reset = async () => { pause(); setError(''); try { await runner.current?.resetAsync(); update(); } catch (err) { setError((err as Error).message); } };
+
+  useEffect(() => {
+    if (backend !== 'mjwarp' || !nativeReplayId) return;
+    return nativeClient.nativeReplayLive(nativeReplayId, next => {
+      if (next?.kind !== 'frame' || !Array.isArray(next.environments)) return;
+      const environment = next.environments[0];
+      engine.applyExternalDisplayState(next.bodyNames, environment.bodyPositions, environment.bodyQuaternions, Number(next.time ?? 0));
+      setNativeFrame(next);
+      update();
+    }, nativeReplayError);
+  }, [backend, nativeReplayId, nativeClient, engine]);
+  const reset = async () => { pause(); setError(''); try { if (backend === 'mjwarp' && nativeReplayId) { await nativeClient.nativeReplayControl(nativeReplayId, 'reset'); setNativePaused(true); setRunning(false); } else await runner.current?.resetAsync(); update(); } catch (err) { setError((err as Error).message); } };
   const play = () => {
+    if (backend === 'mjwarp') {
+      if (!nativeReplayId && loadedName) { void startNativeReplay().catch(err => setError((err as Error).message)); return; }
+      if (nativeReplayId) void nativeClient.nativeReplayControl(nativeReplayId, nativePaused ? 'resume' : 'pause').then(() => { setNativePaused(value => !value); setRunning(nativePaused); }).catch(err => setError((err as Error).message));
+      return;
+    }
     if (!runner.current) return;
     if (runningRef.current) { pause(); return; }
     runningRef.current = true; setRunning(true);
   };
-  const singleStep = async () => { pause(); try { await runner.current?.stepAsync(); update(); } catch (err) { setError((err as Error).message); } };
+  const singleStep = async () => { pause(); try { if (backend === 'mjwarp' && nativeReplayId) await nativeClient.nativeReplayControl(nativeReplayId, 'step'); else await runner.current?.stepAsync(); update(); } catch (err) { setError((err as Error).message); } };
   const changeProfile = (id: string) => {
     if (id === importedProfile?.id) return;
     clearSelection();
@@ -317,7 +362,8 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
     const max = hasStepFrequency ? 1 : 2;
     if (!Number.isFinite(value) || value < min || value > max) return;
     setPeriodicFrequency(value);
-    runner.current?.setPeriodicFrequency(value);
+    if (backend === 'mjwarp' && nativeReplayId) void nativeClient.nativeReplayControl(nativeReplayId, 'frequency', value).catch(err => setError((err as Error).message));
+    else runner.current?.setPeriodicFrequency(value);
   };
   const changeJointSpeedLimit = (value: number) => {
     if (!Number.isFinite(value) || value < .1 || value > 5) return;
@@ -327,7 +373,7 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
 
   return <div className="fixed inset-0 z-40 bg-slate-950 flex flex-col" role="dialog" aria-modal="true" aria-label="强化学习回放">
     <header className="flex items-center justify-between gap-4 px-5 py-4 border-b border-slate-800">
-      <div><h2 className="font-semibold">强化学习回放</h2><p className="text-xs text-slate-400 mt-1">浏览器 CPU 策略推理 + {backend === 'physx' ? 'PhysX' : 'MuJoCo'} WASM · 无需 Python、GPU 或回放服务器</p></div>
+      <div><h2 className="font-semibold">强化学习回放</h2><p className="text-xs text-slate-400 mt-1">{backend === 'mjwarp' ? '本机 MJLab/MJWarp 仿真 + 前端状态显示' : `浏览器 CPU 策略推理 + ${backend === 'physx' ? 'PhysX' : 'MuJoCo'} WASM`}</p></div>
       <button onClick={onClose} aria-label="返回实验台" className="p-2 rounded bg-slate-800 hover:bg-slate-700"><X size={20} /></button>
     </header>
     <div className="flex-1 min-h-0 overflow-y-auto lg:flex">
@@ -347,7 +393,7 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
         <button disabled={!loading && (!ready || source === 'file' && !file || source === 'bundle' && !file && !importedBundle || source === 'url' && !url.trim())}
           onClick={() => loading ? cancelLoad() : void load()}
           className={`w-full rounded px-3 py-2 text-sm disabled:opacity-40 ${loading ? 'bg-rose-700 hover:bg-rose-600' : 'bg-blue-600 hover:bg-blue-500'}`}>
-          {loading ? `${loadingStage || '加载中'}…（点击取消）` : ready ? '加载策略' : '正在初始化 WASM…'}
+          {loading ? `${loadingStage || '加载中'}…（点击取消）` : ready ? (loadedName ? '重新加载策略' : '加载策略') : '正在初始化 WASM…'}
         </button>
         {profile.commands && <fieldset className="space-y-2 border border-slate-700 rounded p-3 text-xs">
           <legend className="px-1 text-sky-300">速度命令</legend>
@@ -369,11 +415,15 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
           <input aria-label="策略关节速度参数" type="number" min="0.1" max={profile.origin === 'isaacgym' ? 1 : 5} step="0.1" value={jointSpeedLimit}
             onChange={e => changeJointSpeedLimit(e.target.valueAsNumber)} className="mt-2 w-full rounded border border-slate-700 bg-slate-900 p-2" />
         </label>}
-        <div className="grid grid-cols-3 gap-2">
-          <button disabled={!loadedName || loading || !!error} onClick={play} className="flex items-center justify-center gap-1 rounded bg-emerald-700 px-2 py-2 text-xs disabled:opacity-40">{running ? <Pause size={14} /> : <Play size={14} />}{running ? '暂停' : 'Play'}</button>
-          <button disabled={!loadedName || loading || !!error || running} onClick={() => void singleStep()} className="flex items-center justify-center gap-1 rounded bg-slate-800 p-2 text-xs disabled:opacity-40"><SkipForward size={14} />单步</button>
-          <button disabled={!loadedName || loading} onClick={() => void reset()} className="flex items-center justify-center gap-1 rounded bg-slate-800 p-2 text-xs disabled:opacity-40"><RotateCcw size={14} />重置</button>
-        </div>
+        {backend === 'mjwarp' ? <div className="grid grid-cols-3 gap-2 text-xs">
+          <button disabled={!loadedName || loading} onClick={play} className="rounded bg-emerald-700 px-2 py-2 disabled:opacity-40">{nativePaused ? 'Play' : '暂停'}</button>
+          <button disabled={!nativeReplayId || loading || !nativePaused} onClick={() => void singleStep()} className="rounded bg-slate-800 px-2 py-2 disabled:opacity-40">单步</button>
+          <button disabled={!nativeReplayId || loading} onClick={() => void reset()} className="rounded bg-slate-800 px-2 py-2 disabled:opacity-40">重置</button>
+        </div> : <div className="grid grid-cols-3 gap-2">
+          <button disabled={backend === 'mjwarp' || !loadedName || loading || !!error} onClick={play} className="flex items-center justify-center gap-1 rounded bg-emerald-700 px-2 py-2 text-xs disabled:opacity-40">{running ? <Pause size={14} /> : <Play size={14} />}{running ? '暂停' : 'Play'}</button>
+          <button disabled={backend === 'mjwarp' || !loadedName || loading || !!error || running} onClick={() => void singleStep()} className="flex items-center justify-center gap-1 rounded bg-slate-800 p-2 text-xs disabled:opacity-40"><SkipForward size={14} />单步</button>
+          <button disabled={backend === 'mjwarp' || !loadedName || loading} onClick={() => void reset()} className="flex items-center justify-center gap-1 rounded bg-slate-800 p-2 text-xs disabled:opacity-40"><RotateCcw size={14} />重置</button>
+        </div>}
         <label className="block text-xs">播放速度<select aria-label="播放速度" value={speed} onChange={e => setSpeed(Number(e.target.value))} className="ml-3 bg-slate-900 border border-slate-700 rounded p-1">{[.25, .5, 1, 2].map(n => <option key={n} value={n}>{n}×</option>)}</select></label>
         <fieldset className="rounded border border-slate-700 p-3 text-xs">
           <legend className="px-1 text-sky-300">实体显示</legend>
@@ -395,7 +445,7 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
             `${record.elapsedMs.toString().padStart(6)} ms  ${record.event}${record.details ? ` ${JSON.stringify(record.details)}` : ''}`).join('\n') || '暂无日志'}</pre>
         </details>
         <div className="border-t border-slate-800 pt-4 text-xs text-slate-400 space-y-2 leading-5">
-          {profile.origin === 'mjlab' ? <p>此结果来自 mjlab，按结果包保存的 MuJoCo 模型、物理步长和积分速度回放。短训练仅证明流程可运行，运动质量仍需评估。</p> : <><p>已收录训练目录的 {REPLAY_PROFILES.length} 组权重，按所选任务加载机器人及观测／动作定义；当前策略控制频率为 {(1 / (profile.controlDt ?? 1 / 30)).toFixed(0)} Hz。</p>
+          {profile.origin === 'mjlab' ? <p>本机 mjlab/MJWarp 负责物理仿真；MuJoCo WASM 仅加载显示模型并渲染 mjlab 状态流。</p> : <><p>已收录训练目录的 {REPLAY_PROFILES.length} 组权重，按所选任务加载机器人及观测／动作定义；当前策略控制频率为 {(1 / (profile.controlDt ?? 1 / 30)).toFixed(0)} Hz。</p>
           {backend === 'physx' ? <p>PhysX 使用原训练的 TGS 求解器、{(1 / (profile.physicsDt ?? 1 / 60)).toFixed(0)} Hz 步长和隐式电机驱动。各权重按自身任务回放，实验权重保留原生表现；具体轨迹仍可能不同。</p> : <p className="text-amber-300">MuJoCo 使用 600 Hz 子步，仅用于迁移对照。接触与驱动响应尚不等价，原策略可能跌倒；默认回放推荐使用 PhysX。</p>}</>}
           <p>策略会持续推理，直到手动暂停、重置、切换任务或关闭回放；不复现训练环境的跌倒自动重置。</p>
           {profile.note && <p className="text-amber-200">{profile.note}</p>}
@@ -407,7 +457,7 @@ export function RlReplayPanel({ onClose, initialBundle }: { onClose: () => void;
           <span className="text-sky-300">{loading ? '加载中' : running ? '策略持续运行中' : loadedName ? '策略已就绪 · 已暂停' : '等待加载策略'}</span>
           <span>时间 {metrics.time.toFixed(2)} s</span><span>控制步 {steps}</span><span>动作峰值 {actionPeak.toFixed(3)}</span>
         </div>
-        <div className="flex-1 min-h-[440px] relative">{backend === 'mjwarp' && nativeReplayId ? <TrainingLiveView frame={nativeFrame} jobId={nativeReplayId} client={nativeClient} native /> : <SimulationViewport engine={engine} config={displayConfig} visualStyle={profile.origin === 'mjlab' ? 'mjlab' : 'default'} physicsLabel={backend === 'physx' ? 'PhysX WASM' : backend === 'mjwarp' ? 'MJLab MJWarp' : 'MuJoCo WASM'} physicalEntity={physics.current} showPhysicalEntity={showPhysicalEntity} showDisplayEntity={showDisplayEntity} />}</div>
+        <div className="flex-1 min-h-[440px] relative"><SimulationViewport engine={engine} simMetrics={metrics} revision={nativeFrame?.iteration ?? 0} config={displayConfig} visualStyle={profile.origin === 'mjlab' ? 'mjlab' : 'default'} physicsLabel={backend === 'physx' ? 'PhysX WASM' : backend === 'mjwarp' ? 'MJLab MJWarp' : 'MuJoCo WASM'} physicalEntity={physics.current} showPhysicalEntity={showPhysicalEntity} showDisplayEntity={showDisplayEntity} /></div>
         <p className="px-4 py-2 text-[11px] text-slate-500 break-all">{loadedName || '权重不会离开浏览器；内置示例可直接加载。'}</p>
       </section>
     </div>

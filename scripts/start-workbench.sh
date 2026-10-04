@@ -21,7 +21,7 @@ start_one() {
   local name="$1" log="$2"; shift 2
   local pid_file="$PID_DIR/$name.pid"
   cd "$ROOT_DIR"
-  setsid env NODE_ENV=production ZBOT_TRAINING_PYTHON="${ZBOT_TRAINING_PYTHON:-$HOME/mjlab/.venv/bin/python}" "$NPM_BIN" "$@" >"$RUNTIME_DIR/$log" 2>&1 &
+  setsid env NODE_ENV=production ZBOT_TRAINING_PYTHON="${ZBOT_TRAINING_PYTHON:-$HOME/AI/mjlab/.venv/bin/python}" "$NPM_BIN" "$@" >"$RUNTIME_DIR/$log" 2>&1 &
   echo $! >"$pid_file"
   echo "$name started (PID $(cat "$pid_file"))"
 }

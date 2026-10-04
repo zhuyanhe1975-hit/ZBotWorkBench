@@ -114,7 +114,11 @@ export async function createTrainingService(options: TrainingServiceOptions = {}
   const repoRoot = process.cwd();
   const pythonRelativePath = os.platform() === 'win32' ? '.venv/Scripts/python.exe' : '.venv/bin/python';
   const pythonCandidates = [path.join(repoRoot, 'training', pythonRelativePath)];
-  const python = options.python ?? process.env.ZBOT_TRAINING_PYTHON ?? pythonCandidates.find(existsSync) ?? (os.platform() === 'win32' ? 'python' : path.join(os.homedir(), 'mjlab', '.venv', 'bin', 'python'));
+  const externalPythonCandidates = os.platform() === 'win32' ? [] : [
+    path.join(os.homedir(), 'AI', 'mjlab', '.venv', 'bin', 'python'),
+    path.join(os.homedir(), 'mjlab', '.venv', 'bin', 'python'),
+  ];
+  const python = options.python ?? process.env.ZBOT_TRAINING_PYTHON ?? [...pythonCandidates, ...externalPythonCandidates].find(existsSync) ?? (os.platform() === 'win32' ? 'python' : 'python3');
   const worker = path.resolve(options.worker ?? 'training/worker.py');
   const probe = path.resolve(options.probe ?? 'training/probe.py');
   let operatorRoots: string[] | undefined;

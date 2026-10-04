@@ -63,6 +63,9 @@ export class TrainingClient {
     return () => source.close();
   }
   nativeReplayStop(id: string, signal?: AbortSignal) { return this.mutation<{ stopped: boolean }>('/replay/' + encodeURIComponent(id) + '/stop', {}, signal); }
+  nativeReplayControl(id: string, command: 'pause' | 'resume' | 'reset' | 'step' | 'frequency', value?: number, signal?: AbortSignal) {
+    return this.mutation<{ ok: boolean }>('/replay/' + encodeURIComponent(id) + '/control', { command, ...(value === undefined ? {} : { value }) }, signal);
+  }
 
   live(id: string, onFrame: (frame: NonNullable<TrainingJob['liveFrame']>) => void, onError?: () => void) {
     const source = new EventSource(`${API}/jobs/${encodeURIComponent(id)}/live`);

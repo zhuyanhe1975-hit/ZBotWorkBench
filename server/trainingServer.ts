@@ -1,4 +1,5 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
+import { existsSync } from 'node:fs';
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
@@ -14,7 +15,11 @@ export async function createTrainingApp(options: TrainingServiceOptions & { dist
   const token = randomBytes(32).toString('hex');
   const nativeReplays = new Map<string, { child: ReturnType<typeof spawn>; listeners: Set<(value: unknown) => void>; last?: unknown }>();
   const nativeReplayScript = path.resolve(options.distDir ? path.join(options.distDir, '..', 'training/native_replay.py') : 'training/native_replay.py');
-  const python = process.env.ZBOT_TRAINING_PYTHON ?? path.join(process.env.HOME ?? '', 'mjlab', '.venv', 'bin', 'python');
+  const home = process.env.HOME ?? '';
+  const python = process.env.ZBOT_TRAINING_PYTHON
+    ?? [path.join(home, 'AI', 'mjlab', '.venv', 'bin', 'python'), path.join(home, 'mjlab', '.venv', 'bin', 'python')]
+      .find(candidate => existsSync(candidate))
+    ?? 'python3';
   app.disable('x-powered-by');
   app.use((req, res, next) => {
     if (!loopbackAddress(req.socket.remoteAddress)) return res.status(403).json({ error: '训练服务仅接受本机连接' });
@@ -50,10 +55,11 @@ export async function createTrainingApp(options: TrainingServiceOptions & { dist
   app.post('/api/training/replay', asyncRoute(async (req, res) => {
     const frequency = Number(req.body?.frequency ?? 0.4);
     const steps = Number(req.body?.steps ?? 600);
-    const device = typeof req.body?.device === 'string' && /^cuda:\d+$/.test(req.body.device) ? req.body.device : 'cuda:0';
+    const device = req.body?.device === 'cpu' || (typeof req.body?.device === 'string' && /^cuda:\d+$/.test(req.body.device))
+      ? req.body.device : 'cpu';
     if (!Number.isFinite(frequency) || frequency < 0.25 || frequency > 1 || !Number.isInteger(steps) || steps < 1 || steps > 10000) return res.status(400).json({ error: 'invalid native replay parameters' });
     const id = randomUUID();
-    const child = spawn(python, [nativeReplayScript, '--frequency', String(frequency), '--steps', String(steps), '--device', device], { cwd: path.dirname(nativeReplayScript), env: { ...process.env, PYTHONUNBUFFERED: '1' }, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(python, [nativeReplayScript, '--frequency', String(frequency), '--steps', String(steps), '--device', device], { cwd: path.dirname(nativeReplayScript), env: { ...process.env, PYTHONUNBUFFERED: '1' }, stdio: ['pipe', 'pipe', 'pipe'] });
     const record: { child: ReturnType<typeof spawn>; listeners: Set<(value: unknown) => void>; last?: unknown } = { child, listeners: new Set<(value: unknown) => void>() };
     nativeReplays.set(id, record);
     const lineReader = createInterface({ input: child.stdout });
@@ -68,6 +74,15 @@ export async function createTrainingApp(options: TrainingServiceOptions & { dist
     const record = nativeReplays.get(req.params.id);
     if (!record) return res.status(404).json({ error: 'native replay not found' });
     record.child.kill('SIGTERM'); return res.json({ stopped: true });
+  });
+  app.post('/api/training/replay/:id/control', (req, res) => {
+    const record = nativeReplays.get(req.params.id);
+    const command = req.body?.command;
+    if (!record) return res.status(404).json({ error: 'native replay not found' });
+    if (!['pause', 'resume', 'reset', 'step'].includes(command) && command !== 'frequency') return res.status(400).json({ error: 'invalid native replay command' });
+    if (command === 'frequency' && (typeof req.body?.value !== 'number' || req.body.value < .2 || req.body.value > 1)) return res.status(400).json({ error: 'invalid native replay frequency' });
+    record.child.stdin?.write(JSON.stringify(command === 'frequency' ? { command, value: req.body.value } : { command }) + '\n');
+    return res.json({ ok: true });
   });
   app.get('/api/training/replay/:id/live', (req, res) => {
     const record = nativeReplays.get(req.params.id);
